@@ -1,0 +1,70 @@
+{
+  "private": true,
+  "name": "notepadia-electron-app",
+  "description": "Notepadia desktop application",
+  "productName": "Notepadia",
+  "version": "0.1.0",
+  "main": "lib/backend/electron-main.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "yarn": ">=1.7.0 <2"
+  },
+  "theia": {
+    "target": "electron",
+    "frontend": {
+      "config": {
+        "applicationName": "Notepadia",
+        "reloadOnReconnect": true,
+        "electron": {
+          "appUserModelId": "org.notepadia.desktop",
+          "showWindowEarly": false
+        }
+      }
+    },
+    "backend": {
+      "config": {
+        "frontendConnectionTimeout": -1,
+        "startupTimeout": -1,
+        "resolveSystemPlugins": false,
+        "configurationFolder": ".notepadia"
+      }
+    }
+  },
+  "dependencies": {
+    "@theia/core": "1.75.0",
+    "@theia/editor": "1.75.0",
+    "@theia/editor-preview": "1.75.0",
+    "@theia/electron": "1.75.0",
+    "@theia/file-search": "1.75.0",
+    "@theia/filesystem": "1.75.0",
+    "@theia/keymaps": "1.75.0",
+    "@theia/markers": "1.75.0",
+    "@theia/messages": "1.75.0",
+    "@theia/monaco": "1.75.0",
+    "@theia/navigator": "1.75.0",
+    "@theia/preferences": "1.75.0",
+    "@theia/search-in-workspace": "1.75.0",
+    "@theia/workspace": "1.75.0",
+    "notepadia": "0.1.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@theia/cli": "1.75.0",
+    "electron": "42.8.1",
+    "electron-builder": "26.15.3",
+    "rimraf": "^2.7.1"
+  },
+  "scripts": {
+    "build": "yarn -s rebuild && theia build --app-target=electron --mode development",
+    "build:prod": "yarn -s rebuild && theia build --app-target=electron",
+    "rebuild": "theia rebuild:electron --cacheRoot ../..",
+    "start": "electron lib/backend/electron-main.js --plugins=local-dir:../../plugins",
+    "start:debug": "yarn start --log-level=debug --remote-debugging-port=9222",
+    "clean": "theia clean && rimraf node_modules",
+    "clean:dist": "rimraf dist",
+    "package": "yarn clean:dist && yarn build:prod && electron-builder -c.mac.identity=null --publish never",
+    "package:preview": "yarn clean:dist && yarn build:prod && electron-builder -c.mac.identity=null --dir"
+  }
+}

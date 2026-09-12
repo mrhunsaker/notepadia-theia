@@ -1,0 +1,15 @@
+{
+  "artifact": "notepadia-theia-1.75.0",
+  "product_version": "0.1.0",
+  "theia_baseline": "1.75.0",
+  "node_minimum": "24",
+  "electron": "42.8.1",
+  "electron_builder": "26.15.3",
+  "status": "browser application builds and runs on Linux; extension and esbuild frontend/backend bundles verified; Electron packaging still to be validated",
+  "primary_target": "linux",
+  "primary_runtime": "browser (http://localhost:3000)",
+  "notes": [
+    "Stale Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged) removed and backed up to /tmp/opencode/berry-leftovers; they broke esbuild resolution.",
+    "react@19.2.8 and react-dom@19.2.8 added as direct app dependencies (peer deps of @theia/core in composed applications)."
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "private": true,
+  "name": "notepadia",
+  "version": "0.1.0",
+  "description": "Notepadia - a Notepad++-style desktop text editor built on Eclipse Theia",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24",
+    "yarn": ">=1.7.0 <2"
+  },
+  "scripts": {
+    "build": "yarn build:extensions && yarn build:browser",
+    "build:all": "yarn build && yarn build:electron",
+    "build:extensions": "lerna run --scope=notepadia build",
+    "build:browser": "yarn --cwd applications/browser build",
+    "build:electron": "yarn --cwd applications/electron build",
+    "start": "yarn --cwd applications/browser start",
+    "start:browser": "yarn --cwd applications/browser start",
+    "start:debug": "yarn --cwd applications/browser start:debug",
+    "start:electron": "yarn --cwd applications/electron start",
+    "watch": "yarn watch:extensions && yarn watch:browser",
+    "watch:extensions": "lerna run --scope=notepadia watch",
+    "watch:browser": "yarn --cwd applications/browser watch",
+    "clean": "lerna run clean && rimraf node_modules",
+    "package": "yarn --cwd applications/electron package",
+    "package:preview": "yarn --cwd applications/electron package:preview",
+    "lint": "lerna run lint",
+    "test": "lerna run test",
+    "verify": "node scripts/verify-environment.mjs"
+  },
+  "devDependencies": {
+    "lerna": "^9.0.7",
+    "rimraf": "^2.7.1"
+  },
+  "volta": {
+    "node": "24.21.0"
+  },
+  "dependencies": {
+    "yarn": "^1.22.22"
+  },
+  "workspaces": [
+    "applications/*",
+    "extensions/*"
+  ]
+}

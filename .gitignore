@@ -1,0 +1,13 @@
+node_modules/
+lib/
+dist/
+build/
+out/
+plugins/
+*.log
+.DS_Store
+Thumbs.db
+*.code-workspace
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

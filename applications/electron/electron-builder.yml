@@ -1,0 +1,46 @@
+appId: org.notepadia.desktop
+productName: Notepadia
+asar: true
+
+directories:
+  output: dist
+
+files:
+  - "**/*"
+  - "!**/*.map"
+  - "!**/test/**"
+  - "!**/tests/**"
+
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: "Notepadia-${version}-${arch}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Notepadia
+  perMachine: false
+
+mac:
+  target:
+    - dmg
+    - zip
+
+linux:
+  target:
+    - AppImage
+    - rpm
+    - deb
+  category: Utility
+  maintainer: Notepadia
+  desktop:
+    entry:
+      Name: Notepadia
+      Comment: Notepad++-style text editor
+      MimeType: text/plain;text/x-script;text/x-c;text/x-c++;text/x-csrc;text/x-c++src;text/html;text/markdown;application/json;application/xml;text/x-java;text/x-python;text/x-typescript;text/x-javascript;text/x-shellscript;text/x-sql;text/yaml;text/css;
+      Categories: Utility;TextEditor;
+  artifactName: "Notepadia-${version}-${arch}.${ext}"

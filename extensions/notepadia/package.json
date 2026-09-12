@@ -1,0 +1,33 @@
+{
+  "name": "notepadia",
+  "version": "0.1.0",
+  "description": "Notepadia product extension",
+  "license": "MIT",
+  "main": "lib/browser/notepadia-frontend-module.js",
+  "types": "lib/browser/notepadia-frontend-module.d.ts",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "compile": "tsc -p tsconfig.json",
+    "clean": "rm -rf lib *.tsbuildinfo",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@theia/core": "1.75.0",
+    "@theia/editor": "1.75.0",
+    "@theia/filesystem": "1.75.0",
+    "@theia/monaco": "1.75.0",
+    "@theia/navigator": "1.75.0",
+    "@theia/preferences": "1.75.0",
+    "@theia/workspace": "1.75.0"
+  },
+  "devDependencies": {},
+  "theiaExtensions": [
+    {
+      "frontend": "lib/browser/notepadia-frontend-module"
+    }
+  ]
+}

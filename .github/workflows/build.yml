@@ -1,0 +1,40 @@
+name: Build Notepadia
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+
+      - name: Verify environment
+        run: yarn verify
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build extensions and browser application
+        run: yarn build
+
+      - name: Upload browser app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: notepadia-browser-app
+          path: |
+            applications/browser/lib/
+            extensions/notepadia/lib/
+          if-no-files-found: error
