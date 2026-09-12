@@ -21,13 +21,22 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             command: NotepadiaCommands.CLOSE_ALL.id,
             keybinding: 'ctrlcmd+shift+w'
         });
+        // Ctrl+D (Monaco "select next occurrence") and Ctrl+L (Monaco
+        // "expand line selection") collide with Monaco's default editor
+        // keybindings, which Theia mirrors into its own keybinding registry
+        // scoped with an editorTextFocus `when` clause. Our bindings are
+        // registered later (higher priority) and use the same editorTextFocus
+        // `when`, so the keybinding tree picks ours first inside the editor
+        // while leaving the chords free elsewhere.
         keybindings.registerKeybinding({
             command: NotepadiaCommands.DUPLICATE_LINE.id,
-            keybinding: 'ctrlcmd+d'
+            keybinding: 'ctrlcmd+d',
+            when: 'editorTextFocus'
         });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.DELETE_LINE.id,
-            keybinding: 'ctrlcmd+l'
+            keybinding: 'ctrlcmd+l',
+            when: 'editorTextFocus'
         });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.JOIN_LINES.id,

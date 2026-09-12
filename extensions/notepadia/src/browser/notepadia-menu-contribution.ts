@@ -57,7 +57,7 @@ export class NotepadiaMenuContribution implements MenuContribution {
             order: 'e'
         });
         menus.registerMenuAction(file, {
-            commandId: CommonCommands.CLOSE_TAB.id,
+            commandId: NotepadiaCommands.CLOSE.id,
             label: 'Close',
             order: 'f'
         });

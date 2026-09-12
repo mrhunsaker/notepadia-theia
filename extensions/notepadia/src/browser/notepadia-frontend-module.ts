@@ -9,6 +9,7 @@ import {
 } from '@theia/core/lib/browser';
 
 import { NotepadiaContribution } from './notepadia-contribution';
+import { NotepadiaDropContribution } from './notepadia-drop-contribution';
 import { NotepadiaEditorKeybindingContribution } from './notepadia-editor-keybinding-contribution';
 import { NotepadiaKeybindingContribution } from './notepadia-keybinding-contribution';
 import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
@@ -17,6 +18,9 @@ import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribut
 export default new ContainerModule((bind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaContribution);
+
+    bind(NotepadiaDropContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaDropContribution);
 
     bind(NotepadiaMenuContribution).toSelf().inSingletonScope();
     bind(MenuContribution).toService(NotepadiaMenuContribution);

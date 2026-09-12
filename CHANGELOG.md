@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0 (unreleased)
+
+- Notepad++ editing essentials: new `Search`, `Encoding`, `Language`,
+  `Settings` top-level menus plus a `Line Operations` submenu and a
+  `Convert Case` submenu under Edit.
+- File menu now offers New / Open / Save / Save As / Save All / Close /
+  Close All / Close All But Active.
+- Edit operations implemented through Monaco editor actions: duplicate line,
+  delete line, move line up/down, join lines, indent/unindent, comment
+  toggle, and case conversion.
+- Ctrl+D (duplicate line) and Ctrl+L (delete line) now override Monaco's
+  multicursor find and line-expansion defaults. Editor input is forced onto
+  the classic textarea path (`editor.editContext: false`) so Theia-level
+  chords fire deterministically; Monaco dynamic keybindings are bridged as a
+  fallback.
+- Ctrl+J join lines and Ctrl+Shift+U uppercase keep Monaco-level behavior via
+  the Monaco keybinding bridge.
+- Unsaved-change confirmation when closing dirty editors (Save / Don't Save /
+  Cancel) for single-tab and Close All; `file.upload`-based OS drag-and-drop
+  hint with an "Upload Files..." action.
+- Test workspace recommends `files.autoSave: "off"` for Notepad++ semantics.
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

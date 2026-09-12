@@ -1,11 +1,13 @@
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
-import { injectable } from '@theia/core/shared/inversify';
+import { inject, injectable } from '@theia/core/shared/inversify';
 import {
     Command,
     CommandContribution,
-    CommandRegistry
+    CommandRegistry,
+    MessageService
 } from '@theia/core/lib/common';
 import { CommonCommands, ApplicationShell } from '@theia/core/lib/browser';
+import { Saveable, SaveableWidget } from '@theia/core/lib/browser/saveable';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
 
@@ -18,6 +20,11 @@ export namespace NotepadiaCommands {
     export const CLOSE_ALL: Command = {
         id: 'notepadia.closeAll',
         label: 'Close All'
+    };
+
+    export const CLOSE: Command = {
+        id: 'notepadia.close',
+        label: 'Close'
     };
 
     export const DUPLICATE_LINE: Command = {
@@ -108,9 +115,12 @@ export namespace NotepadiaCommands {
 
 @injectable()
 export class NotepadiaContribution implements CommandContribution {
+    protected closeInProgress = false;
+
     constructor(
         protected readonly editorManager: EditorManager,
-        protected readonly shell: ApplicationShell
+        protected readonly shell: ApplicationShell,
+        @inject(MessageService) protected readonly messageService: MessageService
     ) {}
 
     registerCommands(commands: CommandRegistry): void {
@@ -118,8 +128,12 @@ export class NotepadiaContribution implements CommandContribution {
             execute: () => commands.executeCommand(CommonCommands.NEW_FILE.id)
         });
 
+        commands.registerCommand(NotepadiaCommands.CLOSE, {
+            execute: () => this.closeCurrentEditor(commands)
+        });
+
         commands.registerCommand(NotepadiaCommands.CLOSE_ALL, {
-            execute: () => commands.executeCommand(CommonCommands.CLOSE_ALL_TABS.id)
+            execute: () => this.closeAllEditors(commands)
         });
 
         commands.registerCommand(NotepadiaCommands.DUPLICATE_LINE, {
@@ -208,6 +222,63 @@ export class NotepadiaContribution implements CommandContribution {
         });
     }
 
+    protected async closeCurrentEditor(commands: CommandRegistry): Promise<void> {
+        if (this.closeInProgress) {
+            return;
+        }
+        this.closeInProgress = true;
+        try {
+            const widget = this.editorManager.currentEditor;
+            if (!widget) {
+                return;
+            }
+            if (Saveable.isDirty(widget)) {
+                const choice = await this.messageService.warn(
+                    `Do you want to save the changes you made to "${widget.title.label}"?`,
+                    'Save', "Don't Save", 'Cancel'
+                );
+                if (!choice || choice === 'Cancel') {
+                    return;
+                }
+                if (choice === 'Save') {
+                    await Saveable.save(widget);
+                }
+            }
+            await commands.executeCommand(CommonCommands.CLOSE_TAB.id);
+        } finally {
+            this.closeInProgress = false;
+        }
+    }
+
+    protected async closeAllEditors(commands: CommandRegistry): Promise<void> {
+        if (this.closeInProgress) {
+            return;
+        }
+        this.closeInProgress = true;
+        try {
+            const dirty = [...SaveableWidget.getDirty(this.shell.getWidgets('main'))];
+            if (dirty.length === 0) {
+                await commands.executeCommand(CommonCommands.CLOSE_ALL_TABS.id);
+                return;
+            }
+            const choice = await this.messageService.warn(
+                `There are ${dirty.length} file(s) with unsaved changes.`,
+                'Save All', "Don't Save", 'Cancel'
+            );
+            if (!choice || choice === 'Cancel') {
+                return;
+            }
+            if (choice === 'Save All') {
+                for (const widget of dirty) {
+                    await Saveable.save(widget);
+                }
+            }
+            await commands.executeCommand(CommonCommands.CLOSE_ALL_TABS.id);
+        } finally {
+            this.closeInProgress = false;
+        }
+    }
+
     protected currentEditorWritable(): boolean {
         const editor = this.currentEditor;
         return !!editor && !!MonacoEditor.get(editor)?.getControl();
@@ -218,7 +289,6 @@ export class NotepadiaContribution implements CommandContribution {
     }
 
     protected triggerMonacoAction(actionId: string): void {
-        console.error('NPD TRIGGER:', actionId);
         const editor = this.currentEditor;
         if (!editor) {
             return;
