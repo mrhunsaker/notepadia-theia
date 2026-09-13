@@ -192,6 +192,41 @@ Note: menu-hovering must stay within the window — the Bookmarks entry sits at
 the bottom of the Edit menu, so puppeteer suites need a viewport taller than
 the menu (>= ~640px) for hover/submenu interactions.
 
+### Language menu
+
+`NotepadiaLanguageContribution` exposes Notepad++-style language handling (the
+`Language` top-level menubar entry is both registered and populated by this one
+contribution):
+
+- **`Change Language Mode...`** wraps the built-in command
+  (`textEditor.change.language`), which is otherwise hidden from palettes and
+  menus by its own `isVisible` registration gate. It opens Monaco's own
+  language quick-pick, which enumerates every registered language.
+- **Curated language list** (JavaScript, TypeScript, HTML, CSS, Markdown, YAML,
+  XML, Python, C, C++, C#, Java, PHP, Ruby, Go, Rust, Shell Script, SQL, Plain
+  Text). Each entry is a menu action calling `editor.setLanguage(id)`, matching
+  Notepad++'s `Language` menu.
+- Because this build ships almost no registered languages (~`plaintext` and
+  `jsonc` only), the contribution **registers the listed languages at startup**
+  (`monaco.languages.register({ id, aliases, extensions })`) and attaches a
+  lightweight Monarch tokenizer
+  (`monaco.languages.setMonarchTokensProvider`) built from each entry's
+  keyword/comment/string configuration. Registration is skipped for ids that
+  already exist, so core languages are never overridden.
+- The extra extensions give Monaco file-type auto-detection for free
+  (`.js` → JavaScript, `.sh` → Shell Script, ...). `notepadiaLanguageName(id)`
+  provides the friendly alias for the status bar.
+- The status bar shows the friendly language name of the current editor and is
+  clickable (opens the change-language quick-pick); it refreshes on
+  `onLanguageChanged`, content changes, and encoding changes.
+
+Enumeration caveat: Monaco's language service resolves a language by *id* only
+once it is registered (TextMate grammars come from `@theia/textmate-grammars`,
+which is not installed in this build). The built-in Monaco editor core ships no
+`vs/language` data, so without a grammar package the Monarch tokenizers above
+are the only real tokenization available; keyword/string/number tokens are
+emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
+
 ## Testing
 
 At minimum:

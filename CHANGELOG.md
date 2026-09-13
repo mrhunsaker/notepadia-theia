@@ -59,6 +59,20 @@
 - Bookmarks render as a glyph in the line-number gutter (Monaco decoration
   collection, one per editor, updated in place).
 
+### Language menu
+
+- Functional `Language` top-level menu: `Change Language Mode...` (wraps the
+  built-in quick-pick, whose own registration hides it from palettes/menus)
+  plus a curated Notepad++-style list, each entry switching the active editor
+  via `setLanguage`.
+- The build ships almost no registered languages, so the listed languages are
+  registered at startup with their file extensions (gives auto-detection for
+  `.js`, `.scala`, etc.) and lightweight Monarch tokenizers (keywords,
+  strings, comments, numbers). Registration is skipped for ids that already
+  exist (e.g. `plaintext`, `jsonc`).
+- Status bar shows the friendly language name of the active editor and is
+  clickable to change language mode; it refreshes on language changes.
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

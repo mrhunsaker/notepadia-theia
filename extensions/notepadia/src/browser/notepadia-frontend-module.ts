@@ -15,6 +15,7 @@ import { NotepadiaEncodingContribution } from './notepadia-encoding-contribution
 import { NotepadiaEolContribution } from './notepadia-eol-contribution';
 import { NotepadiaBookmarkContribution } from './notepadia-bookmark-contribution';
 import { NotepadiaKeybindingContribution } from './notepadia-keybinding-contribution';
+import { NotepadiaLanguageContribution } from './notepadia-language-contribution';
 import { NotepadiaRecentFilesContribution } from './notepadia-recent-files-contribution';
 import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
 import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribution';
@@ -39,6 +40,11 @@ export default new ContainerModule((bind) => {
     bind(MenuContribution).toService(NotepadiaBookmarkContribution);
     bind(KeybindingContribution).toService(NotepadiaBookmarkContribution);
     bind(FrontendApplicationContribution).toService(NotepadiaBookmarkContribution);
+
+    bind(NotepadiaLanguageContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaLanguageContribution);
+    bind(MenuContribution).toService(NotepadiaLanguageContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaLanguageContribution);
 
     bind(NotepadiaDropContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaDropContribution);

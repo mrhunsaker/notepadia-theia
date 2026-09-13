@@ -10,6 +10,7 @@ import {
 } from '@theia/core/lib/browser/status-bar/status-bar-types';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorCommands } from '@theia/editor/lib/browser/editor-command';
+import { notepadiaLanguageName } from './notepadia-language-contribution';
 
 const ENCODING_LABELS: Record<string, string> = {
     utf8: 'UTF-8',
@@ -46,6 +47,7 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             if (monaco) {
                 this.toDispose.push(monaco.document.onDidChangeEncoding(() => this.update()));
                 this.toDispose.push(monaco.document.onDidChangeContent(() => this.update()));
+                this.toDispose.push(monaco.onLanguageChanged(() => this.update()));
             }
             this.update();
         });
@@ -58,6 +60,15 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         const position = control?.getPosition();
         const encoding = monaco?.getEncoding() || 'utf8';
         const eol = control?.getModel()?.getEOL();
+        const languageId = monaco?.getControl().getModel()?.getLanguageId();
+
+        this.statusBar.setElement('notepadia.language', {
+            text: notepadiaLanguageName(languageId),
+            tooltip: 'Change Language Mode',
+            command: EditorCommands.CHANGE_LANGUAGE.id,
+            alignment: StatusBarAlignment.RIGHT,
+            priority: 110
+        });
 
         this.statusBar.setElement('notepadia.position', {
             text: position
