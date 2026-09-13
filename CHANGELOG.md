@@ -75,12 +75,14 @@
 
 ### Desktop packaging
 
-- First Linux distributable: `applications/electron` now yields
-  `dist/Notepadia-0.1.0-x86_64.AppImage` via
-  `yarn build:prod` + `npx electron-builder --linux AppImage -p never`
+- First Linux distributables: `applications/electron` now yields
+  `dist/Notepadia-0.1.0-x86_64.AppImage` and
+  `dist/Notepadia-0.1.0-x86_64.rpm` via
+  `yarn build:prod` + `npx electron-builder --linux AppImage -p never` /
+  `npx electron-builder --linux rpm -p never`
   (Electron 42.8.1, native addons rebuilt, production bundle inside
   `resources/app.asar`).
-- `rpm` and `deb` remain configured as follow-up Linux targets in
+- `deb` remains configured as a follow-up Linux target in
   `electron-builder.yml`.
 - Documented packaging pipeline (and the outstanding icon/desktopName polish)
   in `docs/ARCHITECTURE.md`.

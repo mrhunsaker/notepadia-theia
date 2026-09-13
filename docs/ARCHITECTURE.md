@@ -236,9 +236,15 @@ it with `electron-builder`:
 - `yarn build:prod` produces the production frontend/backend bundles; this
   already runs `theia rebuild:electron` so native addons match Electron 42.
 - `npx electron-builder --linux AppImage -p never` yields
-  `dist/Notepadia-<version>-x86_64.AppImage`. The `linux.target` list also
-  covers `rpm` and `deb`; Linux metadata (category `Utility`, MIME types,
-  artifact naming) lives in `electron-builder.yml`.
+  `dist/Notepadia-<version>-x86_64.AppImage`.
+- `npx electron-builder --linux rpm -p never` yields
+  `dist/Notepadia-<version>-x86_64.rpm`. The `linux.target` list also covers
+  `deb`; Linux metadata (category `Utility`, MIME types, artifact naming)
+  lives in `electron-builder.yml`, and `package.json` must carry a `homepage`
+  (RPM rejects a missing one).
+- RPM/DEB go through electron-builder's bundled `fpm` (Ruby), which needs
+  `libcrypt.so.1`. Hosts that lack it still build if the library is provided
+  via `LD_LIBRARY_PATH` (e.g. a copy from a bundled runtime).
 - The packaged app ships the same `notepadia` extension as the browser app
   (verified by listing the `resources/app.asar` inside the extracted
   AppImage); product behavior is therefore identical between targets.

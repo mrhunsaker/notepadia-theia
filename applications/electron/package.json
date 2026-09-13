@@ -5,6 +5,7 @@
   "productName": "Notepadia",
   "version": "0.1.0",
   "main": "lib/backend/electron-main.js",
+  "homepage": "https://github.com/mrhunsaker/notepadia-theia",
   "license": "MIT",
   "engines": {
     "node": ">=24",
