@@ -18,7 +18,6 @@ export class NotepadiaMenuContribution implements MenuContribution {
         const editConvertCase = [...CommonMenus.EDIT, '5_notepadia-convert-case'];
 
         const search = [...menubar, '3_search'];
-        const encoding = [...menubar, '5_encoding'];
         const language = [...menubar, '6_language'];
         const settings = [...menubar, '7_settings'];
 
@@ -26,7 +25,6 @@ export class NotepadiaMenuContribution implements MenuContribution {
         menus.registerSubmenu(editConvertCase, 'Convert Case');
 
         menus.registerSubmenu(search, 'Search');
-        menus.registerSubmenu(encoding, 'Encoding');
         menus.registerSubmenu(language, 'Language');
         menus.registerSubmenu(settings, 'Settings');
 
@@ -188,12 +186,7 @@ export class NotepadiaMenuContribution implements MenuContribution {
         });
 
         // These submenus are deliberately created now so the product has stable
-        // insertion points for the upcoming encoding/language/settings features.
-        menus.registerMenuAction(encoding, {
-            commandId: 'notepadia.encoding.placeholder',
-            label: 'Encoding controls coming next',
-            order: 'a'
-        });
+        // insertion points for the upcoming language/settings features.
         menus.registerMenuAction(language, {
             commandId: 'notepadia.language.placeholder',
             label: 'Language controls coming next',

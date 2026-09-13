@@ -1,5 +1,6 @@
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { inject, injectable } from '@theia/core/shared/inversify';
+import { DisposableCollection } from '@theia/core/lib/common/disposable';
 import {
     FrontendApplicationContribution
 } from '@theia/core/lib/browser';
@@ -8,9 +9,28 @@ import {
     StatusBarAlignment
 } from '@theia/core/lib/browser/status-bar/status-bar-types';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
+import { EditorCommands } from '@theia/editor/lib/browser/editor-command';
+
+const ENCODING_LABELS: Record<string, string> = {
+    utf8: 'UTF-8',
+    utf8bom: 'UTF-8 BOM',
+    utf16le: 'UTF-16 LE',
+    utf16be: 'UTF-16 BE',
+    windows1252: 'ANSI'
+};
+
+function eolLabel(eol?: string): string {
+    switch (eol) {
+        case '\r\n': return 'CRLF';
+        case '\r': return 'CR';
+        default: return 'LF';
+    }
+}
 
 @injectable()
 export class NotepadiaStatusBarContribution implements FrontendApplicationContribution {
+    protected readonly toDispose = new DisposableCollection();
+
     constructor(
         @inject(StatusBar) protected readonly statusBar: StatusBar,
         @inject(EditorManager) protected readonly editorManager: EditorManager
@@ -20,16 +40,23 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         this.update();
 
         this.editorManager.onCurrentEditorChanged(() => {
+            this.toDispose.dispose();
+            const editor = this.editorManager.currentEditor;
+            const monaco = editor ? MonacoEditor.get(editor) : undefined;
+            if (monaco) {
+                this.toDispose.push(monaco.document.onDidChangeEncoding(() => this.update()));
+            }
             this.update();
         });
     }
 
     protected update(): void {
         const editor = this.editorManager.currentEditor;
-        const control = editor ? MonacoEditor.get(editor)?.getControl() : undefined;
+        const monaco = editor ? MonacoEditor.get(editor) : undefined;
+        const control = monaco?.getControl();
         const position = control?.getPosition();
-
-        const encoding = 'UTF-8';
+        const encoding = monaco?.getEncoding() || 'utf8';
+        const eol = control?.getModel()?.getEOL();
 
         this.statusBar.setElement('notepadia.position', {
             text: position
@@ -40,13 +67,15 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         });
 
         this.statusBar.setElement('notepadia.encoding', {
-            text: encoding || 'UTF-8',
+            text: ENCODING_LABELS[encoding] || encoding,
+            tooltip: 'Change File Encoding',
+            command: EditorCommands.CHANGE_ENCODING.id,
             alignment: StatusBarAlignment.RIGHT,
             priority: 90
         });
 
         this.statusBar.setElement('notepadia.eol', {
-            text: 'LF',
+            text: eolLabel(eol),
             alignment: StatusBarAlignment.RIGHT,
             priority: 80
         });

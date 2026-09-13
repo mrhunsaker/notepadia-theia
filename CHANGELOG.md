@@ -22,6 +22,18 @@
   hint with an "Upload Files..." action.
 - Test workspace recommends `files.autoSave: "off"` for Notepad++ semantics.
 
+### Encoding conversion
+
+- Functional `Encoding` menu backed by Theia's iconv-lite pipeline:
+  Encode in UTF-8 / UTF-8 BOM / UTF-16 LE / UTF-16 BE, Convert to ANSI
+  (Windows 1252), Reload as UTF-8, plus the built-in Change File Encoding
+  quick-pick (reopen or save with any supported encoding).
+- BOM auto-detection on open for UTF-8 BOM, UTF-16 LE and UTF-16 BE files.
+- Status bar now reports the active editor's real encoding and EOL; the
+  encoding entry is clickable to change encoding.
+- Worked around a Theia write-path quirk where `utf8bom` was collapsed to
+  `utf8` (bytes patched with the EF BB BF prefix after the encode).
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

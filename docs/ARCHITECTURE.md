@@ -115,20 +115,32 @@ Decisions taken for P1:
   change, so a companion workspace setting `files.autoSave: "off"` is
   recommended (shipped in the test workspace at `.theia/settings.json`).
 
-## Encoding boundary
+### Encoding conversion
 
-Future encoding support should live behind:
+`NotepadiaEncodingContribution` gives the Encoding menu Notepad++-style
+entries, all backed by Theia's iconv-lite pipeline rather than a new codec:
 
-```ts
-interface DocumentEncodingService {
-  detect(data: Uint8Array): DocumentEncoding;
-  decode(data: Uint8Array, encoding: DocumentEncoding): string;
-  encode(text: string, encoding: DocumentEncoding): Uint8Array;
-}
-```
+- `Encode in UTF-8`, `Encode in UTF-8 BOM`, `Encode in UTF-16 LE`,
+  `Encode in UTF-16 BE`, `Convert to ANSI (Windows 1252)` call
+  `editor.setEncoding(id, EncodingMode.Encode)`, which saves the buffer with
+  that encoding (`EncodingMode.Decode` is used by `Reload as UTF-8`).
+- `Change File Encoding...` links the built-in quick-pick (reopen/save with any
+  supported encoding, including the ISO-8859 family).
+- The status bar shows the current encoding and EOL of the active editor and is
+  clickable to change encoding.
+- BOM handling: Theia's `EncodingService` (iconv-lite) detects/emits UTF-16 LE,
+  UTF-16 BE and UTF-8 BOMs. UTF-16 conversions therefore round-trip as-is.
 
-The editor should work with normalized text; the persistence layer preserves
-the selected encoding and EOL convention.
+Known pipeline limitation and workaround: when *writing*, `EncodingRegistry`
+collapses `utf8bom` to `utf8` before the BOM decision is made, so a UTF-8 BOM
+encode writes plain UTF-8. `ensureUtf8Bom()` in the encoding contribution
+patches the file bytes with the `EF BB BF` prefix right after such an encode,
+keeping the editor model's `utf8bom` content encoding intact (a subsequent read
+detects the BOM again). Revisit once upstream `getEncodingForResource` stops
+returning the iconv name.
+
+EOL conversion is a separate milestone; for now the status bar displays the
+editor's current EOL (LF/CRLF/CR).
 
 ## Testing
 
