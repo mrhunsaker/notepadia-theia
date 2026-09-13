@@ -44,6 +44,13 @@
   encoding changes. CR files are detected and reported but not convertible
   (Monaco has no CR line model).
 
+### Recent Files
+
+- `File ▸ Recent Files` lists the most recently opened documents (most recent
+  first, deduplicated, capped at 15) with `Clear Recent Files`.
+- History persists across reloads via localStorage; selecting an entry
+  reopens it and bumps it to the top.
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

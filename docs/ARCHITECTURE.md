@@ -157,6 +157,20 @@ quick-pick.
   (`textEditor.commands.configEol`) is a command stub without a handler in
   this version, hence the dedicated commands above.
 
+### Recent Files
+
+`NotepadiaRecentFilesContribution` tracks opened editors (most recent first,
+deduplicated, capped at 15) and renders them under `File ▸ Recent Files` with a
+`Clear Recent Files` entry:
+
+- The submenu is only present while the list is non-empty and is rebuilt on
+  every open/clear; commands `notepadia.recent.N` and their menu actions are
+  registered/disposed dynamically, so the menu never shows stale entries.
+- History survives (re-)loads via `StorageService` (localStorage,
+  key `notepadia.recentFiles`). Clicking an entry reopens the file and bumps it
+  to the top.
+- Theia 1.75 has no recent-files support, hence the custom implementation.
+
 ## Testing
 
 At minimum:
