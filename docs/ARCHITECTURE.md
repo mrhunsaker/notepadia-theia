@@ -227,6 +227,26 @@ which is not installed in this build). The built-in Monaco editor core ships no
 are the only real tokenization available; keyword/string/number tokens are
 emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
 
+## Desktop packaging
+
+`applications/electron` builds the desktop app on the Electron target
+(`@theia/electron` backend, `main: lib/backend/electron-main.js`) and packages
+it with `electron-builder`:
+
+- `yarn build:prod` produces the production frontend/backend bundles; this
+  already runs `theia rebuild:electron` so native addons match Electron 42.
+- `npx electron-builder --linux AppImage -p never` yields
+  `dist/Notepadia-<version>-x86_64.AppImage`. The `linux.target` list also
+  covers `rpm` and `deb`; Linux metadata (category `Utility`, MIME types,
+  artifact naming) lives in `electron-builder.yml`.
+- The packaged app ships the same `notepadia` extension as the browser app
+  (verified by listing the `resources/app.asar` inside the extracted
+  AppImage); product behavior is therefore identical between targets.
+- Known packaging nitpicks (do not block): the default Electron icon is used
+  (no brand icon shipped yet), and `desktopName`/window association is not set,
+  so window-to-.desktop linking is generic until a dedicated icon/desktop
+  name is configured.
+
 ## Testing
 
 At minimum:

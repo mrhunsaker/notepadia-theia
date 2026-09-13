@@ -73,6 +73,18 @@
 - Status bar shows the friendly language name of the active editor and is
   clickable to change language mode; it refreshes on language changes.
 
+### Desktop packaging
+
+- First Linux distributable: `applications/electron` now yields
+  `dist/Notepadia-0.1.0-x86_64.AppImage` via
+  `yarn build:prod` + `npx electron-builder --linux AppImage -p never`
+  (Electron 42.8.1, native addons rebuilt, production bundle inside
+  `resources/app.asar`).
+- `rpm` and `deb` remain configured as follow-up Linux targets in
+  `electron-builder.yml`.
+- Documented packaging pipeline (and the outstanding icon/desktopName polish)
+  in `docs/ARCHITECTURE.md`.
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

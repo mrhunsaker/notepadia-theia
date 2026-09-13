@@ -1,0 +1,14 @@
+{
+  "keytar": {
+    "originalLocation": "/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0/node_modules/keytar"
+  },
+  "drivelist": {
+    "originalLocation": "/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0/node_modules/drivelist"
+  },
+  "native-keymap": {
+    "originalLocation": "/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0/node_modules/native-keymap"
+  },
+  "node-pty": {
+    "originalLocation": "/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0/node_modules/node-pty"
+  }
+}
