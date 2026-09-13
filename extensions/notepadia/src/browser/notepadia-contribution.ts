@@ -111,6 +111,46 @@ export namespace NotepadiaCommands {
         id: 'notepadia.findPrevious',
         label: 'Find Previous'
     };
+
+    export const ZOOM_IN: Command = {
+        id: 'notepadia.zoomIn',
+        label: 'Zoom In'
+    };
+
+    export const ZOOM_OUT: Command = {
+        id: 'notepadia.zoomOut',
+        label: 'Zoom Out'
+    };
+
+    export const ZOOM_RESET: Command = {
+        id: 'notepadia.zoomReset',
+        label: 'Reset Zoom'
+    };
+
+    export const TOGGLE_WHITESPACE: Command = {
+        id: 'notepadia.toggleWhitespace',
+        label: 'Show All Characters'
+    };
+
+    export const TAB_SIZE_2: Command = {
+        id: 'notepadia.tabSize2',
+        label: 'Tab Size: 2'
+    };
+
+    export const TAB_SIZE_4: Command = {
+        id: 'notepadia.tabSize4',
+        label: 'Tab Size: 4'
+    };
+
+    export const TAB_SIZE_8: Command = {
+        id: 'notepadia.tabSize8',
+        label: 'Tab Size: 8'
+    };
+
+    export const GO_TO_LINE: Command = {
+        id: 'notepadia.goToLine',
+        label: 'Go To Line...'
+    };
 }
 
 @injectable()
@@ -220,6 +260,39 @@ export class NotepadiaContribution implements CommandContribution {
             isEnabled: () => !!this.currentEditor,
             execute: () => this.triggerMonacoAction('editor.action.previousMatchFindAction')
         });
+
+        commands.registerCommand(NotepadiaCommands.ZOOM_IN, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.fontZoomIn')
+        });
+        commands.registerCommand(NotepadiaCommands.ZOOM_OUT, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.fontZoomOut')
+        });
+        commands.registerCommand(NotepadiaCommands.ZOOM_RESET, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.fontZoomReset')
+        });
+        commands.registerCommand(NotepadiaCommands.TOGGLE_WHITESPACE, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.toggleRenderWhitespace')
+        });
+        commands.registerCommand(NotepadiaCommands.GO_TO_LINE, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.gotoLine')
+        });
+        commands.registerCommand(NotepadiaCommands.TAB_SIZE_2, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.setTabSize(2)
+        });
+        commands.registerCommand(NotepadiaCommands.TAB_SIZE_4, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.setTabSize(4)
+        });
+        commands.registerCommand(NotepadiaCommands.TAB_SIZE_8, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.setTabSize(8)
+        });
     }
 
     protected async closeCurrentEditor(commands: CommandRegistry): Promise<void> {
@@ -298,5 +371,17 @@ export class NotepadiaContribution implements CommandContribution {
             return;
         }
         control.trigger('notepadia', actionId, null);
+    }
+
+    protected setTabSize(size: number): void {
+        const editor = this.currentEditor;
+        if (!editor) {
+            return;
+        }
+        const control = MonacoEditor.get(editor)?.getControl();
+        if (!control) {
+            return;
+        }
+        control.updateOptions({ tabSize: size });
     }
 }

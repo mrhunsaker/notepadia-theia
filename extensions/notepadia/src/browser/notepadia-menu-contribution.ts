@@ -175,8 +175,52 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: 'Find in Files',
             order: 'e'
         });
+        menus.registerMenuAction(search, {
+            commandId: NotepadiaCommands.GO_TO_LINE.id,
+            label: 'Go To Line...',
+            order: 'f'
+        });
 
         // View
+        const viewZoom = [...CommonMenus.VIEW, '1_notepadia-zoom'];
+        const viewTabSize = [...CommonMenus.VIEW, '2_notepadia-tab-size'];
+        menus.registerSubmenu(viewZoom, 'Zoom');
+        menus.registerSubmenu(viewTabSize, 'Tab Size');
+        menus.registerMenuAction(viewZoom, {
+            commandId: NotepadiaCommands.ZOOM_IN.id,
+            label: 'Zoom In',
+            order: 'a'
+        });
+        menus.registerMenuAction(viewZoom, {
+            commandId: NotepadiaCommands.ZOOM_OUT.id,
+            label: 'Zoom Out',
+            order: 'b'
+        });
+        menus.registerMenuAction(viewZoom, {
+            commandId: NotepadiaCommands.ZOOM_RESET.id,
+            label: 'Reset Zoom',
+            order: 'c'
+        });
+        menus.registerMenuAction(viewTabSize, {
+            commandId: NotepadiaCommands.TAB_SIZE_2.id,
+            label: '2',
+            order: 'a'
+        });
+        menus.registerMenuAction(viewTabSize, {
+            commandId: NotepadiaCommands.TAB_SIZE_4.id,
+            label: '4',
+            order: 'b'
+        });
+        menus.registerMenuAction(viewTabSize, {
+            commandId: NotepadiaCommands.TAB_SIZE_8.id,
+            label: '8',
+            order: 'c'
+        });
+        menus.registerMenuAction([...CommonMenus.VIEW], {
+            commandId: NotepadiaCommands.TOGGLE_WHITESPACE.id,
+            label: 'Show All Characters',
+            order: 'b'
+        });
         menus.registerMenuAction([...CommonMenus.VIEW], {
             commandId: 'editor.action.toggleWordWrap',
             label: 'Toggle Word Wrap',

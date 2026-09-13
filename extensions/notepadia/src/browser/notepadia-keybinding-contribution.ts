@@ -54,5 +54,21 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             command: NotepadiaCommands.FIND_PREVIOUS.id,
             keybinding: 'shift+f3'
         });
+        keybindings.registerKeybinding({
+            command: NotepadiaCommands.GO_TO_LINE.id,
+            keybinding: 'ctrlcmd+g'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaCommands.ZOOM_IN.id,
+            keybinding: 'ctrlcmd+='
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaCommands.ZOOM_OUT.id,
+            keybinding: 'ctrlcmd+-'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaCommands.ZOOM_RESET.id,
+            keybinding: 'ctrlcmd+0'
+        });
     }
 }
