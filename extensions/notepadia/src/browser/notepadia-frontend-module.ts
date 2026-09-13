@@ -13,6 +13,7 @@ import { NotepadiaDropContribution } from './notepadia-drop-contribution';
 import { NotepadiaEditorKeybindingContribution } from './notepadia-editor-keybinding-contribution';
 import { NotepadiaEncodingContribution } from './notepadia-encoding-contribution';
 import { NotepadiaEolContribution } from './notepadia-eol-contribution';
+import { NotepadiaBookmarkContribution } from './notepadia-bookmark-contribution';
 import { NotepadiaKeybindingContribution } from './notepadia-keybinding-contribution';
 import { NotepadiaRecentFilesContribution } from './notepadia-recent-files-contribution';
 import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
@@ -32,6 +33,12 @@ export default new ContainerModule((bind) => {
 
     bind(NotepadiaRecentFilesContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaRecentFilesContribution);
+
+    bind(NotepadiaBookmarkContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaBookmarkContribution);
+    bind(MenuContribution).toService(NotepadiaBookmarkContribution);
+    bind(KeybindingContribution).toService(NotepadiaBookmarkContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaBookmarkContribution);
 
     bind(NotepadiaDropContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaDropContribution);

@@ -171,6 +171,27 @@ deduplicated, capped at 15) and renders them under `File ▸ Recent Files` with 
   to the top.
 - Theia 1.75 has no recent-files support, hence the custom implementation.
 
+### Bookmarks
+
+`NotepadiaBookmarkContribution` implements Notepad++-style bookmarks:
+
+- `Ctrl+F2` toggles a bookmark on the current line, `F2`/`Shift+F2` jump to the
+  next/previous bookmark (wrapping within the file), and `Edit ▸ Bookmarks ▸
+  Clear All Bookmarks` empties the current file's set.
+- Bookmarks are per-model (keyed by URI, sorted line numbers), session-scoped
+  (Notepad++ keeps them per-session too) and rendered in the line-number gutter
+  via a Monaco decoration collection (`linesDecorationsClassName`) with a CSS
+  glyph injected at startup.
+- One decoration collection is cached per editor (IEditorDecorationsCollection)
+  and reused via `.set()`, so toggling updates in place instead of stacking
+  decorations; a fresh collection is created when an editor hosting the same
+  model becomes active.
+- Monaco 1.108 removed `setModelDecorations`, hence `createDecorationsCollection`.
+
+Note: menu-hovering must stay within the window — the Bookmarks entry sits at
+the bottom of the Edit menu, so puppeteer suites need a viewport taller than
+the menu (>= ~640px) for hover/submenu interactions.
+
 ## Testing
 
 At minimum:

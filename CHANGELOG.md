@@ -51,6 +51,14 @@
 - History persists across reloads via localStorage; selecting an entry
   reopens it and bumps it to the top.
 
+### Bookmarks
+
+- `Ctrl+F2` toggles a bookmark on the current line (`F2` / `Shift+F2` jump to
+  next/previous bookmark with wrap-around).
+- `Edit ▸ Bookmarks` submenu with Toggle/Next/Previous/Clear All.
+- Bookmarks render as a glyph in the line-number gutter (Monaco decoration
+  collection, one per editor, updated in place).
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at
