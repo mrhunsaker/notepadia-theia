@@ -34,6 +34,16 @@
 - Worked around a Theia write-path quirk where `utf8bom` was collapsed to
   `utf8` (bytes patched with the EF BB BF prefix after the encode).
 
+### EOL conversion
+
+- `Edit ▸ EOL Conversion` submenu with `Convert to Unix Format (LF)` and
+  `Convert to Windows Format (CRLF)` (Monaco `setEOL`, undoable).
+- `Change Line Endings...` quick-pick, also bound to the clickable EOL entry
+  in the status bar.
+- Status bar EOL/encoding entries now refresh on content changes as well as
+  encoding changes. CR files are detected and reported but not convertible
+  (Monaco has no CR line model).
+
 ## 0.1.1 (unreleased)
 
 - Added `applications/browser`: browser-first development application served at

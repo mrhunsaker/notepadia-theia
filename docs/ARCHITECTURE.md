@@ -139,8 +139,23 @@ keeping the editor model's `utf8bom` content encoding intact (a subsequent read
 detects the BOM again). Revisit once upstream `getEncodingForResource` stops
 returning the iconv name.
 
-EOL conversion is a separate milestone; for now the status bar displays the
-editor's current EOL (LF/CRLF/CR).
+### EOL conversion
+
+`NotepadiaEolContribution` adds Notepad++-style line-ending conversion:
+`Edit ▸ EOL Conversion ▸ Convert to Unix Format (LF)` and `Convert to Windows
+Format (CRLF)` transform the buffer with Monaco's `ITextModel.setEOL`
+(undoable on the model), and `Change Line Endings...` (also reachable by
+clicking the EOL entry in the status bar) offers the same targets in a
+quick-pick.
+
+- Only LF and CRLF are offered. Monaco's line model splits exclusively on
+  `\n`, so classic CR cannot be represented as a line separator inside the
+  editor; CR files are still detected and shown as `CR` in the status bar.
+- The status bar EOL/encoding entries refresh on both encoding changes and
+  content changes, so conversions update live.
+- Theia's built-in `EditorCommands.CONFIG_EOL`
+  (`textEditor.commands.configEol`) is a command stub without a handler in
+  this version, hence the dedicated commands above.
 
 ## Testing
 

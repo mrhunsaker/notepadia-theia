@@ -45,6 +45,7 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             const monaco = editor ? MonacoEditor.get(editor) : undefined;
             if (monaco) {
                 this.toDispose.push(monaco.document.onDidChangeEncoding(() => this.update()));
+                this.toDispose.push(monaco.document.onDidChangeContent(() => this.update()));
             }
             this.update();
         });
@@ -76,6 +77,8 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
 
         this.statusBar.setElement('notepadia.eol', {
             text: eolLabel(eol),
+            tooltip: 'Change Line Endings',
+            command: 'notepadia.lineEndings.convert',
             alignment: StatusBarAlignment.RIGHT,
             priority: 80
         });
