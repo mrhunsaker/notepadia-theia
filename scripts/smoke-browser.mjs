@@ -37,7 +37,7 @@ async function waitForServer(child) {
 
 const theia = path.join(ROOT, 'node_modules', '.bin', 'theia');
 const child = spawn(theia,
-    ['start', '--app-target=browser', '--hostname', '127.0.0.1', '--port', PORT, '--', WS],
+    ['start', '--app-target=browser', '--hostname', '127.0.0.1', '--port', PORT, WS],
     { cwd: path.join(ROOT, 'applications', 'browser'), stdio: ['ignore', 'pipe', 'pipe'] });
 const log = [];
 child.stdout.on('data', d => log.push(d.toString()));

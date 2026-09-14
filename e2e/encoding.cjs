@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { WS, assert, finish, sleep, waitFor, launchPage, goto, openFile,
+const { WS, assert, finish, sleep, waitFor, launchPage, goto, openFile, save,
     clickMenuItem, modelText, statusBar } = require('./lib.js');
 
 (async () => {
@@ -19,12 +19,14 @@ const { WS, assert, finish, sleep, waitFor, launchPage, goto, openFile,
 
     await openFile(page, 'enc-utf8.txt');
     await clickMenuItem(page, 'Encoding', 'Encode in UTF-8 BOM');
-    await sleep(2500);
+    await sleep(1800);
+    await save(page);
     let bytes = fs.readFileSync(path.join(WS, 'enc-utf8.txt'));
     assert('convert to UTF-8 BOM adds EF BB BF', bytes.slice(0, 3).toString('hex') === 'efbbbf', bytes.slice(0, 3).toString('hex'));
 
     await clickMenuItem(page, 'Encoding', 'Encode in UTF-16 LE');
-    await sleep(2500);
+    await sleep(1800);
+    await save(page);
     bytes = fs.readFileSync(path.join(WS, 'enc-utf8.txt'));
     const expect16le = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('alpha\nbeta\ngamma\n', 'utf16le')]);
     assert('convert to UTF-16 LE matches expected bytes', bytes.equals(expect16le), 'len=' + bytes.length + ' ' + bytes.slice(0, 6).toString('hex'));
@@ -35,13 +37,14 @@ const { WS, assert, finish, sleep, waitFor, launchPage, goto, openFile,
 
     await openFile(page, 'enc-utf8.txt');
     await clickMenuItem(page, 'Encoding', 'Encode in UTF-16 BE');
-    await sleep(2500);
+    await sleep(1800);
+    await save(page);
     bytes = fs.readFileSync(path.join(WS, 'enc-utf8.txt'));
     const expect16be = Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from('alpha\nbeta\ngamma\n', 'utf16le').swap16()]);
     assert('convert to UTF-16 BE matches expected bytes', bytes.equals(expect16be), 'len=' + bytes.length + ' ' + bytes.slice(0, 6).toString('hex'));
 
     await clickMenuItem(page, 'Encoding', 'Reload as UTF-8');
-    await sleep(2200);
+    await sleep(1800);
     bytes = fs.readFileSync(path.join(WS, 'enc-utf8.txt'));
     assert('reload as UTF-8 leaves bytes intact', bytes.equals(expect16be) || bytes.slice(0, 2).equals(Buffer.from([0xfe, 0xff])),
         bytes.slice(0, 6).toString('hex'));

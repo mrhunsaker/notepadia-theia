@@ -1,10 +1,10 @@
 const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
-    currentLine, openMenuBar, hoverByLabel, clickByLabel, subLabels, closeMenus } = require('./lib.js');
+    currentLine, clickEditorLine, openMenuBar, hoverByLabel, clickByLabel, subLabels, closeMenus } = require('./lib.js');
 
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     await goto(page);
-    await openFile(page, 'sample.txt');
+    await openFile(page, 'bookmarks.txt');
     await page.evaluate(() => document.querySelector('.monaco-editor').focus());
     await sleep(400);
 
@@ -26,8 +26,7 @@ const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
     assert('Ctrl+F2 toggles bookmark off', (await decoCount()) === 0, 'count=' + await decoCount());
 
     for (const lineNo of [2, 3, 4]) {
-        const cur = await currentLine(page);
-        for (let i = 0; i < lineNo - cur; i++) { await page.keyboard.press('ArrowDown'); await sleep(200); }
+        await clickEditorLine(page, lineNo - 1);
         await pressCombo(['Control', 'F2']);
     }
     assert('three bookmarks on lines 2/3/4', (await decoCount()) === 3, 'count=' + await decoCount());

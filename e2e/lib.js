@@ -64,7 +64,21 @@ async function openFile(page, fragment) {
     const input = await page.$('#quick-input-container input');
     await input.type(fragment, { delay: 30 });
     await sleep(900);
-    await page.keyboard.press('Enter');
+    const exact = await page.evaluate((frag) => {
+        const rows = Array.from(document.querySelectorAll('#quick-input-container .monaco-list .monaco-list-row'));
+        return rows.findIndex(r => {
+            const a = (r.getAttribute('aria-label') || '').trim();
+            const name = a.split(',')[0].trim();
+            return name === frag;
+        });
+    }, fragment);
+    if (exact > 0) {
+        const rows = await page.$$('#quick-input-container .monaco-list .monaco-list-row');
+        await rows[exact].click();
+        await sleep(900);
+    } else {
+        await page.keyboard.press('Enter');
+    }
     await waitFor(page, '.monaco-editor');
     await sleep(2000);
     await page.keyboard.press('Escape');
@@ -104,17 +118,15 @@ async function clickMenuItem(page, menu, label) {
 async function clickSubMenuItem(page, menu, sub, label) {
     await openTopMenu(page, menu);
     await sleep(200);
+    const subIdx = await findItemIndex(page, sub);
+    if (subIdx < 0) throw new Error('no submenu ' + sub + ' in menu ' + menu);
     const items = await page.$$('.lm-Menu-item');
-    const labels = await subLabels(page);
-    const subIdx = labels.findIndex(l => l === sub);
-    if (subIdx < 0) throw new Error('no submenu ' + sub + ' in ' + JSON.stringify(labels));
     await items[subIdx].hover();
-    await sleep(900);
-    const subLabelsNow = await subLabels(page);
-    const idx = subLabelsNow.findIndex(l => l === label);
-    if (idx < 0) throw new Error('submenu item not found: ' + sub + ' > ' + label);
+    await sleep(1200);
+    const labelIdx = await findItemIndex(page, label);
+    if (labelIdx < 0) throw new Error('submenu item not found: ' + sub + ' > ' + label);
     const all = await page.$$('.lm-Menu-item');
-    await all[idx].click();
+    await all[labelIdx].click();
     await sleep(1200);
 }
 

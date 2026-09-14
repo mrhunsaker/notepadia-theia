@@ -42,7 +42,7 @@ const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
     await openFile(page, 'app.js');
     await sleep(2000);
     const langJsFile = await statusLang(page);
-    const mtk = await page.evaluate(() => Array.from(document.querySelectorAll('.view-line span.mtk')).length);
+    const mtk = await page.evaluate(() => Array.from(document.querySelectorAll('.view-line span[class*="mtk"]')).length);
     assert('app.js auto-detected as JavaScript', langJsFile === 'JavaScript', JSON.stringify(langJsFile));
     assert('javascript file tokenized (mtk spans)', mtk > 3, 'mtk=' + mtk);
 

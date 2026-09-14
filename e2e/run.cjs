@@ -33,6 +33,7 @@ function seedWorkspace() {
     write('enc-utf16le.txt', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('alpha\nbeta\ngamma\n', 'utf16le')]));
     write('enc-utf16be.txt', Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from('alpha\nbeta\ngamma\n', 'utf16le').swap16()]));
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
+    write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
 }
 
 function httpOk(url, needle) {
@@ -59,7 +60,7 @@ async function waitForServer() {
 function startServer() {
     const theia = path.join(ROOT, 'node_modules', '.bin', 'theia');
     const child = spawn(theia,
-        ['start', '--app-target=browser', '--hostname', '127.0.0.1', '--port', PORT, '--', WS],
+        ['start', '--app-target=browser', '--hostname', '127.0.0.1', '--port', PORT, WS],
         { cwd: path.join(ROOT, 'applications', 'browser'), stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', d => process.stdout.write('[server] ' + d));
     child.stderr.on('data', d => process.stdout.write('[server] ' + d));
