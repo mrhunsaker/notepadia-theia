@@ -39,7 +39,8 @@
     "browserApp": "builds and runs on Linux at localhost:3000",
     "electronApp": "builds; packaging not yet validated on Linux",
     "removedBerryArtifacts": true,
-    "reactAddedAsPeerShim": true
+    "reactAddedAsPeerShim": true,
+    "e2e": "all 7 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu)"
   },
   "features": {
     "core": [
