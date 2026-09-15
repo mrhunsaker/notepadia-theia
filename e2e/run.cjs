@@ -17,7 +17,8 @@ const SUITES = [
     'bookmarks',
     'language',
     'view-menu',
-    'search'
+    'search',
+    'session-restore'
 ];
 
 function seedWorkspace() {
