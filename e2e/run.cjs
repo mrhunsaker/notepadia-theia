@@ -16,7 +16,8 @@ const SUITES = [
     'recent',
     'bookmarks',
     'language',
-    'view-menu'
+    'view-menu',
+    'search'
 ];
 
 function seedWorkspace() {
@@ -34,6 +35,7 @@ function seedWorkspace() {
     write('enc-utf16be.txt', Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from('alpha\nbeta\ngamma\n', 'utf16le').swap16()]));
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
+    write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
 }
 
 function httpOk(url, needle) {
