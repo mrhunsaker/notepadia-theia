@@ -13,6 +13,7 @@
     "build": "tsc -p tsconfig.json",
     "compile": "tsc -p tsconfig.json",
     "clean": "rm -rf lib *.tsbuildinfo",
+    "lint": "eslint \"src/**/*.ts\"",
     "watch": "tsc -p tsconfig.json --watch"
   },
   "dependencies": {
@@ -24,7 +25,12 @@
     "@theia/preferences": "1.75.0",
     "@theia/workspace": "1.75.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0"
+  },
   "theiaExtensions": [
     {
       "frontend": "lib/browser/notepadia-frontend-module"

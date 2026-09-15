@@ -22,7 +22,6 @@ export class NotepadiaMenuContribution implements MenuContribution {
         const fileSettingsOpen = [...CommonMenus.FILE_SETTINGS_SUBMENU_OPEN];
         const fileSettingsTheme = [...CommonMenus.FILE_SETTINGS_SUBMENU_THEME];
 
-        const edit = [...CommonMenus.EDIT];
         const editFind = [...CommonMenus.EDIT_FIND];
         const editLines = [...CommonMenus.EDIT, '3_notepadia-lines'];
         const editLineOperations = [...CommonMenus.EDIT, '4_notepadia-line-operations'];

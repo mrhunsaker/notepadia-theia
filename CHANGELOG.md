@@ -73,6 +73,22 @@
 - Status bar shows the friendly language name of the active editor and is
   clickable to change language mode; it refreshes on language changes.
 
+### CI and automated e2e
+
+- New `.github/workflows/e2e.yml`: on every push/PR it runs `yarn lint`,
+  `yarn build`, then `yarn test:e2e` (all 10 Puppeteer suites) on
+  ubuntu-latest with Node 24, a 45-minute job timeout, a cached Puppeteer
+  Chrome download, and an artifact upload of test logs/screenshots on
+  failure.
+- `yarn lint` is no longer a no-op: the `notepadia` extension now lints
+  `src/**/*.ts` with ESLint 10 + typescript-eslint (flat config) and passes
+  clean.
+- The e2e runner now persists per-suite logs, a `results.json`, and a
+  `status.txt` to `e2e-artifacts/` (gitignored), and failing suites also
+  capture browser screenshots and console errors.
+- The runner pre-flights the port and refuses to run against a stale Theia
+  server, and fails fast if the backend exits early.
+
 ### Desktop packaging
 
 - First Linux distributables: `applications/electron` now yields

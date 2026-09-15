@@ -194,9 +194,9 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
                 : 'identifier'],
             [/[0-9]+(\.[0-9]+)?/, 'number'],
             [/[\s]+/, 'white'],
-            [/[;:.{}()\[\],]+/, 'delimiter'],
+            [/[;:.{}()[\],]+/, 'delimiter'],
             [/[=+\-*/%<>!&|^~?:]+/, 'operator'],
-            [/[{}()\[\]]/, '@brackets']
+            [/[{}()[\]]/, '@brackets']
         );
         return {
             keywords: entry.keywords,

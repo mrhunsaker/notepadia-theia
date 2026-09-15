@@ -83,7 +83,7 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Equal);
             add(NotepadiaCommands.ZOOM_OUT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus);
             add(NotepadiaCommands.ZOOM_RESET.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0);
-        } catch (e) {
+        } catch {
             setTimeout(() => this.registerEditorKeybindings(), 1000);
         }
     }

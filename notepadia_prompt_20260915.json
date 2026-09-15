@@ -1,0 +1,428 @@
+{
+  "name": "notepadia-continuation-prompt",
+  "version": "5.0.0",
+  "date": "2026-09-15",
+  "previousVersion": "4.0.0",
+  "baseline": {
+    "theia": "1.75.0",
+    "node": ">=24",
+    "electron": "42.8.1",
+    "electronBuilder": "26.15.3",
+    "packageManager": "Yarn Classic 1.x"
+  },
+  "goal": "Continue building a production-quality Notepad++-style text editor on Eclipse Theia, Linux-first, with the browser as the primary runtime.",
+  "rules": [
+    "Before upgrading anything, inspect the official Eclipse Theia release page and current eclipse-theia/theia and eclipse-theia/theia-ide repositories.",
+    "Prefer the newest stable, mutually compatible Theia release available at generation time. Keep all @theia packages on one compatible release line.",
+    "Never introduce a random standalone monaco-editor version. Use Theia's Monaco integration.",
+    "Use the current Theia build pipeline. Do not add webpack if the current release is esbuild-only.",
+    "Use Theia services for editor, filesystem, navigator, workspace, commands, menus, keybindings, preferences and search.",
+    "Keep product-specific behavior in the Notepadia extension(s).",
+    "Use VS Code/Open VSX extensions for mature language support where compatible.",
+    "Do not implement language grammars from scratch unless no compatible extension exists.",
+    "Do not claim a build works unless it has actually been built and tested.",
+    "Preserve the existing repository's package manager and lockfile conventions when upgrading.",
+    "Improve the browser application first; use it for 99%+ of development and runtime. Touch the Electron target only when packaging distributables.",
+    "Keep react/react-dom as direct dependencies of the application packages; they are peer dependencies of @theia/core.",
+    "Do not reintroduce Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged); the repository runs Yarn Classic with hoisted node_modules.",
+    "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature."
+  ],
+  "product": {
+    "name": "Notepadia",
+    "platform": "Eclipse Theia",
+    "editor": "Theia Monaco",
+    "primaryTarget": "Linux",
+    "secondaryTargets": ["Windows", "macOS"],
+    "primaryRuntime": "browser (http://localhost:3000)",
+    "packagingRuntime": "Electron"
+  },
+  "auditSummary": {
+    "date": "2026-09-15",
+    "v3MilestonesCompleted": [
+      "stabilize browser build and CI on Linux",
+      "implement search and replace UX",
+      "implement encoding conversion and code-page support",
+      "implement EOL conversion",
+      "implement recent files and session restore",
+      "implement bookmarks and line operations",
+      "add language support",
+      "match Notepad++ menus and shortcuts",
+      "validate Linux Electron packaging (AppImage/rpm/deb)"
+    ],
+    "v3MilestonesRemaining": [
+      "add Windows file associations and portable packaging",
+      "add updater",
+      "add macOS packaging"
+    ],
+    "gapsDiscovered": [
+      "no product icons (default Electron icon in use)",
+      "no unit tests (lint is now real; e2e wired into CI)",
+      "missing languages from v3 list: JSON (Theia ships jsonc but not in curated list), PowerShell",
+      "replace in files not wired in Search menu (Theia has search-in-workspace.replace)",
+      "matching bracket navigation not implemented",
+      "document list (open files sidebar) not implemented as standalone feature",
+      "spaces versus tabs toggle not implemented (only tab size selection)",
+      "file associations only configured for Linux desktop (not Windows/macOS)",
+      "no macOS code signing or notarization",
+      "no automatic update mechanism",
+      "no release/artifact publishing workflow"
+    ]
+  },
+  "status": {
+    "extension": "builds and installs as Notepadia extension",
+    "browserApp": "builds and runs on Linux at localhost:3000",
+    "electronApp": "builds; Linux packaging validated (AppImage/rpm/deb in dist/)",
+    "removedBerryArtifacts": true,
+    "reactAddedAsPeerShim": true,
+    "e2e": "10 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, menus-shortcuts, session-restore); wired into GitHub Actions e2e.yml (lint+build+test:e2e on push/PR)",
+    "lint": "real linter on notepadia extension: ESLint 10 + typescript-eslint flat config, yarn lint passes clean",
+    "ci": "workflows: build.yml (browser build) and e2e.yml (lint + build + 10 e2e suites, puppeteer cached, 45m timeout, failure artifacts uploaded)"
+  },
+  "features": {
+    "core": {
+      "new document": { "status": "complete", "implementation": "Theia built-in, wired via Ctrl+N" },
+      "open": { "status": "complete", "implementation": "Theia built-in, wired via Ctrl+O" },
+      "save": { "status": "complete", "implementation": "Theia built-in, wired via Ctrl+S" },
+      "save as": { "status": "complete", "implementation": "Theia built-in, wired via Ctrl+Shift+S area" },
+      "save all": { "status": "complete", "implementation": "Theia built-in, wired via Ctrl+Shift+S" },
+      "close": { "status": "complete", "implementation": "Theia built-in with custom unsaved-changes confirmation" },
+      "close all": { "status": "complete", "implementation": "Theia built-in with custom Save All/Don't Save/Cancel dialog" },
+      "recent files": { "status": "complete", "implementation": "Custom notepadia-recent-files-contribution.ts, persists to localStorage, max 15" },
+      "session restore": { "status": "complete", "implementation": "Theia built-in shell layout persistence (tabs, positions, active tab, cursor)" },
+      "unsaved-change confirmation": { "status": "complete", "implementation": "Custom Save/Don't Save/Cancel dialogs in notepadia-contribution.ts" },
+      "drag and drop files": { "status": "complete", "implementation": "Custom notepadia-drop-contribution.ts, intercepts OS drops to Theia Upload flow" }
+    },
+    "editing": {
+      "undo": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "redo": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "cut": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "copy": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "paste": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "select all": { "status": "complete", "implementation": "Theia/Monaco built-in" },
+      "duplicate line": { "status": "complete", "implementation": "editor.action.duplicateSelection, Ctrl+D" },
+      "delete line": { "status": "complete", "implementation": "editor.action.deleteLines, Ctrl+L" },
+      "move line up": { "status": "complete", "implementation": "editor.action.moveLinesUpAction" },
+      "move line down": { "status": "complete", "implementation": "editor.action.moveLinesDownAction" },
+      "join lines": { "status": "complete", "implementation": "editor.action.joinLines, Ctrl+J" },
+      "trim trailing whitespace": { "status": "complete", "implementation": "editor.action.trimTrailingWhitespace, Edit > Line Operations" },
+      "indent": { "status": "complete", "implementation": "editor.action.indentLines" },
+      "unindent": { "status": "complete", "implementation": "editor.action.outdentLines" },
+      "sort lines": { "status": "complete", "implementation": "editor.action.sortLinesAscending / sortLinesDescending, Edit > Line Operations" },
+      "toggle comment": { "status": "complete", "implementation": "editor.action.commentLine, Edit menu" },
+      "remove duplicate lines": { "status": "complete", "implementation": "editor.action.removeDuplicateLines, Edit > Line Operations" },
+      "reverse lines": { "status": "complete", "implementation": "editor.action.reverseLines, Edit > Line Operations" },
+      "upper case": { "status": "complete", "implementation": "editor.action.transformToUppercase, Ctrl+Shift+U" },
+      "lower case": { "status": "complete", "implementation": "editor.action.transformToLowercase, Ctrl+U" }
+    },
+    "search": {
+      "find": { "status": "complete", "implementation": "Monaco built-in find widget, Ctrl+F, wired in Search menu" },
+      "replace": { "status": "complete", "implementation": "Monaco built-in replace widget, Ctrl+H, wired in Search menu" },
+      "find next": { "status": "complete", "implementation": "editor.action.nextMatchFindAction, F3" },
+      "find previous": { "status": "complete", "implementation": "editor.action.previousMatchFindAction, Shift+F3" },
+      "replace all": { "status": "complete", "implementation": "Monaco built-in replace all" },
+      "find in files": { "status": "complete", "implementation": "Theia search-in-workspace.open, wired in Search menu" },
+      "replace in files": { "status": "pending", "implementation": "Theia search-in-workspace.replace exists but not wired in menu; needs menu entry added" },
+      "regular expressions": { "status": "complete", "implementation": "Monaco find widget built-in toggle" },
+      "match case": { "status": "complete", "implementation": "Monaco find widget built-in toggle" },
+      "whole word": { "status": "complete", "implementation": "Monaco find widget built-in toggle" },
+      "wrap around": { "status": "complete", "implementation": "Monaco find widget built-in toggle" },
+      "selection only": { "status": "complete", "implementation": "Monaco find widget built-in toggle" }
+    },
+    "document": {
+      "UTF-8": { "status": "complete", "implementation": "Custom encoding contribution via Monaco setEncoding" },
+      "UTF-8 BOM": { "status": "complete", "implementation": "Custom encoding contribution with ensureUtf8Bom workaround" },
+      "UTF-16 LE": { "status": "complete", "implementation": "Custom encoding contribution" },
+      "UTF-16 BE": { "status": "complete", "implementation": "Custom encoding contribution" },
+      "ANSI/code pages": { "status": "complete", "implementation": "Windows 1252 only via iconv-lite; limited code-page support" },
+      "LF": { "status": "complete", "implementation": "Custom EOL contribution via Monaco setEOL" },
+      "CRLF": { "status": "complete", "implementation": "Custom EOL contribution via Monaco setEOL" },
+      "CR": { "status": "partial", "implementation": "Detected and displayed in status bar; no conversion target (Monaco limitation)" },
+      "tab width": { "status": "complete", "implementation": "View > Tab Size submenu (2/4/8) via control.updateOptions" },
+      "spaces versus tabs": { "status": "pending", "implementation": "Not implemented; needs insertSpaces toggle added to Tab Size submenu or as separate command" },
+      "word wrap": { "status": "complete", "implementation": "editor.action.toggleWordWrap, View > Toggle Word Wrap" },
+      "zoom": { "status": "complete", "implementation": "editor.action.fontZoomIn/Out/Reset, Ctrl+=/-/0, View > Zoom submenu" },
+      "whitespace visualization": { "status": "complete", "implementation": "editor.action.toggleRenderWhitespace, View > Show All Characters" }
+    },
+    "navigation": {
+      "go to line": { "status": "complete", "implementation": "editor.action.gotoLine, Ctrl+G, Search > Go To Line" },
+      "matching bracket": { "status": "pending", "implementation": "Not implemented; Monaco has editor.action.jumpToBracket, needs command + menu entry + keybinding (Ctrl+Shift+E or similar)" },
+      "bookmarks": { "status": "complete", "implementation": "Custom notepadia-bookmark-contribution.ts, Ctrl+F2/F2/Shift+F2, glyph decorations" },
+      "document list": { "status": "pending", "implementation": "Not implemented as standalone feature; Theia has open editors view but no dedicated Notepad++-style document list panel" },
+      "recent documents": { "status": "complete", "implementation": "Custom recent files contribution with File > Recent Files submenu" }
+    },
+    "languageSupport": {
+      "Plain Text": { "status": "complete" },
+      "C": { "status": "complete" },
+      "C++": { "status": "complete" },
+      "C#": { "status": "complete" },
+      "Java": { "status": "complete" },
+      "JavaScript": { "status": "complete" },
+      "TypeScript": { "status": "complete" },
+      "Python": { "status": "complete" },
+      "Rust": { "status": "complete" },
+      "Go": { "status": "complete" },
+      "JSON": { "status": "partial", "implementation": "Theia ships jsonc registration; not in Notepadia curated list, needs explicit registration with Monarch tokenizer" },
+      "XML": { "status": "complete" },
+      "HTML": { "status": "complete" },
+      "CSS": { "status": "complete" },
+      "Markdown": { "status": "complete" },
+      "SQL": { "status": "complete" },
+      "Shell": { "status": "complete" },
+      "PowerShell": { "status": "pending", "implementation": "Not implemented; needs Monarch tokenizer with PowerShell keywords and patterns" },
+      "YAML": { "status": "complete" },
+      "PHP": { "status": "complete", "implementation": "Extra language, not in v3 list but implemented" },
+      "Ruby": { "status": "complete", "implementation": "Extra language, not in v3 list but implemented" }
+    },
+    "distribution": {
+      "Linux AppImage": { "status": "complete", "implementation": "Notepadia-0.1.0-x86_64.AppImage in electron/dist/" },
+      "Linux rpm": { "status": "complete", "implementation": "Notepadia-0.1.0-x86_64.rpm in electron/dist/" },
+      "Linux deb": { "status": "complete", "implementation": "Notepadia-0.1.0-amd64.deb in electron/dist/" },
+      "Windows NSIS installer": { "status": "pending", "implementation": "electron-builder.yml config exists; no Windows build/test performed yet" },
+      "Windows portable package": { "status": "pending", "implementation": "electron-builder.yml config exists; no Windows build/test performed yet" },
+      "file associations": { "status": "pending", "implementation": "Linux MimeType configured in .desktop entry; Windows registry associations and macOS plist UTIs not implemented" },
+      "macOS DMG": { "status": "pending", "implementation": "electron-builder.yml config exists; no macOS build/sign/notarize performed" },
+      "automatic updates": { "status": "pending", "implementation": "electron-updater not installed; needs integration with update server" },
+      "product icons": { "status": "pending", "implementation": "No icons exist; default Electron icon in use. Need ico/icns/png at build/ directory, electron-builder config updated" }
+    }
+  },
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "stabilize browser build and CI on Linux",
+      "status": "complete",
+      "evidence": "yarn build succeeds, yarn start launches browser app on localhost:3000, .github/workflows/build.yml runs on ubuntu-latest"
+    },
+    {
+      "id": "M2",
+      "title": "implement search and replace UX",
+      "status": "complete",
+      "evidence": "Search menu wired with Find/Replace/Find Next/Find Previous/Find in Files; e2e/search.cjs passes"
+    },
+    {
+      "id": "M3",
+      "title": "implement encoding conversion and code-page support",
+      "status": "complete",
+      "evidence": "notepadia-encoding-contribution.ts with UTF-8/BOM/16LE/16BE/ANSI; e2e/encoding.cjs verifies byte-level round trips"
+    },
+    {
+      "id": "M4",
+      "title": "implement EOL conversion",
+      "status": "complete",
+      "evidence": "notepadia-eol-contribution.ts with LF/CRLF conversion; e2e/eol.cjs passes"
+    },
+    {
+      "id": "M5",
+      "title": "implement recent files and session restore",
+      "status": "complete",
+      "evidence": "notepadia-recent-files-contribution.ts with localStorage persistence; Theia built-in session restore; e2e/recent.cjs + session-restore.cjs pass"
+    },
+    {
+      "id": "M6",
+      "title": "implement bookmarks and line operations",
+      "status": "complete",
+      "evidence": "notepadia-bookmark-contribution.ts with glyph decorations; 15 line operations via Monaco actions; e2e/bookmarks.cjs + p1-core.cjs pass"
+    },
+    {
+      "id": "M7",
+      "title": "add language support",
+      "status": "complete",
+      "evidence": "notepadia-language-contribution.ts with 19 Monarch tokenizers; e2e/language.cjs passes"
+    },
+    {
+      "id": "M8",
+      "title": "match Notepad++ menus and shortcuts",
+      "status": "complete",
+      "evidence": "notepadia-menu-contribution.ts restructures entire menu tree; keybinding contributions at Theia and Monaco levels; e2e/menus-shortcuts.cjs + view-menu.cjs pass"
+    },
+    {
+      "id": "M9",
+      "title": "validate Linux Electron packaging (AppImage/rpm/deb)",
+      "status": "complete",
+      "evidence": "electron-builder.yml configured; dist/ contains AppImage, rpm, deb artifacts"
+    },
+    {
+      "id": "M10",
+      "title": "wire e2e tests into CI pipeline",
+      "status": "complete",
+      "description": "10 e2e suites run by GitHub Actions on every push/PR.",
+      "evidence": ".github/workflows/e2e.yml runs yarn lint + yarn build + yarn test:e2e (ubuntu-latest, Node 24, 45m timeout, cached Puppeteer Chrome, failure artifacts uploaded); yarn lint is real (ESLint 10 + typescript-eslint on notepadia extension); e2e runner persists per-suite logs/results.json/status.txt and failure screenshots to e2e-artifacts/ and refuses to run against a stale server. Verified locally: yarn lint clean, yarn build ok, all 10 suites green."
+    },
+    {
+      "id": "M11",
+      "title": "complete missing language registrations",
+      "status": "in_progress",
+      "description": "Add JSON and PowerShell to the curated language list with Monarch tokenizers.",
+      "plan": [
+        "Add PowerShell Monarch tokenizer: keywords (if/else/foreach/while/try/catch), cmdlets pattern, comment markers (# and <# #>), string patterns",
+        "Add JSON Monarch tokenizer: strings, numbers, true/false/null keywords, nesting markers",
+        "Register both in notepadia-language-contribution.ts startup",
+        "Add to Language submenu",
+        "Add e2e assertions for PowerShell and JSON in language.cjs"
+      ]
+    },
+    {
+      "id": "M12",
+      "title": "wire replace in files in Search menu",
+      "status": "pending",
+      "description": "Theia's search-in-workspace.replace command exists but is not exposed in the Search menu.",
+      "plan": [
+        "Add a menu entry 'Replace in Files...' under Search menu after 'Find in Files'",
+        "Wire to search-in-workspace.replace command",
+        "Add keybinding Ctrl+Shift+H (Notepad++ convention for Replace in Files)"
+      ]
+    },
+    {
+      "id": "M13",
+      "title": "add matching bracket navigation",
+      "status": "pending",
+      "description": "Implement Notepad++-style jump-to-matching-bracket feature.",
+      "plan": [
+        "Register command notepadia.matchingBracket using editor.action.jumpToBracket (Monaco built-in)",
+        "Add menu entry under Search menu: 'Matching Bracket' with keybinding Ctrl+Shift+E",
+        "Add e2e test to verify bracket jumping in a file with nested brackets"
+      ]
+    },
+    {
+      "id": "M14",
+      "title": "add document list panel",
+      "status": "pending",
+      "description": "Notepad++-style document list showing all open files with filtering.",
+      "plan": [
+        "Evaluate Theia's open-editors view and whether it can be surfaced as a view container",
+        "If insufficient, create a custom NotepadiaDocumentListWidget using Theia's Widget/TreeWidget",
+        "Add to View menu: 'Document List' toggle",
+        "Implement file-name filtering input at top of panel",
+        "Wire click-to-focus behavior for each entry"
+      ]
+    },
+    {
+      "id": "M15",
+      "title": "add spaces versus tabs toggle",
+      "status": "pending",
+      "description": "Add insertSpaces (soft tab) vs tabs toggle to complement tab size selection.",
+      "plan": [
+        "Add 'Insert Spaces' / 'Use Tabs' commands to the View > Tab Size submenu",
+        "Wire to control.updateOptions({ insertSpaces: true/false })",
+        "Show current mode in status bar next to tab size indicator",
+        "Persist preference to Theia preferences service"
+      ]
+    },
+    {
+      "id": "M16",
+      "title": "add product icons",
+      "status": "pending",
+      "description": "Create Notepadia-branded icons for all platforms. Currently using default Electron icon.",
+      "plan": [
+        "Design/source a 512x512 PNG icon (Notepad++-inspired or unique Notepadia branding)",
+        "Generate platform variants: icon.ico (Windows), icon.icns (macOS), icons/ PNG set for Linux .desktop",
+        "Place in extensions/notepadia/build/ or applications/electron/build/",
+        "Update electron-builder.yml: icon paths for win/mac/linux",
+        "Verify icons appear in taskbar, about dialog, and installer"
+      ]
+    },
+    {
+      "id": "M17",
+      "title": "add Windows packaging and file associations",
+      "status": "pending",
+      "description": "Validate Electron packaging on Windows with NSIS installer, portable package, and file associations.",
+      "plan": [
+        "Run yarn package on Windows (or cross-compile with electron-builder --win on Linux CI)",
+        "Verify NSIS installer produces working .exe with desktop/start-menu shortcuts",
+        "Verify portable package runs without installation",
+        "Add file association config to electron-builder.yml for .txt, .log, .ini, .csv, .json, .xml, .html, .css, .js, .py, .java, .c, .cpp, .h, .rs, .go, .sh, .ps1, .md, .sql, .yaml, .yml",
+        "Add Windows registry entries for file type registration (HKCR associations)",
+        "Test double-click file opening launches Notepadia with correct file"
+      ]
+    },
+    {
+      "id": "M18",
+      "title": "add macOS packaging and signing",
+      "status": "pending",
+      "description": "Validate Electron packaging on macOS with DMG, code signing, and notarization.",
+      "plan": [
+        "Run yarn package on macOS (or CI with macOS runner)",
+        "Verify DMG mounts and installs correctly to /Applications",
+        "Configure Apple Developer ID for code signing (mac.identity in electron-builder.yml)",
+        "Add notarization config (afterSign hook or electron-notarize)",
+        "Add entitlements.plist for hardened runtime",
+        "Add file association plist entries for UTIs",
+        "Test Gatekeeper acceptance on clean macOS install"
+      ]
+    },
+    {
+      "id": "M19",
+      "title": "add automatic updates",
+      "status": "pending",
+      "description": "Integrate electron-updater for automatic update checking and installation.",
+      "plan": [
+        "Install electron-updater as dependency in applications/electron",
+        "Configure update feed URL in electron-builder.yml (publish section)",
+        "Add update check on app startup (with user opt-out preference)",
+        "Add 'Check for Updates...' menu entry under Settings",
+        "Implement update notification UI (download progress, restart prompt)",
+        "Set up GitHub Releases or custom update server for hosting artifacts",
+        "Test update flow from older version to newer version"
+      ]
+    },
+    {
+      "id": "M20",
+      "title": "add CI e2e tests and release workflow",
+      "status": "pending",
+      "description": "Full CI pipeline with build, lint, e2e tests, and release artifact publishing.",
+      "plan": [
+        "Create .github/workflows/e2e.yml with ubuntu runner, Chromium install, yarn build, yarn test:e2e",
+        "Create .github/workflows/release.yml triggered on tag push (v*)",
+        "Release workflow: build browser + electron, run e2e, package Linux/Windows/macOS, upload to GitHub Releases",
+        "Add artifact attestation/checksums for release integrity",
+        "Add workflow_dispatch for manual release triggers",
+        "Fix yarn test to run actual unit tests (add test scripts to workspace packages)"
+      ]
+    }
+  ],
+  "deliverables": {
+    "source code": { "status": "complete", "notes": "12 TypeScript source files in extensions/notepadia/src/browser/" },
+    "tests": { "status": "in_progress", "notes": "10 e2e suites implemented and wired into GitHub Actions e2e.yml; no unit tests; per-suite logs + failure screenshots uploaded as artifacts" },
+    "package manifests": { "status": "complete", "notes": "Root, browser, electron, notepadia extension, e2e all have package.json; eslint devDependencies added to notepadia" },
+    "lockfile": { "status": "complete", "notes": "yarn.lock present and maintained" },
+    "CI": { "status": "partial", "notes": "build.yml (browser build) + e2e.yml (lint, build, 10 e2e suites); no electron packaging, no release workflow yet" },
+    "installer configuration": { "status": "partial", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced; Windows/macOS untested" },
+    "product icons": { "status": "not_started", "notes": "No icons exist; default Electron icon in use" },
+    "release documentation": { "status": "not_started", "notes": "No CHANGELOG, no RELEASE.md, no version tags" },
+    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v4.0.0)" }
+  },
+  "fileManifest": {
+    "extensions/notepadia/src/browser/notepadia-contribution.ts": "Core commands (new, open, save, close, zoom, whitespace, tab size, line operations, close confirmation)",
+    "extensions/notepadia/src/browser/notepadia-menu-contribution.ts": "Full menu tree restructuring (File/Edit/Search/View/Encoding/Language/Settings)",
+    "extensions/notepadia/src/browser/notepadia-keybinding-contribution.ts": "Theia-level keybinding registrations",
+    "extensions/notepadia/src/browser/notepadia-editor-keybinding-contribution.ts": "Monaco-level dynamic keybinding bridge, editContext:false",
+    "extensions/notepadia/src/browser/notepadia-encoding-contribution.ts": "Encoding commands (UTF-8/BOM/16LE/16BE/ANSI) and submenu",
+    "extensions/notepadia/src/browser/notepadia-eol-contribution.ts": "EOL conversion (LF/CRLF) and submenu",
+    "extensions/notepadia/src/browser/notepadia-recent-files-contribution.ts": "Recent files tracking with localStorage persistence",
+    "extensions/notepadia/src/browser/notepadia-bookmark-contribution.ts": "Bookmark toggle/navigation with glyph decorations",
+    "extensions/notepadia/src/browser/notepadia-language-contribution.ts": "19 language registrations with Monarch tokenizers",
+    "extensions/notepadia/src/browser/notepadia-status-bar-contribution.ts": "Status bar (language, position, encoding, EOL, insert mode)",
+    "extensions/notepadia/src/browser/notepadia-drop-contribution.ts": "Drag-and-drop file interception",
+    "e2e/run.cjs": "E2E test runner (boots app, seeds workspace, runs 10 Puppeteer suites, writes e2e-artifacts/, rejects stale servers)",
+    "e2e/lib.js": "Shared Puppeteer helpers (failure screenshots + console-error capture)",
+    "e2e/p1-core.cjs": "Core feature tests (menus, file ops, line operations)",
+    "e2e/encoding.cjs": "Encoding round-trip tests",
+    "e2e/eol.cjs": "EOL conversion tests",
+    "e2e/recent.cjs": "Recent files tests",
+    "e2e/bookmarks.cjs": "Bookmark tests",
+    "e2e/language.cjs": "Language menu and tokenization tests",
+    "e2e/view-menu.cjs": "View menu structure and zoom tests",
+    "e2e/search.cjs": "Find/Replace widget tests",
+    "e2e/menus-shortcuts.cjs": "Menu structure and keyboard shortcut tests",
+    "e2e/session-restore.cjs": "Session restore (tabs + cursor) tests",
+    "applications/electron/electron-builder.yml": "Electron packaging config (win/mac/linux)",
+    ".github/workflows/build.yml": "CI workflow (browser build)",
+    ".github/workflows/e2e.yml": "CI workflow (lint + build + 10 e2e suites, puppeteer cached, artifacts on failure)",
+    "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension"
+  },
+  "nextActions": [
+    "Add PowerShell and JSON language registrations (M11)",
+    "Wire replace in files to Search menu (M12)",
+    "Add matching bracket navigation (M13)",
+    "Create product icons for all platforms (M16)"
+  ]
+}

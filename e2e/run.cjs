@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.E2E_PORT || '3100';
 const WS = process.env.E2E_WS || path.join(os.tmpdir(), 'notepadia-e2e-ws');
 const URL = `http://127.0.0.1:${PORT}/`;
+const ARTIFACT_DIR = process.env.E2E_ARTIFACTS || path.join(ROOT, 'e2e-artifacts');
 
 const SUITES = [
     'p1-core',
@@ -52,9 +53,12 @@ function httpOk(url, needle) {
     });
 }
 
-async function waitForServer() {
+async function waitForServer(child) {
     const deadline = Date.now() + 120000;
     while (Date.now() < deadline) {
+        if (child.exitCode !== null) {
+            throw new Error(`server process exited early (code ${child.exitCode}); is port ${PORT} already in use?`);
+        }
         if (await httpOk(URL, 'Notepadia')) return;
         await new Promise(r => setTimeout(r, 2000));
     }
@@ -74,10 +78,14 @@ function startServer() {
 
 async function main() {
     seedWorkspace();
+    if (await httpOk(URL, 'Notepadia')) {
+        console.error(`FATAL ${URL} already serves a Theia instance; not testing against a stale server (E2E_PORT ${PORT} busy?)`);
+        process.exit(1);
+    }
     const server = startServer();
     let serverLoaded = false;
     try {
-        await waitForServer();
+        await waitForServer(server);
         serverLoaded = true;
     } catch (e) {
         console.error('FATAL', e.message);
@@ -86,6 +94,7 @@ async function main() {
     }
 
     let runFailures = 0;
+    const results = [];
     for (const suite of SUITES) {
         const file = path.join(__dirname, suite + '.cjs');
         if (!fs.existsSync(file)) {
@@ -101,16 +110,22 @@ async function main() {
         });
         const output = (res.stdout || '') + (res.stderr || '');
         process.stdout.write(output);
+        fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+        fs.writeFileSync(path.join(ARTIFACT_DIR, suite + '.log'), output);
         const softFail = /SUMMARY checks=[0-9]+ failures=[1-9]/.test(output) || res.status !== 0;
         if (softFail) {
             runFailures += 1;
+            results.push({ suite, status: 'failed' });
             console.log(`RESULT ${suite}: FAILED`);
         } else {
+            results.push({ suite, status: 'passed' });
             console.log(`RESULT ${suite}: passed`);
         }
     }
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'results.json'), JSON.stringify(results, null, 2) + '\n');
     if (server) server.kill('SIGTERM');
     try { await new Promise(r => server.on('exit', r)); } catch { }
+    fs.writeFileSync(path.join(ARTIFACT_DIR, 'status.txt'), runFailures ? 'failed\n' : 'passed\n');
     if (runFailures) {
         console.error(`\ne2e failed: ${runFailures} suite(s)`);
         process.exit(1);

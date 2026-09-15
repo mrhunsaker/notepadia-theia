@@ -1,12 +1,15 @@
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer');
 
 const URL = process.env.E2E_URL || 'http://127.0.0.1:3000/';
 const WS = process.env.E2E_WS || path.join(os.tmpdir(), 'notepadia-e2e-ws');
+const ARTIFACT_DIR = process.env.E2E_ARTIFACTS || path.join(__dirname, '..', 'e2e-artifacts');
 
 let checks = 0;
 let failures = 0;
+const globalErrors = [];
 
 function assert(name, ok, extra = '') {
     checks += 1;
@@ -18,7 +21,25 @@ function assert(name, ok, extra = '') {
     }
 }
 
+async function saveFailureArtifacts(browser) {
+    if (!failures) return;
+    try { fs.mkdirSync(ARTIFACT_DIR, { recursive: true }); } catch (_) { }
+    if (browser) {
+        let idx = 0;
+        const pages = await browser.pages().catch(() => []);
+        for (const pg of pages) {
+            idx += 1;
+            await pg.screenshot({ path: path.join(ARTIFACT_DIR, `failure-${process.pid}-${idx}.png`) }).catch(() => { });
+        }
+    }
+    if (globalErrors.length) {
+        fs.writeFileSync(path.join(ARTIFACT_DIR, `console-errors-${process.pid}.log`), globalErrors.join('\n') + '\n');
+    }
+    fs.writeFileSync(path.join(ARTIFACT_DIR, `summary-${process.pid}.log`), `checks=${checks} failures=${failures}\n`);
+}
+
 async function finish(browser) {
+    await saveFailureArtifacts(browser);
     if (browser) await browser.close();
     console.log(`SUMMARY checks=${checks} failures=${failures}`);
     process.exit(failures ? 1 : 0);
@@ -40,10 +61,12 @@ async function launchPage(opts = {}) {
     page.setDefaultTimeout(30000);
     if (opts.viewport) await page.setViewport(opts.viewport);
     const errors = [];
-    page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+    page.on('pageerror', e => { const m = 'pageerror: ' + e.message; errors.push(m); globalErrors.push(m); });
     page.on('console', m => {
         if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) {
-            errors.push('console.error: ' + m.text());
+            const t = 'console.error: ' + m.text();
+            errors.push(t);
+            globalErrors.push(t);
         }
     });
     return { browser, page, errors };

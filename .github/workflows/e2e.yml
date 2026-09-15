@@ -1,0 +1,60 @@
+name: Notepadia E2E
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "false"
+      PUPPETEER_CACHE_DIR: /home/runner/.cache/puppeteer
+      E2E_ARTIFACTS: ${{ github.workspace }}/e2e-artifacts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+
+      - name: Verify environment
+        run: yarn verify
+
+      - name: Cache Puppeteer browsers
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Build browser application and extensions
+        run: yarn build
+
+      - name: Run e2e suites
+        run: yarn test:e2e
+
+      - name: Upload e2e artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notepadia-e2e-artifacts
+          path: e2e-artifacts/**
+          if-no-files-found: warn

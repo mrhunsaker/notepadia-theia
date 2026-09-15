@@ -37,7 +37,7 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
         @inject(EditorManager) protected readonly editorManager: EditorManager
     ) { }
 
-    async onStart(app: FrontendApplication): Promise<void> {
+    async onStart(_app: FrontendApplication): Promise<void> {
         const style = document.createElement('style');
         style.id = 'notepadia-bookmark-style';
         style.textContent = `.${NotepadiaBookmarkContribution.DECORATION_CLASS}::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: #f2b01e; margin-left: 1px; }`;
@@ -120,7 +120,7 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
         }
         const current = editor.getControl().getPosition()?.lineNumber ?? 1;
         const lines = Array.from(set).sort((a, b) => a - b);
-        let target = -1;
+        let target: number;
         if (direction === 1) {
             target = lines.find(l => l > current) ?? lines[0];
         } else {

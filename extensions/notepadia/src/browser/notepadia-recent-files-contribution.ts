@@ -33,7 +33,7 @@ export class NotepadiaRecentFilesContribution implements FrontendApplicationCont
         @inject(StorageService) protected readonly storageService: StorageService
     ) { }
 
-    async onStart(app: FrontendApplication): Promise<void> {
+    async onStart(_app: FrontendApplication): Promise<void> {
         const stored = await this.storageService.getData<{ files: string[] }>(NotepadiaRecentFilesContribution.STORAGE_KEY, { files: [] });
         this.recent = (stored.files || []).map(u => new URI(u));
         this.rebuildMenu();
