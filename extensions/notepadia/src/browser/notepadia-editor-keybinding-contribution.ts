@@ -72,6 +72,7 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             add(NotepadiaCommands.DELETE_LINE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
             add(NotepadiaCommands.JOIN_LINES.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyJ);
             add(NotepadiaCommands.UPPER_CASE.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyU);
+            add(NotepadiaCommands.LOWER_CASE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyU);
             add(NotepadiaCommands.FIND_NEXT.id, monaco.KeyCode.F3);
             add(NotepadiaCommands.FIND_PREVIOUS.id, monaco.KeyMod.Shift | monaco.KeyCode.F3);
             add(CommonCommands.SAVE_ALL.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyS);

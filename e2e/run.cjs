@@ -18,6 +18,7 @@ const SUITES = [
     'language',
     'view-menu',
     'search',
+    'menus-shortcuts',
     'session-restore'
 ];
 

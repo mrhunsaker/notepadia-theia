@@ -40,7 +40,7 @@
     "electronApp": "builds; packaging not yet validated on Linux",
     "removedBerryArtifacts": true,
     "reactAddedAsPeerShim": true,
-    "e2e": "all 7 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu)"
+    "e2e": "all 9 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, session-restore)"
   },
   "features": {
     "core": [

@@ -20,7 +20,7 @@ export class NotepadiaRecentFilesContribution implements FrontendApplicationCont
     protected static readonly STORAGE_KEY = 'notepadia.recentFiles';
     protected static readonly MAX_ITEMS = 15;
     protected static readonly COMMAND_PREFIX = 'notepadia.recent.';
-    protected static readonly MENU_PATH = [...CommonMenus.FILE, '5_notepadia-recent'];
+    protected static readonly MENU_PATH = [...CommonMenus.FILE, '0c_notepadia-recent'];
     protected static readonly CLEAR_COMMAND = 'notepadia.recent.clear';
 
     protected recent: URI[] = [];

@@ -12,7 +12,18 @@ export class NotepadiaMenuContribution implements MenuContribution {
         const menubar = ['menubar'];
 
         const file = [...CommonMenus.FILE];
+        const fileNewText = [...CommonMenus.FILE_NEW_TEXT];
+        const fileOpen = [...CommonMenus.FILE_OPEN];
+        const fileSave = [...CommonMenus.FILE_SAVE];
+        const fileAutoSave = [...CommonMenus.FILE_AUTOSAVE];
+        const fileClose = [...CommonMenus.FILE_CLOSE];
+        const fileDownloadUpload = [...CommonMenus.FILE, '4_downloadupload'];
+        const fileWorkspace = [...CommonMenus.FILE, '2_workspace'];
+        const fileSettingsOpen = [...CommonMenus.FILE_SETTINGS_SUBMENU_OPEN];
+        const fileSettingsTheme = [...CommonMenus.FILE_SETTINGS_SUBMENU_THEME];
+
         const edit = [...CommonMenus.EDIT];
+        const editFind = [...CommonMenus.EDIT_FIND];
         const editLines = [...CommonMenus.EDIT, '3_notepadia-lines'];
         const editLineOperations = [...CommonMenus.EDIT, '4_notepadia-line-operations'];
         const editConvertCase = [...CommonMenus.EDIT, '5_notepadia-convert-case'];
@@ -26,46 +37,83 @@ export class NotepadiaMenuContribution implements MenuContribution {
         menus.registerSubmenu(search, 'Search');
         menus.registerSubmenu(settings, 'Settings');
 
-        // File
+        // Hide Theia/workspace infra clutter from the File menu so it matches
+        // Notepad++ (New, Open..., Save, Save As, Save All, Recent Files,
+        // Close, Close All). The commands stay available; their menu entries
+        // are only removed from the File subtree.
+        const unregister = (commandId: string | undefined, path: string[]): void => {
+            if (commandId) {
+                menus.unregisterMenuAction(commandId, path);
+            }
+        };
+        unregister(CommonCommands.NEW_UNTITLED_TEXT_FILE.id, fileNewText);
+        unregister(CommonCommands.PICK_NEW_FILE.id, fileNewText);
+        unregister('file.newFolder', fileNewText);
+        unregister('workbench.action.newWindow', fileNewText);
+        unregister('workspace:open', fileOpen);
+        unregister('workspace:openWorkspace', fileOpen);
+        unregister('workspace:openRecent', fileOpen);
+        unregister('workspace:addFolder', fileWorkspace);
+        unregister('workspace:saveAs', fileWorkspace);
+        unregister(CommonCommands.SAVE.id, fileSave);
+        unregister(CommonCommands.SAVE_ALL.id, fileSave);
+        unregister(CommonCommands.SAVE_AS.id, fileSave);
+        unregister(CommonCommands.AUTO_SAVE.id, fileAutoSave);
+        unregister('file.upload', fileDownloadUpload);
+        unregister('file.download', fileDownloadUpload);
+        unregister(CommonCommands.CLOSE_MAIN_TAB.id, fileClose);
+        unregister('workspace:close', fileClose);
+        unregister(CommonCommands.OPEN_PREFERENCES.id, fileSettingsOpen);
+        unregister('keymaps:open', fileSettingsOpen);
+        unregister(CommonCommands.SELECT_COLOR_THEME.id, fileSettingsTheme);
+        unregister(CommonCommands.SELECT_ICON_THEME.id, fileSettingsTheme);
+
+        // Edit - keep Find/Replace only under Search (Notepad++ behavior)
+        unregister(CommonCommands.FIND.id, editFind);
+        unregister(CommonCommands.REPLACE.id, editFind);
+        unregister('search-in-workspace.open', editFind);
+        unregister('search-in-workspace.replace', editFind);
+
+        // File (Notepad++ order)
         menus.registerMenuAction(file, {
             commandId: NotepadiaCommands.NEW_DOCUMENT.id,
             label: 'New',
-            order: 'a'
+            order: '0a'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.OPEN.id,
             label: 'Open...',
-            order: 'b'
+            order: '0b'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.SAVE.id,
             label: 'Save',
-            order: 'c'
+            order: '0d'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.SAVE_AS.id,
             label: 'Save As...',
-            order: 'd'
+            order: '0e'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.SAVE_ALL.id,
             label: 'Save All',
-            order: 'e'
+            order: '0f'
         });
         menus.registerMenuAction(file, {
             commandId: NotepadiaCommands.CLOSE.id,
             label: 'Close',
-            order: 'f'
+            order: '0g'
         });
         menus.registerMenuAction(file, {
             commandId: NotepadiaCommands.CLOSE_ALL.id,
             label: 'Close All',
-            order: 'g'
+            order: '0h'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.CLOSE_OTHER_TABS.id,
             label: 'Close All But Active',
-            order: 'h'
+            order: '0i'
         });
 
         // Edit - line and block operations

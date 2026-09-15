@@ -47,6 +47,11 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             keybinding: 'ctrlcmd+shift+u'
         });
         keybindings.registerKeybinding({
+            command: NotepadiaCommands.LOWER_CASE.id,
+            keybinding: 'ctrlcmd+u',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
             command: NotepadiaCommands.FIND_NEXT.id,
             keybinding: 'f3'
         });
