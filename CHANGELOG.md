@@ -72,6 +72,14 @@
   exist (e.g. `plaintext`, `jsonc`).
 - Status bar shows the friendly language name of the active editor and is
   clickable to change language mode; it refreshes on language changes.
+- JSON added to the curated list with a dedicated Monarch tokenizer
+  (double-quoted strings, numbers, true/false/null literals, structural
+  punctuation and bracket nesting) and auto-detection for `.json`/`.jsonc`/
+  `.json5`.
+- PowerShell added with a dedicated Monarch tokenizer (`#` and `<# #>`
+  comments, `@`-here-strings, single/double-quoted strings, `$variables`,
+  `Verb-Noun` cmdlets, operators and if/elseif/for/finally keywords) and
+  auto-detection for `.ps1`/`.psm1`/`.psd1`/`.pssc`.
 
 ### CI and automated e2e
 

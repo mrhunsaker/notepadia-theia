@@ -30,6 +30,8 @@ function seedWorkspace() {
     const alpha = Buffer.from('alpha\nbeta\ngamma\n', 'utf8');
     write('sample.txt', alpha);
     write('app.js', Buffer.from('function greet(name) {\n  // a comment\n  return "hello " + name;\n}\n', 'utf8'));
+    write('config.json', Buffer.from('{\n  "name": "Notepadia",\n  "version": 1,\n  "values": [true, false, null]\n}\n', 'utf8'));
+    write('script.ps1', Buffer.from('function Get-Status {\n  # a comment\n  $items = Get-ChildItem\n  if ($items) { Write-Output "found"; } else { <# block #> }\n}\n', 'utf8'));
     write('eol-lf.txt', alpha);
     write('eol-crlf.txt', Buffer.from('alpha\r\nbeta\r\ngamma\r\n', 'utf8'));
     write('enc-utf8.txt', alpha);

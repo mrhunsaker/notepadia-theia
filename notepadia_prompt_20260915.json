@@ -1,8 +1,8 @@
 {
   "name": "notepadia-continuation-prompt",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "date": "2026-09-15",
-  "previousVersion": "4.0.0",
+  "previousVersion": "5.0.0",
   "baseline": {
     "theia": "1.75.0",
     "node": ">=24",
@@ -226,7 +226,7 @@
       "id": "M7",
       "title": "add language support",
       "status": "complete",
-      "evidence": "notepadia-language-contribution.ts with 19 Monarch tokenizers; e2e/language.cjs passes"
+      "evidence": "notepadia-language-contribution.ts with 21 Monarch tokenizers (incl. JSON and PowerShell); e2e/language.cjs passes"
     },
     {
       "id": "M8",
@@ -250,8 +250,9 @@
     {
       "id": "M11",
       "title": "complete missing language registrations",
-      "status": "in_progress",
+      "status": "complete",
       "description": "Add JSON and PowerShell to the curated language list with Monarch tokenizers.",
+      "evidence": "JSON and PowerShell added to NOTEPADIA_LANGUAGES with dedicated Monarch tokenizers (jsonMonarchTokens / powershellMonarchTokens): JSON handles double-quoted strings, numbers, true/false/null and bracket nesting; PowerShell handles # and <# #> comments, here-strings, single/double strings, $variables, Verb-Noun cmdlets and keywords. Both registered at startup and listed in the Language menu (22 entries). e2e/language.cjs now asserts menu structure (JSON + PowerShell present, count 22), auto-detection of config.json as JSON and script.ps1 as PowerShell, plus tokenization. Verified locally: tsc clean, ESLint clean, browser build ok, all 10 e2e suites green (language suite 12/12 assertions pass).",
       "plan": [
         "Add PowerShell Monarch tokenizer: keywords (if/else/foreach/while/try/catch), cmdlets pattern, comment markers (# and <# #>), string patterns",
         "Add JSON Monarch tokenizer: strings, numbers, true/false/null keywords, nesting markers",
@@ -263,7 +264,7 @@
     {
       "id": "M12",
       "title": "wire replace in files in Search menu",
-      "status": "pending",
+      "status": "in_progress",
       "description": "Theia's search-in-workspace.replace command exists but is not exposed in the Search menu.",
       "plan": [
         "Add a menu entry 'Replace in Files...' under Search menu after 'Find in Files'",
@@ -388,7 +389,7 @@
     "installer configuration": { "status": "partial", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced; Windows/macOS untested" },
     "product icons": { "status": "not_started", "notes": "No icons exist; default Electron icon in use" },
     "release documentation": { "status": "not_started", "notes": "No CHANGELOG, no RELEASE.md, no version tags" },
-    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v4.0.0)" }
+    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.1.0)" }
   },
   "fileManifest": {
     "extensions/notepadia/src/browser/notepadia-contribution.ts": "Core commands (new, open, save, close, zoom, whitespace, tab size, line operations, close confirmation)",
@@ -399,7 +400,7 @@
     "extensions/notepadia/src/browser/notepadia-eol-contribution.ts": "EOL conversion (LF/CRLF) and submenu",
     "extensions/notepadia/src/browser/notepadia-recent-files-contribution.ts": "Recent files tracking with localStorage persistence",
     "extensions/notepadia/src/browser/notepadia-bookmark-contribution.ts": "Bookmark toggle/navigation with glyph decorations",
-    "extensions/notepadia/src/browser/notepadia-language-contribution.ts": "19 language registrations with Monarch tokenizers",
+    "extensions/notepadia/src/browser/notepadia-language-contribution.ts": "21 language registrations with Monarch tokenizers (incl. dedicated JSON and PowerShell tokenizers)",
     "extensions/notepadia/src/browser/notepadia-status-bar-contribution.ts": "Status bar (language, position, encoding, EOL, insert mode)",
     "extensions/notepadia/src/browser/notepadia-drop-contribution.ts": "Drag-and-drop file interception",
     "e2e/run.cjs": "E2E test runner (boots app, seeds workspace, runs 10 Puppeteer suites, writes e2e-artifacts/, rejects stale servers)",
@@ -420,7 +421,6 @@
     "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension"
   },
   "nextActions": [
-    "Add PowerShell and JSON language registrations (M11)",
     "Wire replace in files to Search menu (M12)",
     "Add matching bracket navigation (M13)",
     "Create product icons for all platforms (M16)"

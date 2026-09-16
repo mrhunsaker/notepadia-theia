@@ -93,9 +93,18 @@ export const NOTEPADIA_LANGUAGES: ReadonlyArray<NotepadiaLanguageEntry> = [
         lineComment: '//', blockComment: ['/*', '*/']
     },
     {
+        id: 'json', name: 'JSON', extensions: ['.json', '.jsonc', '.json5'],
+        keywords: ['true', 'false', 'null']
+    },
+    {
         id: 'php', name: 'PHP', extensions: ['.php'],
         keywords: ['as', 'break', 'case', 'catch', 'class', 'const', 'continue', 'declare', 'default', 'do', 'echo', 'else', 'elseif', 'extends', 'final', 'finally', 'for', 'foreach', 'function', 'global', 'if', 'implements', 'interface', 'namespace', 'new', 'print', 'private', 'protected', 'public', 'return', 'static', 'switch', 'throw', 'trait', 'try', 'use', 'var', 'while', 'yield'],
         lineComment: '//', blockComment: ['/*', '*/']
+    },
+    {
+        id: 'powershell', name: 'PowerShell', extensions: ['.ps1', '.psm1', '.psd1', '.pssc'],
+        keywords: ['and', 'begin', 'break', 'catch', 'class', 'continue', 'contains', 'data', 'define', 'do', 'dynamicparam', 'else', 'elseif', 'end', 'enum', 'eq', 'exit', 'filter', 'finally', 'for', 'foreach', 'from', 'function', 'ge', 'gt', 'if', 'in', 'le', 'like', 'lt', 'match', 'ne', 'not', 'notcontains', 'notlike', 'notmatch', 'or', 'param', 'process', 'return', 'switch', 'throw', 'trap', 'try', 'until', 'using', 'var', 'while', 'workflow', 'xor'],
+        lineComment: '#', blockComment: ['<#', '#>']
     },
     {
         id: 'ruby', name: 'Ruby', extensions: ['.rb'],
@@ -178,6 +187,16 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
     }
 
     protected monarchTokens(entry: NotepadiaLanguageEntry): monaco.languages.IMonarchLanguage {
+        if (entry.id === 'json') {
+            return this.jsonMonarchTokens(entry);
+        }
+        if (entry.id === 'powershell') {
+            return this.powershellMonarchTokens(entry);
+        }
+        return this.genericMonarchTokens(entry);
+    }
+
+    protected genericMonarchTokens(entry: NotepadiaLanguageEntry): monaco.languages.IMonarchLanguage {
         const root: monaco.languages.IMonarchLanguage['tokenizer']['root'] = [];
         if (entry.lineComment) {
             root.push([new RegExp(this.escapeRegex(entry.lineComment) + '.*$'), 'comment']);
@@ -214,6 +233,82 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
                 'string.single': [
                     [/[^']*'/, 'string', '@pop'],
                     [/./, 'string']
+                ]
+            }
+        };
+    }
+
+    /**
+     * JSON: double-quoted strings only (escapes handled), numbers,
+     * true/false/null literals, structural punctuation and bracket nesting.
+     */
+    protected jsonMonarchTokens(entry: NotepadiaLanguageEntry): monaco.languages.IMonarchLanguage {
+        return {
+            keywords: entry.keywords,
+            tokenizer: {
+                root: [
+                    [/"(?:[^"\\]|\\.)*"/, 'string'],
+                    [/\b(?:true|false|null)\b/, 'keyword'],
+                    [/\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b/, 'number'],
+                    [/[{}[\]]/, '@brackets'],
+                    [/[,:]/, 'delimiter'],
+                    [/[ \t\r\n]+/, 'white']
+                ]
+            }
+        };
+    }
+
+    /**
+     * PowerShell: both comment markers (# and <# #>), single/double-quoted
+     * strings plus here-strings ("@ ... "@, '@ ... '@), variables ($x),
+     * cmdlets (Verb-Noun), operators and keywords like if/elseif/for/finally.
+     */
+    protected powershellMonarchTokens(entry: NotepadiaLanguageEntry): monaco.languages.IMonarchLanguage {
+        return {
+            keywords: entry.keywords,
+            tokenizer: {
+                root: [
+                    [/#.*$/, 'comment'],
+                    [/<#/, 'comment', 'comment.block'],
+                    [/"@/, 'string', 'here.double'],
+                    [/@'/, 'string', 'here.single'],
+                    [/"/, 'string', 'string.double'],
+                    [/'/, 'string', 'string.single'],
+                    [/\$[\w:]+/, 'variable'],
+                    [/\b\d+(\.\d+)?\b/, 'number'],
+                    [/\b[A-Z][a-zA-Z0-9]*-[a-zA-Z][a-zA-Z0-9]*\b/, 'function'],
+                    [/[a-zA-Z_][\w-]*/, entry.keywords.length
+                        ? { cases: { '@keywords': 'keyword', '@default': 'identifier' } }
+                        : 'identifier'],
+                    [/[\s]+/, 'white'],
+                    [/[;:.{}()[\],]+/, 'delimiter'],
+                    [/[=+\-*/%<>!&|^~?:]+/, 'operator'],
+                    [/[{}()[\]]/, '@brackets']
+                ],
+                'comment.block': [
+                    [/#>/, 'comment', '@pop'],
+                    [/[^#]+/, 'comment'],
+                    [/#/, 'comment']
+                ],
+                'string.double': [
+                    [/\\./, 'string'],
+                    [/"/, 'string', '@pop'],
+                    [/[^"]/, 'string']
+                ],
+                'string.single': [
+                    [/''/, 'string'],
+                    [/'/, 'string', '@pop'],
+                    [/[^']/, 'string']
+                ],
+                'here.double': [
+                    [/"@/, 'string', '@pop'],
+                    [/[^@"]+/, 'string'],
+                    [/[@"]/, 'string']
+                ],
+                'here.single': [
+                    [/'@/, 'string', '@pop'],
+                    [/[^@']+/, 'string'],
+                    [/[@']/, 'string']
                 ]
             }
         };
