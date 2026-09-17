@@ -8,6 +8,7 @@ import {
     StatusBar,
     StatusBarAlignment
 } from '@theia/core/lib/browser/status-bar/status-bar-types';
+import { PreferenceService } from '@theia/core/lib/common/preferences';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorCommands } from '@theia/editor/lib/browser/editor-command';
 import { notepadiaLanguageName } from './notepadia-language-contribution';
@@ -34,11 +35,20 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
 
     constructor(
         @inject(StatusBar) protected readonly statusBar: StatusBar,
-        @inject(EditorManager) protected readonly editorManager: EditorManager
+        @inject(EditorManager) protected readonly editorManager: EditorManager,
+        @inject(PreferenceService) protected readonly preferences: PreferenceService
     ) {}
 
     onStart(): void {
         this.update();
+
+        this.preferences.onPreferenceChanged(change => {
+            if (change.preferenceName === 'editor.insertSpaces'
+                || change.preferenceName === 'editor.tabSize'
+                || change.preferenceName === 'editor.detectIndentation') {
+                this.update();
+            }
+        });
 
         this.editorManager.onCurrentEditorChanged(() => {
             this.toDispose.dispose();
@@ -48,6 +58,10 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
                 this.toDispose.push(monaco.document.onDidChangeEncoding(() => this.update()));
                 this.toDispose.push(monaco.document.onDidChangeContent(() => this.update()));
                 this.toDispose.push(monaco.onLanguageChanged(() => this.update()));
+                const model = monaco.getControl().getModel();
+                if (model) {
+                    this.toDispose.push(model.onDidChangeOptions(() => this.update()));
+                }
             }
             this.update();
         });
@@ -92,6 +106,18 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             command: 'notepadia.lineEndings.convert',
             alignment: StatusBarAlignment.RIGHT,
             priority: 80
+        });
+
+        const modelOptions = control?.getModel()?.getOptions();
+        const insertSpaces = modelOptions?.insertSpaces;
+        const tabSize = modelOptions?.tabSize;
+        this.statusBar.setElement('notepadia.indent', {
+            text: insertSpaces === undefined || tabSize === undefined
+                ? 'Spaces: 4'
+                : `${insertSpaces ? 'Spaces' : 'Tabs'}: ${tabSize}`,
+            tooltip: 'View > Tab Size: Insert Spaces / Use Tabs',
+            alignment: StatusBarAlignment.RIGHT,
+            priority: 75
         });
 
         this.statusBar.setElement('notepadia.mode', {

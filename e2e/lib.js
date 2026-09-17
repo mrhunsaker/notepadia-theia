@@ -130,8 +130,15 @@ async function findItemIndex(page, label) {
 }
 
 async function clickMenuItem(page, menu, label) {
-    await openTopMenu(page, menu);
-    const idx = await findItemIndex(page, label);
+    let idx = -1;
+    for (let attempt = 1; attempt <= 3 && idx < 0; attempt++) {
+        if (attempt > 1) {
+            await page.keyboard.press('Escape');
+            await sleep(400);
+        }
+        await openTopMenu(page, menu);
+        idx = await findItemIndex(page, label);
+    }
     if (idx < 0) throw new Error('menu item not found: ' + menu + ' > ' + label);
     const all = await page.$$('.lm-Menu-item');
     await all[idx].click();

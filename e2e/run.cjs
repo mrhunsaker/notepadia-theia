@@ -20,6 +20,7 @@ const SUITES = [
     'view-menu',
     'search',
     'document-list',
+    'spaces-tabs',
     'menus-shortcuts',
     'session-restore'
 ];
@@ -42,6 +43,7 @@ function seedWorkspace() {
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
     write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    write('indent.txt', alpha);
 }
 
 function httpOk(url, needle) {

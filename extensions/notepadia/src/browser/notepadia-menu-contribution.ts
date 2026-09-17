@@ -273,6 +273,16 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: '8',
             order: 'c'
         });
+        menus.registerMenuAction(viewTabSize, {
+            commandId: NotepadiaCommands.INSERT_SPACES.id,
+            label: 'Insert Spaces',
+            order: 'd'
+        });
+        menus.registerMenuAction(viewTabSize, {
+            commandId: NotepadiaCommands.USE_TABS.id,
+            label: 'Use Tabs',
+            order: 'e'
+        });
         menus.registerMenuAction([...CommonMenus.VIEW], {
             commandId: NotepadiaCommands.TOGGLE_WHITESPACE.id,
             label: 'Show All Characters',

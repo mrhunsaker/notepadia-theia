@@ -30,6 +30,9 @@ async function findSubmenuItems(page) {
     const tabItems = await findSubmenuItems(page);
     assert('Tab Size submenu has 2/4/8', tabItems.includes('2') && tabItems.includes('4') && tabItems.includes('8'),
         JSON.stringify(tabItems));
+    assert('Tab Size submenu has Insert Spaces and Use Tabs',
+        tabItems.includes('Insert Spaces') && tabItems.includes('Use Tabs'),
+        JSON.stringify(tabItems));
     await closeMenus(page);
 
     // Search menu has Go To Line

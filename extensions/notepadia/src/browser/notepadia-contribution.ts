@@ -1,3 +1,4 @@
+import * as monaco from '@theia/monaco-editor-core';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import {
@@ -8,6 +9,7 @@ import {
 } from '@theia/core/lib/common';
 import { CommonCommands, ApplicationShell } from '@theia/core/lib/browser';
 import { Saveable, SaveableWidget } from '@theia/core/lib/browser/saveable';
+import { PreferenceScope, PreferenceService } from '@theia/core/lib/common/preferences';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
 
@@ -147,6 +149,16 @@ export namespace NotepadiaCommands {
         label: 'Tab Size: 8'
     };
 
+    export const INSERT_SPACES: Command = {
+        id: 'notepadia.insertSpaces',
+        label: 'Insert Spaces'
+    };
+
+    export const USE_TABS: Command = {
+        id: 'notepadia.useTabs',
+        label: 'Use Tabs'
+    };
+
     export const GO_TO_LINE: Command = {
         id: 'notepadia.goToLine',
         label: 'Go To Line...'
@@ -165,7 +177,8 @@ export class NotepadiaContribution implements CommandContribution {
     constructor(
         protected readonly editorManager: EditorManager,
         protected readonly shell: ApplicationShell,
-        @inject(MessageService) protected readonly messageService: MessageService
+        @inject(MessageService) protected readonly messageService: MessageService,
+        @inject(PreferenceService) protected readonly preferences: PreferenceService
     ) {}
 
     registerCommands(commands: CommandRegistry): void {
@@ -302,6 +315,16 @@ export class NotepadiaContribution implements CommandContribution {
             isEnabled: () => !!this.currentEditor,
             execute: () => this.setTabSize(8)
         });
+        commands.registerCommand(NotepadiaCommands.INSERT_SPACES, {
+            isEnabled: () => this.currentInsertSpaces() !== undefined,
+            isToggled: () => this.currentInsertSpaces() === true,
+            execute: () => this.setInsertSpaces(true)
+        });
+        commands.registerCommand(NotepadiaCommands.USE_TABS, {
+            isEnabled: () => this.currentInsertSpaces() !== undefined,
+            isToggled: () => this.currentInsertSpaces() === false,
+            execute: () => this.setInsertSpaces(false)
+        });
     }
 
     protected async closeCurrentEditor(commands: CommandRegistry): Promise<void> {
@@ -383,14 +406,32 @@ export class NotepadiaContribution implements CommandContribution {
     }
 
     protected setTabSize(size: number): void {
+        const model = this.currentTextModel();
+        if (!model) {
+            return;
+        }
+        model.updateOptions({ tabSize: size, indentSize: size });
+    }
+
+    protected setInsertSpaces(useSpaces: boolean): void {
+        void this.preferences.set('editor.insertSpaces', useSpaces, PreferenceScope.User);
+        const model = this.currentTextModel();
+        if (!model) {
+            return;
+        }
+        model.updateOptions({ insertSpaces: useSpaces });
+    }
+
+    protected currentInsertSpaces(): boolean | undefined {
+        const model = this.currentTextModel();
+        return model ? model.getOptions().insertSpaces : undefined;
+    }
+
+    protected currentTextModel(): monaco.editor.ITextModel | undefined {
         const editor = this.currentEditor;
         if (!editor) {
-            return;
+            return undefined;
         }
-        const control = MonacoEditor.get(editor)?.getControl();
-        if (!control) {
-            return;
-        }
-        control.updateOptions({ tabSize: size });
+        return MonacoEditor.get(editor)?.getControl().getModel() ?? undefined;
     }
 }
