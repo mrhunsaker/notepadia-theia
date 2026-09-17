@@ -2,7 +2,7 @@
   "name": "notepadia",
   "version": "0.1.0",
   "description": "Notepadia product extension",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "lib/browser/notepadia-frontend-module.js",
   "types": "lib/browser/notepadia-frontend-module.d.ts",
   "files": [

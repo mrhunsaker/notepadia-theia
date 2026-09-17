@@ -3,7 +3,7 @@
   "name": "notepadia",
   "version": "0.1.0",
   "description": "Notepadia - a Notepad++-style desktop text editor built on Eclipse Theia",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=24",
     "yarn": ">=1.7.0 <2"

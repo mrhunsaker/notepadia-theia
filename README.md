@@ -1,4 +1,15 @@
+<!--
+ Copyright 2026 Michael Ryan Hunsaker, M.Ed., Ph.D.
+ SPDX-License-Identifier: Apache-2.0
+-->
 # Notepadia
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/build.yml?label=build)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/build.yml)
+[![E2E](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/e2e.yml?label=e2e)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/e2e.yml)
+[![Last commit](https://img.shields.io/github/last-commit/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/graphs/contributors)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 Notepadia is a focused, cross-platform desktop text editor modeled after the
 Notepad++ user experience and implemented on Eclipse Theia.
@@ -75,20 +86,28 @@ Theia contains native Node/Electron dependencies.
 
 ## What is implemented
 
-The initial product layer provides:
+The Notepad++-style feature layer is implemented as the shared
+`notepadia` extension in `extensions/notepadia`:
 
 - Theia browser application and desktop (Electron) application
 - Monaco editor through Theia
-- file navigator/filesystem
-- editor tabs
-- File/Edit/Search/View/Encoding/Language/Settings menus
-- New / Close All / Duplicate Line commands
-- Notepad++-style Ctrl/Cmd shortcuts for those commands
+- file navigator/filesystem, editor tabs, session restore and recent files
+- Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
+  Macros, Settings) and Ctrl/Cmd shortcuts
+- search/replace in the active document (find next/previous, replace all,
+  regex, match case, whole word)
+- find in files / replace in files via Theia's search-in-workspace
+- encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI) with re-save
+- EOL conversion (LF, CRLF, CR) with re-save
+- bookmarks (toggle, next/previous, clear) and line operations
+  (duplicate line, delete current line, move line up/down)
+- go to line and matching bracket navigation
+- language support: 22 curated languages with Monarch tokenizers
 - live status bar with line/column, encoding, EOL and insert mode
-- basic document encoding/EOL display based on Theia editor state
 - product branding as Notepadia
 - Electron packaging configuration (AppImage, RPM, DEB)
-- CI build workflow (browser app on Linux)
+- CI workflows: build (browser app on Linux) and e2e (lint + build + 10
+  Puppeteer test suites with artifact upload on failure)
 
 ## Architecture
 
@@ -111,22 +130,49 @@ Notepadia apps
     +-- extensions/notepadia   (shared product extension)
           +-- commands
           +-- menus
-          +-- keybindings
+          +-- keybindings (Theia + Monaco level)
+          +-- language registrations
           +-- status bar
-          +-- future encoding/session/search UX
+          +-- e2e test infrastructure
 ```
 
 The product intentionally does not fork Monaco, reimplement a filesystem, or
 replace Theia's command/keybinding architecture.
 
+## Testing
+
+Run the linter and the TypeScript build:
+
+```bash
+yarn lint
+yarn build
+```
+
+Run the 10 end-to-end suites (headless Chromium via Puppeteer):
+
+```bash
+yarn test:e2e
+```
+
+Each suite boots the browser application against a seeded workspace and
+asserts the Notepad++-style behavior. Run a single suite directly, e.g.
+`E2E_URL=http://localhost:3000 node e2e/search.cjs`, pointing `E2E_URL` at a
+running `yarn start` instance.
+
 ## Next milestones
 
-1. Search/replace UX parity
-2. Encoding conversion and code-page support
-3. EOL conversion
-4. session restore/recent files
-5. bookmarks and line operations
-6. language packs (Monaco grammars; optional Open VSX integration)
-7. Windows file associations and portable build
-8. updater
-9. macOS packaging
+Tracked in `notepadia_prompt_20260915.json`. In order:
+
+1. document list panel (open files sidebar)
+2. spaces versus tabs toggle
+3. product icons
+4. Windows packaging and file associations
+5. macOS packaging and signing
+6. automatic updates
+7. CI release workflow
+8. documentation site (mkdocs, published to GitHub Pages)
+
+## License
+
+[Apache License 2.0](LICENSE). See also [CONTRIBUTING.md](CONTRIBUTING.md),
+[STYLE.md](STYLE.md) and [SECURITY.md](SECURITY.md).

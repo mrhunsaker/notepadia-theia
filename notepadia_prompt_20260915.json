@@ -1,8 +1,8 @@
 {
   "name": "notepadia-continuation-prompt",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "date": "2026-09-15",
-  "previousVersion": "5.0.0",
+  "previousVersion": "5.1.0",
   "baseline": {
     "theia": "1.75.0",
     "node": ">=24",
@@ -58,13 +58,13 @@
     "gapsDiscovered": [
       "no product icons (default Electron icon in use)",
       "no unit tests (lint is now real; e2e wired into CI)",
-      "matching bracket navigation not implemented",
       "document list (open files sidebar) not implemented as standalone feature",
       "spaces versus tabs toggle not implemented (only tab size selection)",
       "file associations only configured for Linux desktop (not Windows/macOS)",
       "no macOS code signing or notarization",
       "no automatic update mechanism",
-      "no release/artifact publishing workflow"
+      "no release/artifact publishing workflow",
+      "no public documentation site (mkdocs + GitHub Pages planned)"
     ]
   },
   "status": {
@@ -144,7 +144,10 @@
     },
     "navigation": {
       "go to line": { "status": "complete", "implementation": "editor.action.gotoLine, Ctrl+G, Search > Go To Line" },
-      "matching bracket": { "status": "pending", "implementation": "Not implemented; Monaco has editor.action.jumpToBracket, needs command + menu entry + keybinding (Ctrl+Shift+E or similar)" },
+"matching bracket": {
+      "status": "complete",
+      "implementation": "editor.action.jumpToBracket via notepadia.matchingBracket, Search > Matching Bracket, Ctrl+Shift+E; per-language bracket config via monaco.languages.setLanguageConfiguration"
+    },
       "bookmarks": { "status": "complete", "implementation": "Custom notepadia-bookmark-contribution.ts, Ctrl+F2/F2/Shift+F2, glyph decorations" },
       "document list": { "status": "pending", "implementation": "Not implemented as standalone feature; Theia has open editors view but no dedicated Notepad++-style document list panel" },
       "recent documents": { "status": "complete", "implementation": "Custom recent files contribution with File > Recent Files submenu" }
@@ -275,11 +278,13 @@
     {
       "id": "M13",
       "title": "add matching bracket navigation",
-      "status": "in_progress",
+      "status": "complete",
       "description": "Implement Notepad++-style jump-to-matching-bracket feature.",
+      "evidence": "notepadia.matchingBracket registered (editor.action.jumpToBracket); Search > Matching Bracket menu entry added; Theia keybinding Ctrl+Shift+E (when: editorTextFocus) plus Monaco-level dynamic keybinding. Root cause fixed: languages had no bracket-pair config, so monaco.languages.setLanguageConfiguration now registers brackets/autoClosingPairs/surroundingPairs per language. e2e/search.cjs asserts menu item presence and bracket jump (app.js line 1 { to line 4 }). Verified: tsc clean, ESLint clean, browser build ok, search e2e suite green (14 PASS incl. Matching Bracket).",
       "plan": [
         "Register command notepadia.matchingBracket using editor.action.jumpToBracket (Monaco built-in)",
         "Add menu entry under Search menu: 'Matching Bracket' with keybinding Ctrl+Shift+E",
+        "Add language bracket-pair configuration so jumpToBracket finds matching pairs",
         "Add e2e test to verify bracket jumping in a file with nested brackets"
       ]
     },
@@ -378,6 +383,19 @@
         "Add workflow_dispatch for manual release triggers",
         "Fix yarn test to run actual unit tests (add test scripts to workspace packages)"
       ]
+    },
+    {
+      "id": "M21",
+      "title": "add documentation site published to GitHub Pages (mkdocs)",
+      "status": "pending",
+      "description": "At the end of all milestones, add a docs system built with mkdocs that can be published to the relevant GitHub Pages site for this repository.",
+      "plan": [
+        "Add mkdocs config (mkdocs.yml) with a Notepadia theme and nav structure",
+        "Author docs content: quick start, feature guide, development/setup, architecture, packaging, contribution",
+        "Add a deploy workflow (.github/workflows/docs.yml) that builds the docs and publishes to GitHub Pages for mrhunsaker/notepadia-theia",
+        "Link the docs site from README.md (Docs badge) and the repository About",
+        "Publish at https://mrhunsaker.github.io/notepadia-theia/"
+      ]
     }
   ],
   "deliverables": {
@@ -389,7 +407,7 @@
     "installer configuration": { "status": "partial", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced; Windows/macOS untested" },
     "product icons": { "status": "not_started", "notes": "No icons exist; default Electron icon in use" },
     "release documentation": { "status": "not_started", "notes": "No CHANGELOG, no RELEASE.md, no version tags" },
-    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.1.0)" }
+    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.2.0)" }
   },
   "fileManifest": {
     "extensions/notepadia/src/browser/notepadia-contribution.ts": "Core commands (new, open, save, close, zoom, whitespace, tab size, line operations, close confirmation)",
@@ -412,17 +430,23 @@
     "e2e/bookmarks.cjs": "Bookmark tests",
     "e2e/language.cjs": "Language menu and tokenization tests",
     "e2e/view-menu.cjs": "View menu structure and zoom tests",
-    "e2e/search.cjs": "Find/Replace widget tests",
+    "e2e/search.cjs": "Find/Replace + Matching Bracket widget tests",
     "e2e/menus-shortcuts.cjs": "Menu structure and keyboard shortcut tests",
     "e2e/session-restore.cjs": "Session restore (tabs + cursor) tests",
     "applications/electron/electron-builder.yml": "Electron packaging config (win/mac/linux)",
     ".github/workflows/build.yml": "CI workflow (browser build)",
     ".github/workflows/e2e.yml": "CI workflow (lint + build + 10 e2e suites, puppeteer cached, artifacts on failure)",
-    "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension"
+    "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension",
+    "README.md": "Project overview with Apache-2.0 badges, usage, architecture, testing",
+    "CONTRIBUTING.md": "Contribution guide (prerequisites, workflow, conventions, releases)",
+    "SECURITY.md": "Private vulnerability reporting policy",
+    "CODE_OF_CONDUCT.md": "Contributor Covenant code of conduct",
+    "STYLE.md": "TypeScript/ESLint/Theia coding standards",
+    "GOVERNANCE_ENFORCEMENT.md": "Local + CI quality enforcement and verification"
   },
   "nextActions": [
-    "Add matching bracket navigation (M13)",
+    "Add document list panel (M14)",
     "Create product icons for all platforms (M16)",
-    "Add document list panel (M14)"
+    "Add documentation site published to GitHub Pages with mkdocs (M21)"
   ]
 }
