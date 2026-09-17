@@ -89,7 +89,7 @@ test/bookmark-menu
    # Type check + build (extension and browser application)
    yarn build
 
-   # End-to-end suites (headless Chromium, ~10 suites)
+   # End-to-end suites (headless Chromium, ~11 suites)
    yarn test:e2e
    ```
 

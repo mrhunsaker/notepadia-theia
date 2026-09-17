@@ -5,7 +5,8 @@ import {
 } from '@theia/core/lib/common';
 import {
     FrontendApplicationContribution,
-    KeybindingContribution
+    KeybindingContribution,
+    WidgetFactory
 } from '@theia/core/lib/browser';
 
 import { NotepadiaContribution } from './notepadia-contribution';
@@ -19,6 +20,8 @@ import { NotepadiaLanguageContribution } from './notepadia-language-contribution
 import { NotepadiaRecentFilesContribution } from './notepadia-recent-files-contribution';
 import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
 import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribution';
+import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
+import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
 
 export default new ContainerModule((bind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
@@ -60,4 +63,14 @@ export default new ContainerModule((bind) => {
 
     bind(NotepadiaStatusBarContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaStatusBarContribution);
+
+    bind(NotepadiaDocumentListWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaDocumentListWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaDocumentListWidget)
+    }));
+
+    bind(NotepadiaDocumentListContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaDocumentListContribution);
+    bind(MenuContribution).toService(NotepadiaDocumentListContribution);
 });

@@ -101,12 +101,14 @@ The Notepad++-style feature layer is implemented as the shared
 - EOL conversion (LF, CRLF, CR) with re-save
 - bookmarks (toggle, next/previous, clear) and line operations
   (duplicate line, delete current line, move line up/down)
+- document list panel (View > Document List): filtered list of open files
+  with click-to-focus and dirty indicators
 - go to line and matching bracket navigation
 - language support: 22 curated languages with Monarch tokenizers
 - live status bar with line/column, encoding, EOL and insert mode
 - product branding as Notepadia
 - Electron packaging configuration (AppImage, RPM, DEB)
-- CI workflows: build (browser app on Linux) and e2e (lint + build + 10
+- CI workflows: build (browser app on Linux) and e2e (lint + build + 11
   Puppeteer test suites with artifact upload on failure)
 
 ## Architecture
@@ -148,7 +150,7 @@ yarn lint
 yarn build
 ```
 
-Run the 10 end-to-end suites (headless Chromium via Puppeteer):
+Run the 11 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -163,14 +165,13 @@ running `yarn start` instance.
 
 Tracked in `notepadia_prompt_20260915.json`. In order:
 
-1. document list panel (open files sidebar)
-2. spaces versus tabs toggle
-3. product icons
-4. Windows packaging and file associations
-5. macOS packaging and signing
-6. automatic updates
-7. CI release workflow
-8. documentation site (mkdocs, published to GitHub Pages)
+1. spaces versus tabs toggle
+2. product icons
+3. Windows packaging and file associations
+4. macOS packaging and signing
+5. automatic updates
+6. CI release workflow
+7. documentation site (mkdocs, published to GitHub Pages)
 
 ## License
 

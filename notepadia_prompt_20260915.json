@@ -1,6 +1,6 @@
 {
   "name": "notepadia-continuation-prompt",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "date": "2026-09-15",
   "previousVersion": "5.1.0",
   "baseline": {
@@ -58,7 +58,6 @@
     "gapsDiscovered": [
       "no product icons (default Electron icon in use)",
       "no unit tests (lint is now real; e2e wired into CI)",
-      "document list (open files sidebar) not implemented as standalone feature",
       "spaces versus tabs toggle not implemented (only tab size selection)",
       "file associations only configured for Linux desktop (not Windows/macOS)",
       "no macOS code signing or notarization",
@@ -73,9 +72,9 @@
     "electronApp": "builds; Linux packaging validated (AppImage/rpm/deb in dist/)",
     "removedBerryArtifacts": true,
     "reactAddedAsPeerShim": true,
-    "e2e": "10 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, menus-shortcuts, session-restore); wired into GitHub Actions e2e.yml (lint+build+test:e2e on push/PR)",
+    "e2e": "11 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, document-list, menus-shortcuts, session-restore); wired into GitHub Actions e2e.yml (lint+build+test:e2e on push/PR)",
     "lint": "real linter on notepadia extension: ESLint 10 + typescript-eslint flat config, yarn lint passes clean",
-    "ci": "workflows: build.yml (browser build) and e2e.yml (lint + build + 10 e2e suites, puppeteer cached, 45m timeout, failure artifacts uploaded)"
+    "ci": "workflows: build.yml (browser build) and e2e.yml (lint + build + 11 e2e suites, puppeteer cached, 45m timeout, failure artifacts uploaded)"
   },
   "features": {
     "core": {
@@ -149,7 +148,7 @@
       "implementation": "editor.action.jumpToBracket via notepadia.matchingBracket, Search > Matching Bracket, Ctrl+Shift+E; per-language bracket config via monaco.languages.setLanguageConfiguration"
     },
       "bookmarks": { "status": "complete", "implementation": "Custom notepadia-bookmark-contribution.ts, Ctrl+F2/F2/Shift+F2, glyph decorations" },
-      "document list": { "status": "pending", "implementation": "Not implemented as standalone feature; Theia has open editors view but no dedicated Notepad++-style document list panel" },
+      "document list": { "status": "complete", "implementation": "Custom NotepadiaDocumentListWidget (notepadia.documentList) in View > Document List toggle, right side panel; filter input, click-to-focus, active highlight, dirty dot via Saveable" },
       "recent documents": { "status": "complete", "implementation": "Custom recent files contribution with File > Recent Files submenu" }
     },
     "languageSupport": {
@@ -291,8 +290,9 @@
     {
       "id": "M14",
       "title": "add document list panel",
-      "status": "pending",
+      "status": "complete",
       "description": "Notepad++-style document list showing all open files with filtering.",
+      "evidence": "Custom NotepadiaDocumentListWidget (notepadia.documentList, View > Document List toggle in the main View menu, right side panel): flat list of open documents sorted by filename, filter input at top, click-to-focus via shell.activateWidget, active entry highlight, dirty dot via Saveable.get/onDirtyChanged, refresh on shell add/remove/current-widget events. Chose a custom widget instead of reusing Theia's OpenEditorsWidget (already bound to the Explorer view container as a singleton). e2e/document-list.cjs asserts menu presence, file listing, filter narrowing, click-to-focus, active entry, and toggle-hide. Verified: tsc clean, ESLint clean, browser build ok, full e2e run green (11 suites, all passed).",
       "plan": [
         "Evaluate Theia's open-editors view and whether it can be surfaced as a view container",
         "If insufficient, create a custom NotepadiaDocumentListWidget using Theia's Widget/TreeWidget",
@@ -399,15 +399,15 @@
     }
   ],
   "deliverables": {
-    "source code": { "status": "complete", "notes": "12 TypeScript source files in extensions/notepadia/src/browser/" },
-    "tests": { "status": "in_progress", "notes": "10 e2e suites implemented and wired into GitHub Actions e2e.yml; no unit tests; per-suite logs + failure screenshots uploaded as artifacts" },
+    "source code": { "status": "complete", "notes": "14 TypeScript source files in extensions/notepadia/src/browser/ (incl. frontend module)" },
+    "tests": { "status": "in_progress", "notes": "11 e2e suites implemented and wired into GitHub Actions e2e.yml; no unit tests; per-suite logs + failure screenshots uploaded as artifacts" },
     "package manifests": { "status": "complete", "notes": "Root, browser, electron, notepadia extension, e2e all have package.json; eslint devDependencies added to notepadia" },
     "lockfile": { "status": "complete", "notes": "yarn.lock present and maintained" },
-    "CI": { "status": "partial", "notes": "build.yml (browser build) + e2e.yml (lint, build, 10 e2e suites); no electron packaging, no release workflow yet" },
+    "CI": { "status": "partial", "notes": "build.yml (browser build) + e2e.yml (lint, build, 11 e2e suites); no electron packaging, no release workflow yet" },
     "installer configuration": { "status": "partial", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced; Windows/macOS untested" },
     "product icons": { "status": "not_started", "notes": "No icons exist; default Electron icon in use" },
     "release documentation": { "status": "not_started", "notes": "No CHANGELOG, no RELEASE.md, no version tags" },
-    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.2.0)" }
+    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.2.1)" }
   },
   "fileManifest": {
     "extensions/notepadia/src/browser/notepadia-contribution.ts": "Core commands (new, open, save, close, zoom, whitespace, tab size, line operations, close confirmation)",
@@ -421,7 +421,9 @@
     "extensions/notepadia/src/browser/notepadia-language-contribution.ts": "21 language registrations with Monarch tokenizers (incl. dedicated JSON and PowerShell tokenizers)",
     "extensions/notepadia/src/browser/notepadia-status-bar-contribution.ts": "Status bar (language, position, encoding, EOL, insert mode)",
     "extensions/notepadia/src/browser/notepadia-drop-contribution.ts": "Drag-and-drop file interception",
-    "e2e/run.cjs": "E2E test runner (boots app, seeds workspace, runs 10 Puppeteer suites, writes e2e-artifacts/, rejects stale servers)",
+    "extensions/notepadia/src/browser/notepadia-document-list-widget.ts": "Document list panel widget (notepadia.documentList): filter input, entries, click-to-focus, dirty dots",
+    "extensions/notepadia/src/browser/notepadia-document-list-contribution.ts": "View > Document List toggle command/menu for the document list panel",
+    "e2e/run.cjs": "E2E test runner (boots app, seeds workspace, runs 11 Puppeteer suites, writes e2e-artifacts/, rejects stale servers)",
     "e2e/lib.js": "Shared Puppeteer helpers (failure screenshots + console-error capture)",
     "e2e/p1-core.cjs": "Core feature tests (menus, file ops, line operations)",
     "e2e/encoding.cjs": "Encoding round-trip tests",
@@ -431,11 +433,12 @@
     "e2e/language.cjs": "Language menu and tokenization tests",
     "e2e/view-menu.cjs": "View menu structure and zoom tests",
     "e2e/search.cjs": "Find/Replace + Matching Bracket widget tests",
+    "e2e/document-list.cjs": "Document list panel tests (menu toggle, listing, filter, click-to-focus)",
     "e2e/menus-shortcuts.cjs": "Menu structure and keyboard shortcut tests",
     "e2e/session-restore.cjs": "Session restore (tabs + cursor) tests",
     "applications/electron/electron-builder.yml": "Electron packaging config (win/mac/linux)",
     ".github/workflows/build.yml": "CI workflow (browser build)",
-    ".github/workflows/e2e.yml": "CI workflow (lint + build + 10 e2e suites, puppeteer cached, artifacts on failure)",
+    ".github/workflows/e2e.yml": "CI workflow (lint + build + 11 e2e suites, puppeteer cached, artifacts on failure)",
     "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension",
     "README.md": "Project overview with Apache-2.0 badges, usage, architecture, testing",
     "CONTRIBUTING.md": "Contribution guide (prerequisites, workflow, conventions, releases)",
@@ -445,7 +448,7 @@
     "GOVERNANCE_ENFORCEMENT.md": "Local + CI quality enforcement and verification"
   },
   "nextActions": [
-    "Add document list panel (M14)",
+    "Add spaces versus tabs toggle (M15)",
     "Create product icons for all platforms (M16)",
     "Add documentation site published to GitHub Pages with mkdocs (M21)"
   ]

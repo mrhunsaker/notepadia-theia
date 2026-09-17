@@ -70,7 +70,7 @@ git commit -m "feat(editor): add matching bracket navigation"
   environment, installs, builds the extension and browser application,
   uploads the browser app artifacts.
 - `Notepadia E2E` workflow (`.github/workflows/e2e.yml`): lints, builds, and
-  runs the 10 Puppeteer e2e suites; uploads artifacts on failure.
+  runs the 11 Puppeteer e2e suites; uploads artifacts on failure.
 
 ---
 
