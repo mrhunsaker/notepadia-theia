@@ -74,7 +74,7 @@ async function searchMenuItems(page) {
     // Search menu structure
     const items = await searchMenuItems(page);
     assert('Search menu has Find/Replace/Find-in-files items',
-        ['Find...', 'Find Next', 'Find Previous', 'Replace...', 'Find in Files', 'Replace in Files...', 'Go To Line...'].every(l => items.includes(l)),
+        ['Find...', 'Find Next', 'Find Previous', 'Replace...', 'Find in Files', 'Replace in Files...', 'Go To Line...', 'Matching Bracket'].every(l => items.includes(l)),
         JSON.stringify(items));
     await closeMenus(page);
 
@@ -165,6 +165,32 @@ async function searchMenuItems(page) {
     });
     assert('Replace in Files opens search panel with replace input', !!replacePanel && replacePanel.hasReplaceInput, JSON.stringify(replacePanel));
     await closeMenus(page);
+
+    // Matching Bracket: open app.js, place cursor on opening '{', jump to '}'
+    await openFile(page, 'app.js');
+    await sleep(600);
+    await page.evaluate(() => {
+        const el = document.querySelector('.monaco-editor .inputarea, .monaco-editor textarea');
+        el && el.focus();
+    });
+    await sleep(400);
+    await page.keyboard.down('Control');
+    await page.keyboard.press('Home');
+    await page.keyboard.up('Control');
+    await sleep(300);
+    await page.keyboard.press('End');
+    await sleep(300);
+    const lineBefore = await currentLine(page);
+    await page.keyboard.down('Control');
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('KeyE');
+    await page.keyboard.up('Shift');
+    await page.keyboard.up('Control');
+    await sleep(800);
+    const lineAfter = await currentLine(page);
+    assert('Matching Bracket jumps from opening { (line 1) to closing } (line 4)',
+        lineBefore === 1 && lineAfter === 4,
+        'before=' + lineBefore + ' after=' + lineAfter);
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

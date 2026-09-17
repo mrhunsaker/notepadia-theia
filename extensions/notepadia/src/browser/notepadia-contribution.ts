@@ -151,6 +151,11 @@ export namespace NotepadiaCommands {
         id: 'notepadia.goToLine',
         label: 'Go To Line...'
     };
+
+    export const MATCHING_BRACKET: Command = {
+        id: 'notepadia.matchingBracket',
+        label: 'Matching Bracket'
+    };
 }
 
 @injectable()
@@ -280,6 +285,10 @@ export class NotepadiaContribution implements CommandContribution {
         commands.registerCommand(NotepadiaCommands.GO_TO_LINE, {
             isEnabled: () => !!this.currentEditor,
             execute: () => this.triggerMonacoAction('editor.action.gotoLine')
+        });
+        commands.registerCommand(NotepadiaCommands.MATCHING_BRACKET, {
+            isEnabled: () => !!this.currentEditor,
+            execute: () => this.triggerMonacoAction('editor.action.jumpToBracket')
         });
         commands.registerCommand(NotepadiaCommands.TAB_SIZE_2, {
             isEnabled: () => !!this.currentEditor,

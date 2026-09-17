@@ -79,6 +79,7 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             add(NotepadiaCommands.CLOSE_ALL.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyW);
             add(NotepadiaCommands.NEW_DOCUMENT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN);
             add(NotepadiaCommands.GO_TO_LINE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyG);
+            add(NotepadiaCommands.MATCHING_BRACKET.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyE);
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal);
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Equal);
             add(NotepadiaCommands.ZOOM_OUT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus);

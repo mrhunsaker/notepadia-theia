@@ -183,6 +183,27 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
                 ...(entry.id === 'markdown' ? { filenames: ['README'] } : {})
             });
             monaco.languages.setMonarchTokensProvider(entry.id, this.monarchTokens(entry));
+            monaco.languages.setLanguageConfiguration(entry.id, {
+                brackets: [
+                    ['(', ')'],
+                    ['[', ']'],
+                    ['{', '}']
+                ],
+                autoClosingPairs: [
+                    { open: '(', close: ')' },
+                    { open: '[', close: ']' },
+                    { open: '{', close: '}' },
+                    { open: '"', close: '"' },
+                    { open: "'", close: "'" }
+                ],
+                surroundingPairs: [
+                    { open: '(', close: ')' },
+                    { open: '[', close: ']' },
+                    { open: '{', close: '}' },
+                    { open: '"', close: '"' },
+                    { open: "'", close: "'" }
+                ]
+            });
         }
     }
 

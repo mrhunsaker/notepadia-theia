@@ -69,6 +69,12 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             command: NotepadiaCommands.GO_TO_LINE.id,
             keybinding: 'ctrlcmd+g'
         });
+        // Ctrl+Shift+E mirrors Notepad++'s jump-to-matching-bracket.
+        keybindings.registerKeybinding({
+            command: NotepadiaCommands.MATCHING_BRACKET.id,
+            keybinding: 'ctrlcmd+shift+e',
+            when: 'editorTextFocus'
+        });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.ZOOM_IN.id,
             keybinding: 'ctrlcmd+='

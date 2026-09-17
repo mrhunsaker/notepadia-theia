@@ -232,6 +232,11 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: 'Go To Line...',
             order: 'g'
         });
+        menus.registerMenuAction(search, {
+            commandId: NotepadiaCommands.MATCHING_BRACKET.id,
+            label: 'Matching Bracket',
+            order: 'h'
+        });
 
         // View
         const viewZoom = [...CommonMenus.VIEW, '1_notepadia-zoom'];
