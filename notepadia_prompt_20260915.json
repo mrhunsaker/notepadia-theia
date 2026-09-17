@@ -25,7 +25,8 @@
     "Improve the browser application first; use it for 99%+ of development and runtime. Touch the Electron target only when packaging distributables.",
     "Keep react/react-dom as direct dependencies of the application packages; they are peer dependencies of @theia/core.",
     "Do not reintroduce Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged); the repository runs Yarn Classic with hoisted node_modules.",
-    "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature."
+    "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature.",
+    "Once complete with a milestone, commit it to GitHub prior to continuing"
   ],
   "product": {
     "name": "Notepadia",

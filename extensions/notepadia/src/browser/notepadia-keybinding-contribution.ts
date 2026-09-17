@@ -59,6 +59,12 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             command: NotepadiaCommands.FIND_PREVIOUS.id,
             keybinding: 'shift+f3'
         });
+        // Ctrl+Shift+H mirrors Notepad++'s Replace in Files (opens Theia's
+        // search widget with the replace field active).
+        keybindings.registerKeybinding({
+            command: 'search-in-workspace.replace',
+            keybinding: 'ctrlcmd+shift+h'
+        });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.GO_TO_LINE.id,
             keybinding: 'ctrlcmd+g'

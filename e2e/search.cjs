@@ -74,7 +74,7 @@ async function searchMenuItems(page) {
     // Search menu structure
     const items = await searchMenuItems(page);
     assert('Search menu has Find/Replace/Find-in-files items',
-        ['Find...', 'Find Next', 'Find Previous', 'Replace...', 'Find in Files', 'Go To Line...'].every(l => items.includes(l)),
+        ['Find...', 'Find Next', 'Find Previous', 'Replace...', 'Find in Files', 'Replace in Files...', 'Go To Line...'].every(l => items.includes(l)),
         JSON.stringify(items));
     await closeMenus(page);
 
@@ -153,6 +153,17 @@ async function searchMenuItems(page) {
         return panel ? { hasInput: !!input, text: (document.querySelector('.search-in-workspace, #search-in-workspace')?.textContent || '').slice(0, 120) } : null;
     });
     assert('Find in Files opens a search panel with an input', !!searchPanel && searchPanel.hasInput, JSON.stringify(searchPanel));
+    await closeMenus(page);
+
+    // Replace in Files from the Search menu opens the panel with replace active
+    await openMenuBar(page, 'Search');
+    await clickByLabel(page, 'Replace in Files...');
+    await sleep(1500);
+    const replacePanel = await page.evaluate(() => {
+        const panel = document.querySelector('.search-in-workspace, #search-in-workspace');
+        return panel ? { hasReplaceInput: !!document.querySelector('#replace-input-field') } : null;
+    });
+    assert('Replace in Files opens search panel with replace input', !!replacePanel && replacePanel.hasReplaceInput, JSON.stringify(replacePanel));
     await closeMenus(page);
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));

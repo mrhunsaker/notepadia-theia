@@ -223,9 +223,14 @@ export class NotepadiaMenuContribution implements MenuContribution {
             order: 'e'
         });
         menus.registerMenuAction(search, {
+            commandId: 'search-in-workspace.replace',
+            label: 'Replace in Files...',
+            order: 'f'
+        });
+        menus.registerMenuAction(search, {
             commandId: NotepadiaCommands.GO_TO_LINE.id,
             label: 'Go To Line...',
-            order: 'f'
+            order: 'g'
         });
 
         // View
