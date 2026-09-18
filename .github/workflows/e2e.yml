@@ -30,6 +30,12 @@ jobs:
       - name: Use Yarn Classic
         run: corepack prepare yarn@1.22.22 --activate
 
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libx11-dev libxkbfile-dev libsecret-1-dev
+
       - name: Verify environment
         run: yarn verify
 
