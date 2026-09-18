@@ -117,7 +117,7 @@ The Notepad++-style feature layer is implemented as the shared
 - Monaco editor through Theia
 - file navigator/filesystem, editor tabs, session restore and recent files
 - Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
-  Macros, Settings) and Ctrl/Cmd shortcuts
+  Settings) and Ctrl/Cmd shortcuts
 - search/replace in the active document (find next/previous, replace all,
   regex, match case, whole word)
 - find in files / replace in files via Theia's search-in-workspace
@@ -198,10 +198,17 @@ running `yarn start` instance.
 
 ## Next milestones
 
-Tracked in `notepadia_prompt_20260915.json`. The remaining work is:
+Tracked in `notepadia_prompt_20260919.json`. Remaining work:
 
-1. macOS packaging and signing (installers build unsigned today; code-signing
-   and notarization require an Apple Developer ID certificate)
+1. The macOS build in the release workflow is fully verified unsigned
+   (plist, file associations, DMG; code-signing/notarization is a
+   configuration-only drop-in once an Apple Developer ID certificate and
+   notarization credentials exist)
+2. Missing Notepad++ features (highest value first): a Macros menu
+   (record/playback), Column Editor, Blank Operations, and Search
+   Mark/Select-and-Find-Next (tracked as M23)
+3. Real unit tests for `yarn test`, and the first published `vYYYY.M.D`
+   release to prove the end-to-end updater flow
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),

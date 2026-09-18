@@ -64,9 +64,9 @@ There is no version-bump script and no version-bump commit to make.
 
       - `windows-2022` → `--win` (NSIS + portable)
       - `ubuntu-22.04` → `--linux` (AppImage + rpm + deb)
-      - `macos-15` → `--mac` (dmg + zip), **unsigned**
-        (`CSC_IDENTITY_AUTO_DISCOVERY=false`; no signing certificate is
-        configured yet).
+      - `macos-15` → `--mac` (dmg + zip), unsigned unless the Apple
+        signing secrets are configured (see
+        [macOS signing & notarization](#macos-signing-notarization)).
 
    3. **finalize** — publishes the draft release as soon as all three build
       jobs succeed.
@@ -91,6 +91,40 @@ There is no version-bump script and no version-bump commit to make.
   failure (it uses N-API prebuilds compatible with Electron anyway).
 - `yarn package:win / package:linux / package:mac` exist for **local**
   testing but always use `--publish never`; only CI publishes.
+- Every artifact also gets a SHA-256 checksum (`*.sha256`), uploaded beside
+  the installer to the release and as a workflow attachment.
+
+## macOS signing & notarization
+
+macOS builds are **unsigned by default** — the project has no Apple Developer
+ID credentials. Enabling signing/notarization is configuration-only, no
+workflow code changes are required.
+
+Add these repository **Secrets** (`Settings ▸ Secrets and variables ▸ Actions`):
+
+| Secret | Value |
+| --- | --- |
+| `CSC_LINK` | Base64-encoded Developer ID Application `.p12` (export from Keychain: right-click certificate → *Export…* → `<cert>.p12`, then `base64 -i com.your.id.p12`). |
+| `CSC_KEY_PASSWORD` | The `<cert>.p12` password. |
+| `APPLE_ID` | Your Apple Developer account email. |
+| `APPLE_APP_SPECIFIC_PASSWORD` | An app-specific password generated under Apple ID ▸ Sign-In & Security. |
+| `APPLE_TEAM_ID` | Your Developer team ID (Apple Developer portal, Membership). |
+
+CI then behaves as follows:
+
+- `CSC_IDENTITY_AUTO_DISCOVERY` is `true` on the macOS job exactly when
+  `CSC_LINK` is set, and `false` otherwise (Windows/Linux stay unsigned).
+- With `CSC_LINK` set, electron-builder signs the app with the Developer ID
+  certificate.
+- With `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD` + `APPLE_TEAM_ID` set,
+  electron-builder additionally **notarizes** and staples the artifacts
+  (`mac.notarize: true`).
+- The workflow's macOS verification step then hard-asserts
+  `codesign --verify --deep --strict` and Gatekeeper `spctl -a -vv` in
+  addition to the plist/DMG checks it always runs.
+
+The hardened runtime and entitlements are already configured and the signing
+assertions activate automatically — nothing else to change in the repo.
 
 ## Update manifests
 

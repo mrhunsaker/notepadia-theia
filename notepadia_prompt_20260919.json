@@ -1,0 +1,230 @@
+{
+  "name": "notepadia-continuation-prompt",
+  "version": "6.0.0",
+  "date": "2026-09-19",
+  "previousVersion": "5.3.0",
+  "previousFile": "notepadia_prompt_20260915.json",
+  "baseline": {
+    "theia": "1.75.0",
+    "node": ">=24",
+    "electron": "42.8.1",
+    "electronBuilder": "26.15.3",
+    "packageManager": "Yarn Classic 1.x"
+  },
+  "goal": "Accomplish the macOS build inside the GitHub release workflow (unsigned, because there are no Apple Developer ID credentials), close every macOS packaging gap that does not require Apple credentials, and prep the signing/notarization path as a gated drop-in. Then fill the highest-value missing Notepad++ features.",
+  "rules": [
+    "Before upgrading anything, inspect the official Eclipse Theia release page and current eclipse-theia/theia and eclipse-theia/theia-ide repositories.",
+    "Prefer the newest stable, mutually compatible Theia release available at generation time. Keep all @theia packages on one compatible release line.",
+    "Never introduce a random standalone monaco-editor version. Use Theia's Monaco integration.",
+    "Use the current Theia build pipeline. Do not add webpack if the current release is esbuild-only.",
+    "Use Theia services for editor, filesystem, navigator, workspace, commands, menus, keybindings, preferences and search.",
+    "Keep product-specific behavior in the Notepadia extension(s).",
+    "Use VS Code/Open VSX extensions for mature language support where compatible.",
+    "Do not implement language grammars from scratch unless no compatible extension exists.",
+    "Do not claim a build works unless it has actually been built and tested.",
+    "Preserve the existing repository's package manager and lockfile conventions when upgrading.",
+    "Improve the browser application first; use it for 99%+ of development and runtime. Touch the Electron target only when packaging distributables.",
+    "Keep react/react-dom as direct dependencies of the application packages; they are peer dependencies of @theia/core.",
+    "Do not reintroduce Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged); the repository runs Yarn Classic with hoisted node_modules.",
+    "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature.",
+    "Once complete with a milestone, commit it to GitHub prior to continuing",
+    "Use date-based product versions (YYYY.M.D, e.g. 2026.9.19) generated at build time by scripts/set-build-version.mjs (the repo stays 0.0.0), and tag releases vYYYY.M.D"
+  ],
+  "product": {
+    "name": "Notepadia",
+    "platform": "Eclipse Theia",
+    "editor": "Theia Monaco",
+    "primaryTarget": "Linux",
+    "secondaryTargets": ["Windows", "macOS"],
+    "primaryRuntime": "browser (http://localhost:3000)",
+    "packagingRuntime": "Electron"
+  },
+  "auditSummary": {
+    "date": "2026-09-19",
+    "conclusion": "All milestones from v3/v5 are complete except M18 (macOS packaging and signing). Apple Developer ID credentials are NOT available, so the macOS build is accomplished UNSIGNED in the GitHub workflow, fully verified by CI (the 'M22' milestone below was implemented on 2026-09-19), and signing/notarization is prepared as a gated, configuration-only drop-in. The remaining not-milestone follow-ups are unit tests, a first published release (proving the updater flow), and the M23 missing-feature fill.",
+    "allMilestonesComplete": false,
+    "milestonesPending": ["M18/M22 (macOS packaging) - implemented unsigned: config + workflow + docs done; the only verification left is a workflow_dispatch run of release.yml", "M23 (missing Notepad++ features) - planned"],
+    "v3MilestonesCompleted": [
+      "stabilize browser build and CI on Linux",
+      "implement search and replace UX",
+      "implement encoding conversion and code-page support",
+      "implement EOL conversion",
+      "implement recent files and session restore",
+      "implement bookmarks and line operations",
+      "add language support",
+      "match Notepad++ menus and shortcuts",
+      "validate Linux Electron packaging (AppImage/rpm/deb)",
+      "add automated UI/e2e tests"
+    ],
+    "v4MilestonesCompleted": [
+      "Windows NSIS installer and portable package",
+      "Windows file associations and OS file-open routing",
+      "automatic updates (electron-updater over GitHub Releases)",
+      "CI release workflow publishing installers for Windows/Linux/macOS",
+      "docs site on GitHub Pages (mkdocs)",
+      "product icons",
+      "document list panel and spaces-vs-tabs toggle",
+      "JSON + PowerShell language registrations (M11)",
+      "matching bracket navigation with per-language bracket config (M13)",
+      "Replace in Files wired into the Search menu (M12)",
+      "e2e wired into CI and grown to 12 suites (M10/M20)"
+    ],
+    "v4MilestonesRemaining": [
+      "macOS code signing and notarization : BLOCKED (no Apple Developer ID certificate / APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID); the workflow keeps building unsigned and the signing path is gated on secrets",
+      "artifact checksums in the release workflow (folded into the M22 plan)",
+      "unit tests (yarn test pipelines) - still no-op today",
+      "first published vYYYY.M.D release and end-to-end update test from an older build"
+    ],
+    "gapsDiscovered": [
+      "M18 closeout: macOS DMG/zip build in CI is unsigned but functional; macOS file associations (plist UTIs) are NOT configured; no local Mac so all verification must be CI-side",
+      "no macOS code signing/notarization (blocked on Apple credentials; user has none)",
+      "release workflow lacks artifact checksums/attestation",
+      "no unit tests (12 e2e suites are the only automated tests)",
+      "no version tag or published GitHub Release yet (updater flow untested end-to-end)",
+      "missing Notepad++ features beyond milestone scope (see \"missingNotepadplusFeatures\")"
+    ]
+  },
+  "missingNotepadplusFeatures": {
+    "highValue": [
+      {
+        "feature": "Macros menu (record / stop / playback)",
+        "detail": "Notepad++ headline feature: record a sequence of editing actions, stop, play back any number of times, optionally save/load. README.md already claims a 'Macros' menu but none is registered (verification: notepadia-menu-contribution.ts registers File/Edit/Search/View/Encoding/Language/Settings only). Monaco's UndoRedo stack does not expose macro recording directly; a macro would be captured as a command queue and replayed via monaco.editor.executeEdits or command execution.",
+        "nppReference": "Notepad++ Macros menu"
+      },
+      {
+        "feature": "Column (block) editing / Column Editor dialog",
+        "detail": "Monaco already supports Alt+drag block selection; the gap is the 'Edit > Column Editor...' dialog (insert repeated text / sequential numbers down the selection). Implements via a quick-open/dialog that builds multi-cursor insertions.",
+        "nppReference": "Notepad++ Edit > Column Editor..."
+      },
+      {
+        "feature": "Blank Operations submenu",
+        "detail": "Edit > Blank Operations: TAB to Space, Space to TAB, Trim leading and trailing, Trim trailing, EOL to space, Remove unnecessary EOL and trailing spaces. Only 'Trim Trailing Whitespace' exists today.",
+        "nppReference": "Notepad++ Edit > Blank Operations"
+      },
+      {
+        "feature": "Line operations: Split Lines and Remove Consecutive Duplicate Lines",
+        "detail": "Split lines at a fixed wrap column / soft-wrap points; drop consecutive duplicates only (not all duplicates like the existing removeDuplicates).",
+        "nppReference": "Notepad++ Edit > Line Operations"
+      },
+      {
+        "feature": "Search: Mark / Mark All with style, Select and Find Next, extended (escape) search mode",
+        "detail": "Notepad++ marks occurrences with up to 5 style colors and can jump/extend selections. Monaco decorations can realize Mark All. Extended search mode treats \\n, \\t, \\r literally without full regex.",
+        "nppReference": "Notepad++ Search menu"
+      }
+    ],
+    "mediumValue": [
+      {
+        "feature": "Run menu / Run... command",
+        "detail": "Notepad++ Run > Run... (F5) launches an external command with $(FULL_CURRENT_PATH) etc. Realize via Theia tasks or a small dialog spawning a process from Electron.",
+        "nppReference": "Notepad++ Run menu"
+      },
+      {
+        "feature": "Document Map (Monaco minimap toggle)",
+        "detail": "Monaco ships a minimap; expose it as View > Document Map toggle in the menu.",
+        "nppReference": "Notepad++ View > Document Map"
+      },
+      {
+        "feature": "Window menu",
+        "detail": "Notepad++ Window menu (tile up/down, cascade, window list). View > Document List partially covers the list already.",
+        "nppReference": "Notepad++ Window menu"
+      },
+      {
+        "feature": "Character Panel",
+        "detail": "Insert special/box-drawing characters via an on-screen panel.",
+        "nppReference": "Notepad++ Edit > Character Panel"
+      },
+      {
+        "feature": "Print / Print Preview",
+        "detail": "Electron webContents.print() / window.print(); Notepad++ File > Print.",
+        "nppReference": "Notepad++ File > Print"
+      },
+      {
+        "feature": "Named Sessions save/load",
+        "detail": "Explicit Session Save/Load (session per project) on top of Theia's auto shell-layout restore.",
+        "nppReference": "Notepad++ File > Session tabs / plugins"
+      }
+    ],
+    "outOfScopeOrLow": [
+      "Full Notepad++ Preferences/Style Configurator dialog (Monaco theming limits)",
+      "Plugins/NppExec ecosystem (replaced by Theia's VS Code extension model per rules)",
+      "Full ~80-language catalog (curated 22 with Monarch tokenizers per rules)",
+      "Wildcard code-page breadth beyond Windows-1252 + ISO-8859 family",
+      "multi-instance mode (Theia single-instance by design)"
+    ]
+  },
+  "status": {
+    "extension": "builds and installs as Notepadia extension",
+    "browserApp": "builds and runs on Linux at localhost:3000",
+    "electronApp": "builds; Linux packaging validated (AppImage/rpm/deb); Windows NSIS + portable validated with file associations and file-open routing; macOS DMG/zip built unsigned by the CI release workflow (no local Mac)",
+    "macosInCi": "release.yml macos-15 job packages --mac --publish always and uploads DMG/zip/latest-mac.yml into the draft release. Implemented 2026-09-19 (M22): mac.fileAssociations (CFBundleDocumentTypes for 22 exts), hardened runtime + entitlements, notarize gating, arch-correct artifactName, per-job signing env derived from secrets, an in-CI macOS verification step (plutil + extension assertions + hdiutil; codesign/spctl when signed), and SHA-256 checksums uploaded to the release. Unsigned until the Apple secrets are configured (user has none).",
+    "automaticUpdates": "electron-updater integrated (M19): electron-main autoUpdater service over Theia Electron IPC; Help > Check for Updates...; downloads and prompts to restart on quit; update feed = GitHub Releases (electron-builder publish.provider github)",
+    "releaseWorkflow": ".github/workflows/release.yml (M20 + M22): v* tag push or workflow_dispatch; builds on windows-2022/ubuntu-22.04/macos-15, rebuilds selected native modules, packages with --publish always into a draft GitHub Release; Windows/Linux always unsigned, macOS signed+notarized only when the Apple secrets are configured; per-artifact .sha256 checksums uploaded to the release; macos leg self-verifies the bundle/DMG in CI",
+    "docsSite": "MkDocs (Material) site built and deployed to https://mrhunsaker.github.io/notepadia-theia/ by .github/workflows/docs.yml; mkdocs build --strict passes locally",
+    "productIcons": "pink Notepad-style icons generated for win/mac/linux and wired into electron-builder.yml (verified embedded in the deb); browser app injects the same artwork as a favicon",
+    "removedBerryArtifacts": true,
+    "reactAddedAsPeerShim": true,
+    "e2e": "12 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, document-list, spaces-tabs, menus-shortcuts, session-restore); wired into GitHub Actions e2e.yml",
+    "lint": "real linter on notepadia extension: ESLint 10 + typescript-eslint flat config, yarn lint passes clean",
+    "unitTests": "NONE - yarn test is still a no-op pipeline (planned follow-up)",
+    "ci": "workflows: build.yml (browser build), e2e.yml (lint + build + 12 e2e suites, artifacts on failure), release.yml (tag/manual publish for win/linux/mac), docs.yml (MkDocs site to GitHub Pages)"
+  },
+  "milestones": [
+    {
+      "id": "M1-M21",
+      "title": "all previously tracked milestones",
+      "status": "complete",
+      "note": "See notepadia_prompt_20260915.json for per-milestone M1-M21 evidence. M18 (macOS packaging and signing) is the sole in_progress item and is taken over by M22 below with an unsigned scope."
+    },
+    {
+      "id": "M22",
+      "title": "accomplish the macOS build in the GitHub release workflow (unsigned)",
+      "status": "implemented - pending one CI verification run",
+      "date": "2026-09-19",
+      "blocker": "NONE for the unsigned scope. Apple Developer ID credentials are not available; signing/notarization stays a gated optional path.",
+      "description": "Make the macOS leg of release.yml complete and verifiable without any Apple credentials: produce and upload a correct, well-formed DMG + zip + latest-mac.yml every release; add macOS file associations; add artifact checksums; harden the config so code-signing/notarization activates automatically the day secrets exist; and verify the artifacts entirely from CI (no local Mac).",
+      "steps": [
+        "1. DONE electron-builder.yml mac block: hardenedRuntime: true, gatekeeperAssess: false, entitlements: build/entitlements.mac.plist, entitlementsInherit: build/entitlements.mac.inherit.plist, notarize: true (electron-builder skips notarization with a warning when the Apple env vars are absent), explicit artifactName 'Notepadia-${version}-${arch}.${ext}'.",
+        "2. DONE mac.fileAssociations mirroring the 22 extensions. electron-builder renders these as CFBundleDocumentTypes in Info.plist (it does NOT emit UTImportedTypeDeclarations; Finder association + role/rank/icon come from CFBundleDocumentTypes). Verified in node_modules/app-builder-lib/out/electron/electronMac.js.",
+        "3. DONE arch handling: macos-15 is an Apple-Silicon runner so artifacts are arm64; the ${arch} macro makes the name correct for whichever runner arch builds it. No forced arch.",
+        "4. DONE release.yml: global CSC_IDENTITY_AUTO_DISCOVERY=false removed; per-job env derives it as ${{ matrix.platform == 'macos' && secrets.CSC_LINK != '' }} and exports CSC_LINK/CSC_KEY_PASSWORD/APPLE_ID/APPLE_APP_SPECIFIC_PASSWORD/APPLE_TEAM_ID from secrets (empty strings when unset = unchanged unsigned behavior).",
+        "5. DONE secret-gated signing block: none needed beyond the env above - electron-builder signs when CSC_LINK is set and notarizes when the APPLE_* vars are set; with none present it skips. Windows/Linux jobs stay unsigned.",
+        "6. DONE macOS artifact verification step (macos runner only): plutil -lint on Info.plist, convert to xml1 and assert all 22 CFBundleDocumentTypes extensions present, hdiutil imageinfo on the DMG; when signing secrets are set, additionally codesign --verify --deep --strict and spctl -a -vv --type execute.",
+        "7. DONE SHA-256 checksums: a Node step (uniform across win/linux/mac) writes <artifact>.sha256 for every exe/yml/blockmap/dmg/zip/AppImage/deb/rpm, uploads them to the draft release via gh release upload and includes them in the workflow artifact attachment glob.",
+        "8. DONE docs: docs/packaging.md (macOS signing/notarization/file associations + release integrity sections; arch-correct artifact table), docs/releases.md (macOS signing & notarization secrets checklist), CHANGELOG.md (macOS build in CI + Release integrity sections), README.md (Next milestones now points at notepadia_prompt_20260919.json; removed the incorrect 'Macros' menu claim).",
+        "9. PENDING (requires the repo owner to run it): trigger release.yml via workflow_dispatch and confirm the macos leg goes green and uploads DMG/zip/latest-mac.yml + .sha256 into the draft release with all three platform legs green.",
+        "10. DONE update this continuation file and commit (this commit)."
+      ],
+      "acceptanceCriteria": [
+        "A workflow_dispatch release run produces, on the macos-15 leg, an unsigned DMG + zip + latest-mac.yml + .sha256 files in the draft release, with all three platform legs green.",
+        "Mac artifact verification steps pass in CI (plist lint + all 22 extensions asserted + hdiutil imageinfo); codesign/spctl assertions are skipped when unsigned.",
+        "macOS .app bundle contains CFBundleDocumentTypes entries for the 22 associated file types.",
+        "With CSC_LINK etc. absent, the workflow does not attempt certificate discovery and never hangs or fails on signing.",
+        "docs/releases.md documents the exact secrets to add for a future signed/notarized release.",
+        "No workflow regression on Windows/Linux legs."
+      ],
+      "postSignedUpgradePath": [
+        "Same workflow, no code change required apart from the user adding the five GitHub Secrets; the env block feeds electron-builder which signs + notarizes automatically.",
+        "The mac verification step then requires codesign --verify --deep --strict and spctl -a -vv unconditionally (already wired via the secrets.CSC_LINK guard).",
+        "Optional hardening: switch notarization to the APPLE_API_KEY / APPLE_API_KEY_ID / APPLE_API_ISSUER trio (electron-builder recommends it over app-specific password)."
+      ]
+    },
+    {
+      "id": "M23",
+      "title": "fill highest-value missing Notepad++ features (browser-first)",
+      "status": "planned",
+      "description": "Pick from missingNotepadplusFeatures.highValue. Recommended order: (1) Macros menu with record/stop/playback, (2) Column Editor dialog, (3) Blank Operations submenu, (4) Split Lines + Remove Consecutive Duplicate Lines, (5) Search Mark All / Select and Find Next / extended escape mode. Each one: implement in extensions/notepadia (browser first), add menus + shortcuts + status-bar touches, add an e2e suite, lint + build + run full e2e, commit.",
+      "note": "No milestone dependencies on Apple credentials; fully achievable on Linux/browser where 99% of development happens."
+    }
+  ],
+  "plan": {
+    "macOSInGithubWorkflow": "Primary deliverable of this file. All steps are in M22; none require Apple credentials. The unsigned macOS build is the accepted done-state; signing/notarization is a pre-wired, gated drop-in documented in docs/releases.md.",
+    "missingFeatures": "M23 enumerates the gap list (missingNotepadplusFeatures) with a recommended order; implementation starts as a follow-up milestone only after M22 ships."
+  },
+  "nextActions": [
+    "M22 step 9: the repo owner triggers release.yml via workflow_dispatch and confirms the macos leg produces DMG/zip/latest-mac.yml + .sha256 in the draft release with all three legs green.",
+    "After M22 verification: begin M23 missing-feature work in the browser app (see missingNotepadplusFeatures.highValue) - recommended order: Macros menu (record/stop/playback), Column Editor dialog, Blank Operations submenu, Split Lines + Remove Consecutive Duplicate Lines, Search Mark All / Select and Find Next / extended escape mode.",
+    "Add real unit tests and wire them into yarn test (v4Remaining).",
+    "Publish the first vYYYY.M.D release and verify electron-updater upgrades an older 0.x build (the updater flow is still untested end-to-end).",
+    "When Apple credentials are obtained: add the five GitHub Secrets, re-run release - the workflow signs/notarizes automatically and the mac verification step then enforces codesign/spctl; optionally switch notarization to the App Store Connect API key trio."
+  ]
+}

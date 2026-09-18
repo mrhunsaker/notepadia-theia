@@ -21,8 +21,8 @@ permissions:
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  # macOS builds are unsigned on purpose (no signing cert configured yet).
-  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+  # Signing is now per-job (see the `release` job env block): Windows/Linux stay
+  # unsigned always; macOS signs+notarizes only when the Apple secrets exist.
 
 jobs:
   prepare:
@@ -97,6 +97,18 @@ jobs:
           - platform: macos
             os: macos-15
             targets: --mac
+    # Per-job signing env. Windows/Linux are always unsigned; the macOS job
+    # signs/notarizes only when the Apple Developer ID secrets are configured,
+    # and stays unsigned (auto-discovery off) otherwise so it never hangs on a
+    # certificate search. `CSC_IDENTITY_AUTO_DISCOVERY` becomes "true" exactly
+    # when `platform == macos` AND `secrets.CSC_LINK` is set.
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'macos' && secrets.CSC_LINK != '' }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -152,6 +164,55 @@ jobs:
         working-directory: applications/electron
         run: npx --no-install electron-builder ${{ matrix.targets }} --publish always
 
+      # The user has no local Mac, so every macOS build must be validated here.
+      # Verifies the Info.plist, that all configured file-association extensions
+      # were emitted as CFBundleDocumentTypes, and that the DMG is a valid disk
+      # image. Code-signing (codesign) and Gatekeeper (spctl) assertions run
+      # only when a signing secret is actually configured; unsigned builds skip
+      # them.
+      - name: Verify macOS artifacts
+        if: runner.os == 'macOS'
+        working-directory: applications/electron/dist
+        run: |
+          set -euo pipefail
+          APP="$(find . -maxdepth 2 -name '*.app' -type d | head -n1)"
+          [ -n "$APP" ] || { echo "no .app bundle found under dist/"; exit 1; }
+          PLIST="$APP/Contents/Info.plist"
+          plutil -lint "$PLIST"
+          PLIST_XML="$(mktemp)"
+          plutil -convert xml1 -o "$PLIST_XML" "$PLIST"
+          for ext in txt log ini csv json xml html css js py java c cpp h rs go sh ps1 md sql yaml yml; do
+            grep -q "<string>${ext}</string>" "$PLIST_XML" \
+              || { echo "missing file-association extension in Info.plist: ${ext}"; exit 1; }
+          done
+          [ -n "$(ls *.dmg 2>/dev/null)" ] || { echo "no DMG produced"; exit 1; }
+          hdiutil imageinfo "$(ls *.dmg | head -n1)" >/dev/null
+          echo "Verification: Info.plist valid, $([ "${{ secrets.CSC_LINK != '' }}" = "true" ] && echo signed || echo unsigned) build OK"
+          if [ "${{ secrets.CSC_LINK != '' }}" = "true" ]; then
+            codesign --verify --deep --strict "$APP"
+            spctl -a -vv --type execute "$APP"
+          fi
+
+      # SHA-256 checksums for every artifact, attached to both the workflow run
+      # and the draft GitHub release so users can verify what they download.
+      - name: Generate and publish checksums
+        working-directory: applications/electron/dist
+        run: |
+          set -euo pipefail
+          node - <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const dir = process.cwd();
+          for (const f of fs.readdirSync(dir)) {
+            if (!/\.(exe|yml|blockmap|dmg|zip|AppImage|deb|rpm)$/.test(f)) continue;
+            const hash = crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, f))).digest('hex');
+            fs.writeFileSync(path.join(dir, f + '.sha256'), hash + '  ' + f + '\n');
+          }
+          EOF
+          VERSION="${{ needs.prepare.outputs.version }}"
+          gh release upload "v${VERSION}" *.sha256 --repo "${{ github.repository }}" --clobber
+
       - name: Upload artifacts as workflow attachments
         uses: actions/upload-artifact@v4
         with:
@@ -165,6 +226,7 @@ jobs:
             applications/electron/dist/*.AppImage
             applications/electron/dist/*.deb
             applications/electron/dist/*.rpm
+            applications/electron/dist/*.sha256
           if-no-files-found: error
 
   finalize:

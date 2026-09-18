@@ -115,9 +115,70 @@ portable:
 
 mac:
   icon: build/icon.icns
+  # Hardened runtime + entitlements are valid and harmless on unsigned builds
+  # and required the moment a Developer ID certificate is configured. The
+  # entitlements files disable library validation so Electron helpers run under
+  # hardened runtime.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  # Notarization is gated on credentials: electron-builder signs/notarizes when
+  # App-signing env vars (CSC_LINK / CSC_KEY_PASSWORD) and Apple notarization
+  # creds (APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID) are present,
+  # and skips (with a warning) when they are not.
+  notarize: true
+  artifactName: "Notepadia-${version}-${arch}.${ext}"
   target:
     - dmg
     - zip
+  # macOS file associations -> CFBundleDocumentTypes in Info.plist, so the app
+  # appears as an opener for the same text/source formats as on Windows/Linux.
+  fileAssociations:
+    - ext: txt
+      name: Notepadia Text File
+    - ext: log
+      name: Notepadia Log File
+    - ext: ini
+      name: Notepadia INI File
+    - ext: csv
+      name: Notepadia CSV File
+    - ext: json
+      name: Notepadia JSON File
+    - ext: xml
+      name: Notepadia XML File
+    - ext: html
+      name: Notepadia HTML File
+    - ext: css
+      name: Notepadia CSS File
+    - ext: js
+      name: Notepadia JavaScript File
+    - ext: py
+      name: Notepadia Python File
+    - ext: java
+      name: Notepadia Java File
+    - ext: c
+      name: Notepadia C File
+    - ext: cpp
+      name: Notepadia C++ File
+    - ext: h
+      name: Notepadia Header File
+    - ext: rs
+      name: Notepadia Rust File
+    - ext: go
+      name: Notepadia Go File
+    - ext: sh
+      name: Notepadia Shell Script
+    - ext: ps1
+      name: Notepadia PowerShell File
+    - ext: md
+      name: Notepadia Markdown File
+    - ext: sql
+      name: Notepadia SQL File
+    - ext:
+        - yaml
+        - yml
+      name: Notepadia YAML File
 
 linux:
   icon: build/icons

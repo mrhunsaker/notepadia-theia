@@ -177,6 +177,34 @@
   Electron-compatible N-API prebuilds, and its `binding.gyp` requires
   Spectre-mitigated MSVC libraries (MSB8040).
 
+### macOS build in CI
+
+- Windows/Linux jobs are always unsigned; the macOS job signs + notarizes
+  **only when the Apple secrets are configured**
+  (`CSC_IDENTITY_AUTO_DISCOVERY` is derived from `secrets.CSC_LINK`). With no
+  credentials the macOS DMG/zip build runs unsigned exactly as before — the
+  drop-in trigger needs zero workflow changes.
+- `mac` config hardened: `hardenedRuntime`, `gatekeeperAssess`, the existing
+  entitlements plists, and `mac.notarize` (electron-builder notarizes when
+  `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID` exist and skips
+  otherwise).
+- macOS file associations added as `mac.fileAssociations` — the same 22
+  text/source extensions as Windows/Linux render as `CFBundleDocumentTypes`
+  in `Info.plist` (this closes the long-standing "plist UTIs not configured"
+  gap).
+- Because there is no local Mac, `release.yml` now verifies every macOS build
+  in CI: `plutil` lints the Info.plist, all associated extensions are
+  asserted present, `hdiutil imageinfo` validates the DMG, and — only when
+  signed — `codesign --verify --deep --strict` and `spctl -a -vv` must pass.
+
+### Release integrity
+
+- The release workflow now generates a SHA-256 checksum (`*.sha256`) for
+  every installer/update-manifest/blockmap artifact, uploaded both as a
+  workflow attachment and onto the GitHub Release beside each binary.
+- Release docs gained a step-by-step secrets checklist for enabling macOS
+  signing/notarization.
+
 ### Documentation site
 
 - Added an MkDocs (Material) site published to
