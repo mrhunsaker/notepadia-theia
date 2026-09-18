@@ -43,7 +43,7 @@
     "date": "2026-09-19",
     "conclusion": "All milestones from v3/v5 are complete except M18 (macOS packaging and signing). Apple Developer ID credentials are NOT available, so the macOS build is accomplished UNSIGNED in the GitHub workflow, fully verified by CI (the 'M22' milestone below was implemented on 2026-09-19), and signing/notarization is prepared as a gated, configuration-only drop-in. The remaining not-milestone follow-ups are unit tests, a first published release (proving the updater flow), and the M23 missing-feature fill.",
     "allMilestonesComplete": false,
-    "milestonesPending": ["M18/M22 (macOS packaging) - implemented unsigned: config + workflow + docs done; the only verification left is a workflow_dispatch run of release.yml", "M23 (missing Notepad++ features) - planned"],
+    "milestonesPending": ["M18/M22 (macOS packaging) - implemented unsigned: config + workflow + docs done; the only verification left is a workflow_dispatch run of release.yml", "M23 (missing Notepad++ features) - complete (Search Mark extended escape mode deferred)"],
     "v3MilestonesCompleted": [
       "stabilize browser build and CI on Linux",
       "implement search and replace UX",
@@ -211,18 +211,18 @@
     {
       "id": "M23",
       "title": "fill highest-value missing Notepad++ features (browser-first)",
-      "status": "planned",
-      "description": "Pick from missingNotepadplusFeatures.highValue. Recommended order: (1) Macros menu with record/stop/playback, (2) Column Editor dialog, (3) Blank Operations submenu, (4) Split Lines + Remove Consecutive Duplicate Lines, (5) Search Mark All / Select and Find Next / extended escape mode. Each one: implement in extensions/notepadia (browser first), add menus + shortcuts + status-bar touches, add an e2e suite, lint + build + run full e2e, commit.",
+      "status": "complete (Search Mark extended escape mode deferred)",
+      "description": "Implemented in the browser app and validated by four new e2e suites (column-editor, blank-ops, search-mark, macros): Macros menu with record/stop/playback + top-level Macros menubar, Column Editor dialog (text/number/leading-zeros/repeated), Blank Operations submenu (TAB to Space, Space to TAB, trims, EOL to space, Remove unnecessary EOL), Split Lines + Remove Consecutive Duplicate Lines under Line Operations, Search > Mark with Mark/Mark All/Clear Marks/Select and Find Next and a 5-style palette, plus View > Document Map (minimap toggle). Extended escape mode in Search Mark is intentionally deferred (monaco regex handles most of it).",
       "note": "No milestone dependencies on Apple credentials; fully achievable on Linux/browser where 99% of development happens."
     }
   ],
   "plan": {
     "macOSInGithubWorkflow": "Primary deliverable of this file. All steps are in M22; none require Apple credentials. The unsigned macOS build is the accepted done-state; signing/notarization is a pre-wired, gated drop-in documented in docs/releases.md.",
-    "missingFeatures": "M23 enumerates the gap list (missingNotepadplusFeatures) with a recommended order; implementation starts as a follow-up milestone only after M22 ships."
+    "missingFeatures": "M23 completed the recommended order (Macros menu, Column Editor, Blank Operations, Split Lines + Remove Consecutive Duplicate Lines, Search Mark All / Select and Find Next) browser-first with four new e2e suites; the extended escape mode item remains a small follow-up."
   },
   "nextActions": [
     "M22 step 9: the repo owner triggers release.yml via workflow_dispatch and confirms the macos leg produces DMG/zip/latest-mac.yml + .sha256 in the draft release with all three legs green.",
-    "After M22 verification: begin M23 missing-feature work in the browser app (see missingNotepadplusFeatures.highValue) - recommended order: Macros menu (record/stop/playback), Column Editor dialog, Blank Operations submenu, Split Lines + Remove Consecutive Duplicate Lines, Search Mark All / Select and Find Next / extended escape mode.",
+    "M23 follow-up (optional): Search Mark extended escape mode (\\n, \\t, \\r, \\\\ literals) under the Mark submenu.",
     "Add real unit tests and wire them into yarn test (v4Remaining).",
     "Publish the first vYYYY.M.D release and verify electron-updater upgrades an older 0.x build (the updater flow is still untested end-to-end).",
     "When Apple credentials are obtained: add the five GitHub Secrets, re-run release - the workflow signs/notarizes automatically and the mac verification step then enforces codesign/spctl; optionally switch notarization to the App Store Connect API key trio."

@@ -289,6 +289,11 @@ export class NotepadiaMenuContribution implements MenuContribution {
             order: 'b'
         });
         menus.registerMenuAction([...CommonMenus.VIEW], {
+            commandId: NotepadiaCommands.TOGGLE_DOCUMENT_MAP.id,
+            label: 'Document Map',
+            order: 'c'
+        });
+        menus.registerMenuAction([...CommonMenus.VIEW], {
             commandId: 'editor.action.toggleWordWrap',
             label: 'Toggle Word Wrap',
             order: 'z'

@@ -25,6 +25,10 @@ import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
 import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
 import { NotepadiaFaviconContribution } from './notepadia-favicon-contribution';
 import { NotepadiaUpdaterContribution } from './notepadia-updater-contribution';
+import { NotepadiaColumnEditorContribution } from './notepadia-column-editor';
+import { NotepadiaBlankAndLineOperationsContribution } from './notepadia-blank-and-line-operations';
+import { NotepadiaSearchMarkContribution } from './notepadia-search-mark';
+import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
 export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
@@ -85,6 +89,23 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(CommandContribution).toService(NotepadiaUpdaterContribution);
     bind(MenuContribution).toService(NotepadiaUpdaterContribution);
     bind(FrontendApplicationContribution).toService(NotepadiaUpdaterContribution);
+
+    bind(NotepadiaColumnEditorContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaColumnEditorContribution);
+    bind(MenuContribution).toService(NotepadiaColumnEditorContribution);
+
+    bind(NotepadiaBlankAndLineOperationsContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaBlankAndLineOperationsContribution);
+    bind(MenuContribution).toService(NotepadiaBlankAndLineOperationsContribution);
+
+    bind(NotepadiaSearchMarkContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaSearchMarkContribution);
+    bind(MenuContribution).toService(NotepadiaSearchMarkContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaSearchMarkContribution);
+
+    bind(NotepadiaMacroContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaMacroContribution);
+    bind(MenuContribution).toService(NotepadiaMacroContribution);
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only

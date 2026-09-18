@@ -132,6 +132,17 @@ The Notepad++-style feature layer is implemented as the shared
 - go to line and matching bracket navigation
 - language support: 22 curated languages with Monarch tokenizers
 - live status bar with line/column, encoding, EOL, indent mode and insert mode
+- a Macros menu: record/stop/discard/playback/clear with a status-bar REC
+  indicator while recording
+- Column Editor (Edit > Line Operations): text, sequential numbers or cycled
+  repeated text down the selected lines, including rectangular blocks
+- Blank Operations (Edit > Blank Operations): TAB Space toggling, trims,
+  EOL-to-space and "remove unnecessary EOL"; Line Operations also has
+  Split Lines and Remove Consecutive Duplicate Lines
+- Search > Mark: Mark/Mark All/Clear Marks color the search term in one of
+  five styles; Select and Find Next adds each next occurrence to the
+  selection
+- View > Document Map toggles the minimap for the active editor
 - product branding as Notepadia
 - product icons: a pink, Notepad-style icon for Windows (`.ico`), macOS
   (`.icns`) and Linux (size set) packaging, plus a matching browser favicon
@@ -140,7 +151,7 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 12
+- CI workflows: build (browser app on Linux), e2e (lint + build + 16
   Puppeteer test suites with artifact upload on failure), release (tag-triggered
   publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
   Pages)
@@ -185,7 +196,7 @@ yarn lint
 yarn build
 ```
 
-Run the 12 end-to-end suites (headless Chromium via Puppeteer):
+Run the 16 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -204,9 +215,10 @@ Tracked in `notepadia_prompt_20260919.json`. Remaining work:
    (plist, file associations, DMG; code-signing/notarization is a
    configuration-only drop-in once an Apple Developer ID certificate and
    notarization credentials exist)
-2. Missing Notepad++ features (highest value first): a Macros menu
-   (record/playback), Column Editor, Blank Operations, and Search
-   Mark/Select-and-Find-Next (tracked as M23)
+2. M23's higher-value missing Notepad++ features are implemented: Macros,
+   Column Editor, Blank Operations, Split Lines / Remove Consecutive
+   Duplicate Lines, Search Mark/Select-and-Find-Next and the Document Map.
+   (Optional follow-up: Search Mark extended escape mode.)
 3. Real unit tests for `yarn test`, and the first published `vYYYY.M.D`
    release to prove the end-to-end updater flow
 

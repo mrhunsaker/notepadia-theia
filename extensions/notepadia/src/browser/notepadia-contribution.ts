@@ -168,6 +168,11 @@ export namespace NotepadiaCommands {
         id: 'notepadia.matchingBracket',
         label: 'Matching Bracket'
     };
+
+    export const TOGGLE_DOCUMENT_MAP: Command = {
+        id: 'notepadia.toggleDocumentMap',
+        label: 'Document Map'
+    };
 }
 
 @injectable()
@@ -303,6 +308,11 @@ export class NotepadiaContribution implements CommandContribution {
             isEnabled: () => !!this.currentEditor,
             execute: () => this.triggerMonacoAction('editor.action.jumpToBracket')
         });
+        commands.registerCommand(NotepadiaCommands.TOGGLE_DOCUMENT_MAP, {
+            isEnabled: () => !!this.currentEditor,
+            isToggled: () => this.documentMapEnabled(),
+            execute: () => this.toggleDocumentMap()
+        });
         commands.registerCommand(NotepadiaCommands.TAB_SIZE_2, {
             isEnabled: () => !!this.currentEditor,
             execute: () => this.setTabSize(2)
@@ -425,6 +435,28 @@ export class NotepadiaContribution implements CommandContribution {
     protected currentInsertSpaces(): boolean | undefined {
         const model = this.currentTextModel();
         return model ? model.getOptions().insertSpaces : undefined;
+    }
+
+    protected documentMapEnabled(): boolean {
+        const editor = this.currentEditor;
+        if (!editor) {
+            return false;
+        }
+        const control = MonacoEditor.get(editor)?.getControl();
+        const options = control?.getOption(monaco.editor.EditorOption.minimap);
+        return !!options?.enabled;
+    }
+
+    protected toggleDocumentMap(): void {
+        const editor = this.currentEditor;
+        if (!editor) {
+            return;
+        }
+        const control = MonacoEditor.get(editor)?.getControl();
+        if (!control) {
+            return;
+        }
+        control.updateOptions({ minimap: { enabled: !this.documentMapEnabled() } });
     }
 
     protected currentTextModel(): monaco.editor.ITextModel | undefined {

@@ -23,7 +23,11 @@ const SUITES = [
     'document-list',
     'spaces-tabs',
     'menus-shortcuts',
-    'session-restore'
+    'session-restore',
+    'column-editor',
+    'blank-ops',
+    'search-mark',
+    'macros'
 ];
 
 function seedWorkspace() {
@@ -45,6 +49,19 @@ function seedWorkspace() {
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
     write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
     write('indent.txt', alpha);
+
+    write('blank-tab.txt', Buffer.from('\talpha\n    beta\n', 'utf8'));
+    write('blank-space-tab.txt', Buffer.from('    alpha\n  beta\n', 'utf8'));
+    write('blank-trim.txt', Buffer.from('  pad  \n  keep  \n', 'utf8'));
+    write('blank-trim-trailing.txt', Buffer.from('  pad  \nkeep  \n', 'utf8'));
+    write('blank-eol.txt', Buffer.from('one\ntwo\nthree', 'utf8'));
+    write('blank-unnecessary.txt', Buffer.from('a  \n\n\n\nb\t\n', 'utf8'));
+    write('dup.txt', Buffer.from('x\na\na\na\nb\nb\nc\n', 'utf8'));
+    write('split.txt', Buffer.from('the quick brown fox jumps over the lazy dog while the sun sets above the river and the stars begin to appear in the dark sky\n', 'utf8'));
+
+    for (const f of ['col-text.txt', 'col-number.txt', 'col-zeros.txt', 'col-repeated.txt']) {
+        write(f, alpha);
+    }
 }
 
 function httpOk(url, needle) {

@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026.9.18 (M23)
+
+- New top-level **Macros** menu with a Notepad++-style macro editor:
+  `Record Macro...` / `Stop Recording` / `Discard Recording` / `Run Macro` /
+  `Clear Macro`. Recording captures typed text, pastes and deletes as ordered
+  steps (content changes, decomposed into type/delete actions); playback
+  replays them from the current cursor position. A `REC` indicator shows in
+  the status bar while recording, and Run/Clear are enabled only when a
+  macro exists.
+- **Edit ▸ Column Editor...** (`Line Operations` submenu): inserts text,
+  sequential numbers (with optional leading zeros) or one cycled character
+  of repeated text down the lines spanned by the current selection —
+  including rectangular Alt+drag block selections.
+- **Edit ▸ Blank Operations** submenu: `TAB to Space`, `Space to TAB`,
+  `Trim leading and trailing space`, `Trim trailing space`, `EOL to space`,
+  `Remove unnecessary EOL and trailing spaces` (empty selections operate on
+  the whole document). `Line Operations` also gains `Split Lines` (word-aware
+  wrap at 80 columns) and `Remove Consecutive Duplicate Lines`.
+- **Search ▸ Mark** submenu: `Mark` / `Mark All` color every occurrence of
+  the current search term (selection first, otherwise the Find widget's
+  term) in one of five alternating styles; `Clear Marks` removes them;
+  `Select and Find Next` selects the next occurrence and keeps adding matches
+  without leaving the menu.
+- **View ▸ Document Map** toggles the Monaco minimap for the active editor.
+- e2e grew four new suites (`column-editor`, `blank-ops`, `search-mark`,
+  `macros` → 16 total) covering the dialog inputs, byte-exact blank/spaces
+  transforms, mark decorations and macro record→clear→replay.
+
 ## 2026.9.19
 
 - First release under the new **date-based versioning** scheme
