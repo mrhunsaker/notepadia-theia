@@ -81,6 +81,7 @@ process.env.LC_NUMERIC = 'C';
 
     try {
         await load(require('@theia/filesystem/lib/electron-main/electron-main-module'));
+        await load(require('notepadia/lib/electron-main/notepadia-electron-main-module'));
         startupLog('modules loaded');
         await start();
     } catch (reason) {

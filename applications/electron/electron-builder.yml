@@ -2,6 +2,12 @@ appId: org.notepadia.desktop
 productName: Notepadia
 asar: true
 
+# Native modules are already rebuilt for the Electron ABI by `theia rebuild:electron`
+# (invoked from the `rebuild` script before electron-builder runs). Rebuilding them
+# a second time here recompiles from source and fails on machines without Spectre-
+# mitigated MSVC libraries (node-pty hard-codes SpectreMitigation in binding.gyp).
+npmRebuild: false
+
 directories:
   output: dist
   buildResources: build
@@ -18,6 +24,72 @@ win:
     - nsis
     - portable
   artifactName: "Notepadia-${version}-${arch}.${ext}"
+  fileAssociations:
+    - ext: txt
+      name: Notepadia.TextFile
+      description: Text document
+    - ext: log
+      name: Notepadia.LogFile
+      description: Log file
+    - ext: ini
+      name: Notepadia.IniFile
+      description: INI configuration file
+    - ext: csv
+      name: Notepadia.CsvFile
+      description: CSV data file
+    - ext: json
+      name: Notepadia.JsonFile
+      description: JSON file
+    - ext: xml
+      name: Notepadia.XmlFile
+      description: XML file
+    - ext: html
+      name: Notepadia.HtmlFile
+      description: HTML document
+    - ext: css
+      name: Notepadia.CssFile
+      description: CSS stylesheet
+    - ext: js
+      name: Notepadia.JsFile
+      description: JavaScript file
+    - ext: py
+      name: Notepadia.PyFile
+      description: Python file
+    - ext: java
+      name: Notepadia.JavaFile
+      description: Java source file
+    - ext: c
+      name: Notepadia.CFile
+      description: C source file
+    - ext: cpp
+      name: Notepadia.CppFile
+      description: C++ source file
+    - ext: h
+      name: Notepadia.HeaderFile
+      description: C/C++ header file
+    - ext: rs
+      name: Notepadia.RustFile
+      description: Rust source file
+    - ext: go
+      name: Notepadia.GoFile
+      description: Go source file
+    - ext: sh
+      name: Notepadia.ShFile
+      description: Shell script
+    - ext: ps1
+      name: Notepadia.Ps1File
+      description: PowerShell script
+    - ext: md
+      name: Notepadia.MarkdownFile
+      description: Markdown file
+    - ext: sql
+      name: Notepadia.SqlFile
+      description: SQL file
+    - ext:
+        - yaml
+        - yml
+      name: Notepadia.YamlFile
+      description: YAML file
 
 nsis:
   oneClick: false
@@ -26,6 +98,9 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Notepadia
   perMachine: false
+
+portable:
+  artifactName: "Notepadia-${version}-${arch}-portable.${ext}"
 
 mac:
   icon: build/icon.icns

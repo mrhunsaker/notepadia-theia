@@ -330,7 +330,7 @@
     {
       "id": "M17",
       "title": "add Windows packaging and file associations",
-      "status": "pending",
+      "status": "done",
       "description": "Validate Electron packaging on Windows with NSIS installer, portable package, and file associations.",
       "plan": [
         "Run yarn package on Windows (or cross-compile with electron-builder --win on Linux CI)",
