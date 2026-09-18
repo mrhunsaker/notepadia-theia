@@ -170,9 +170,11 @@ jobs:
     steps:
       # The matrix jobs above uploaded all installers and update manifests into
       # the draft release. Publishing it makes it visible to electron-updater,
-      # which only resolves published releases.
+      # which only resolves published releases. This job has no checkout, so
+      # `gh` must be told the repository explicitly (otherwise it fails with
+      # "not a git repository").
       - name: Publish draft release
         run: |
           VERSION="${{ needs.prepare.outputs.version }}"
-          gh release edit "v${VERSION}" --draft=false
-          gh release view "v${VERSION}" --json name,tagName,isDraft,assets --jq '{name,tagName,isDraft,assets: [.assets[].name]}'
+          gh release edit "v${VERSION}" --repo "${{ github.repository }}" --draft=false
+          gh release view "v${VERSION}" --repo "${{ github.repository }}" --json name,tagName,isDraft,assets --jq '{name,tagName,isDraft,assets: [.assets[].name]}'
