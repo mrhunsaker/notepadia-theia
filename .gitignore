@@ -2,6 +2,8 @@ node_modules/
 lib/
 dist/
 build/
+!applications/electron/build/
+!applications/electron/build/**
 out/
 plugins/
 *.log

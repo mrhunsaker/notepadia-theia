@@ -4,6 +4,7 @@ asar: true
 
 directories:
   output: dist
+  buildResources: build
 
 files:
   - "**/*"
@@ -12,6 +13,7 @@ files:
   - "!**/tests/**"
 
 win:
+  icon: build/icon.ico
   target:
     - nsis
     - portable
@@ -26,11 +28,13 @@ nsis:
   perMachine: false
 
 mac:
+  icon: build/icon.icns
   target:
     - dmg
     - zip
 
 linux:
+  icon: build/icons
   target:
     - AppImage
     - rpm

@@ -5,9 +5,11 @@
 # Notepadia
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+![GitHub top language](https://img.shields.io/github/languages/top/mrhunsaker/notepadia-theia)
 [![CI](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/build.yml?label=build)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/build.yml)
 [![E2E](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/e2e.yml?label=e2e)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/e2e.yml)
 [![Last commit](https://img.shields.io/github/last-commit/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/commits/main)
+![GitHub Release](https://img.shields.io/github/v/release/mrhunsaker/notepadia-theia)
 [![Contributors](https://img.shields.io/github/contributors/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/graphs/contributors)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -84,6 +86,17 @@ yarn package          # AppImage/RPM/DEB (and NSIS/portable on Windows)
 The first installation/build may take a substantial amount of time because
 Theia contains native Node/Electron dependencies.
 
+Product icons are defined by `applications/electron/build/icon.svg`; the
+committed `icon.png`, `icon.ico`, `icon.icns` and `icons/*.png` are generated
+from it. After editing the SVG, regenerate them with:
+
+```bash
+node applications/electron/build/generate-icons.mjs
+```
+
+This requires `rsvg-convert` (librsvg) and ImageMagick's `magick` on the PATH.
+The browser application injects the same artwork as an SVG favicon at runtime.
+
 ## What is implemented
 
 The Notepad++-style feature layer is implemented as the shared
@@ -109,6 +122,8 @@ The Notepad++-style feature layer is implemented as the shared
 - language support: 22 curated languages with Monarch tokenizers
 - live status bar with line/column, encoding, EOL, indent mode and insert mode
 - product branding as Notepadia
+- product icons: a pink, Notepad-style icon for Windows (`.ico`), macOS
+  (`.icns`) and Linux (size set) packaging, plus a matching browser favicon
 - Electron packaging configuration (AppImage, RPM, DEB)
 - CI workflows: build (browser app on Linux) and e2e (lint + build + 12
   Puppeteer test suites with artifact upload on failure)
@@ -167,12 +182,11 @@ running `yarn start` instance.
 
 Tracked in `notepadia_prompt_20260915.json`. In order:
 
-1. product icons
-2. Windows packaging and file associations
-3. macOS packaging and signing
-4. automatic updates
-5. CI release workflow
-6. documentation site (mkdocs, published to GitHub Pages)
+1. Windows packaging and file associations
+2. macOS packaging and signing
+3. automatic updates
+4. CI release workflow
+5. documentation site (mkdocs, published to GitHub Pages)
 
 ## License
 

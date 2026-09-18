@@ -5,6 +5,9 @@ const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     await goto(page);
 
+    const favicon = await page.$eval('link[rel~="icon"]', el => el.getAttribute('href')).catch(() => null);
+    assert('branded favicon injected', !!favicon && favicon.indexOf('data:image/svg+xml') === 0, String(favicon).slice(0, 40));
+
     const menubar = await page.$$eval('.lm-MenuBar-item', els => els.map(e => e.innerText.trim()));
     console.log('menubar:', JSON.stringify(menubar));
     const required = ['File', 'Edit', 'Search', 'View', 'Encoding', 'Language', 'Settings'];

@@ -22,6 +22,7 @@ import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
 import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribution';
 import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
 import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
+import { NotepadiaFaviconContribution } from './notepadia-favicon-contribution';
 
 export default new ContainerModule((bind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
@@ -73,4 +74,7 @@ export default new ContainerModule((bind) => {
     bind(NotepadiaDocumentListContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaDocumentListContribution);
     bind(MenuContribution).toService(NotepadiaDocumentListContribution);
+
+    bind(NotepadiaFaviconContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaFaviconContribution);
 });
