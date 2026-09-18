@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "notepadia",
+  "name": "notepadia-monorepo",
   "version": "0.1.0",
   "description": "Notepadia - a Notepad++-style desktop text editor built on Eclipse Theia",
   "license": "Apache-2.0",
@@ -36,7 +36,8 @@
     "rimraf": "^2.7.1"
   },
   "volta": {
-    "node": "24.21.0"
+    "node": "24.21.0",
+    "yarn": "1.22.22"
   },
   "dependencies": {
     "yarn": "^1.22.22"
