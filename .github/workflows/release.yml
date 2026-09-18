@@ -7,7 +7,9 @@ on:
     # latest-mac.yml, latest-linux.yml) to the release, which is what
     # `electron-updater` in the installed app polls for automatic updates.
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      # Glob filter (not regex): `v` followed by a digit and anything else,
+      # e.g. v2026.9.19. Quantifier syntax is avoided to keep this unambiguous.
+      - "v[0-9]*"
   workflow_dispatch:
     inputs:
       version:
