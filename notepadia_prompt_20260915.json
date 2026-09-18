@@ -27,7 +27,7 @@
     "Do not reintroduce Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged); the repository runs Yarn Classic with hoisted node_modules.",
     "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature.",
     "Once complete with a milestone, commit it to GitHub prior to continuing",
-    "Use date-based product versions (YYYY.M.D, e.g. 2026.9.19) via yarn bump:version, and tag releases vYYYY.M.D"
+    "Use date-based product versions (YYYY.M.D, e.g. 2026.9.19) generated at build time by scripts/set-build-version.mjs (the repo stays 0.0.0), and tag releases vYYYY.M.D"
   ],
   "product": {
     "name": "Notepadia",

@@ -20,35 +20,43 @@ contains the update manifest.
 
 ## Versioning
 
-Notepadia uses **date-based versions** of the form `YYYY.M.D`
-(e.g. `2026.9.19`, which sorts as a valid semver and is always greater than
-the previous release). Bump the version with:
+Release versions are **date-based** (`YYYY.M.D`, e.g. `2026.9.19`, which sorts
+as a valid semver and is always greater than the previous release).
 
-```bash
-yarn bump:version            # uses today's UTC date (YYYY.M.D)
-yarn bump:version 2026.9.19  # explicit version
-```
+The repository itself stays at **`0.0.0`** — the version is **generated and
+injected at build time**, never committed:
 
-`scripts/bump-version.mjs` updates both the root and
-`applications/electron/package.json` files. Commit the result before tagging.
+- `scripts/set-build-version.mjs` computes the version from the current UTC date
+  (or takes an explicit `VERSION`), validates `YYYY.M.D`, and writes it into a
+  given `package.json`.
+- Local packaging (`yarn package:win`, `package:linux`, `package:mac`) runs
+  `scripts/package-electron.mjs`: it injects the build version into a staging
+  copy of `applications/electron/package.json`, packages with electron-builder,
+  and **restores the checked-in file**, so the Git working tree is never left
+  dirty.
+- CI reads the version from the release tag (`vYYYY.M.D` → `YYYY.M.D`) and
+  injects it into the disposable checkout before packaging.
+
+There is no version-bump script and no version-bump commit to make.
 
 ## Releasing a new version
 
-1. Bump the version(s) as above. The release tag (e.g. `v2026.9.19`) is the
-   source of truth; CI writes it into `applications/electron/package.json`
-   before packaging.
-2. Push a version tag:
+1. The version comes from the tag name, so there is nothing to bump or commit.
+   Push the tag:
 
    ```bash
    git tag v2026.9.19
    git push origin v2026.9.19
    ```
 
-3. [`.github/workflows/release.yml`](https://github.com/mrhunsaker/notepadia-theia/blob/main/.github/workflows/release.yml)
+   (A manual run via `workflow_dispatch` without a tag uses the `version`
+   input, or today's UTC date if no input is given.)
+
+2. [`.github/workflows/release.yml`](https://github.com/mrhunsaker/notepadia-theia/blob/main/.github/workflows/release.yml)
    runs in three phases:
 
-   1. **prepare** — computes the version and creates a **draft** GitHub
-      Release for the tag.
+   1. **prepare** — computes the version (from the tag) and creates a
+      **draft** GitHub Release for the tag.
    2. **build & publish** — on three runners in parallel, each uploading
       its artifacts plus the update manifest (`latest.yml`, `latest-mac.yml`
       or `latest-linux.yml`) into the draft release
@@ -67,15 +75,15 @@ yarn bump:version 2026.9.19  # explicit version
    the release, and it is published automatically at the end; no manual
    step is required.
 
-4. Installed apps on the previous version are then offered the update (only
+3. Installed apps on the previous version are then offered the update (only
    if the new version is **greater**, semver-wise). Note: electron-updater
    only resolves **published** releases, never drafts — which is why the
    workflow publishes at the end.
 
 ## Release workflow details
 
-- Trigger: `push` of tags matching `v[0-9]+.[0-9]+.[0-9]+*`, or manual
-  `workflow_dispatch` with a `version` input.
+- Trigger: `push` of tags matching `v[0-9]*`, or manual `workflow_dispatch`
+  with a `version` input.
 - Permissions: `contents: write` (create release + upload assets).
 - Draft release is created once by the `prepare` job with
   `gh release create --draft`; the build jobs only ever upload into it.

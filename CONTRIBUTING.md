@@ -175,9 +175,10 @@ baseline upgrade is coordinated by the maintainers.
 
 ### Versioning
 
-The product version follows the **date** (`YYYY.M.D`, e.g. `2026.9.19`) and is
-bumped with `yarn bump:version`. Releases are cut by maintainers, who bump the
-version and push the matching `vYYYY.M.D` tag; CI builds and publishes the
+The repository stays pinned to `0.0.0`; product versions are **date-based**
+(`YYYY.M.D`, e.g. `2026.9.19`) and **generated at build/package time** by
+`scripts/set-build-version.mjs` rather than committed. Releases are cut by
+maintainers, who push the matching `vYYYY.M.D` tag; CI builds and publishes the
 release.
 
 Do **not** bump the version in contributor PRs. Maintainers handle releases.

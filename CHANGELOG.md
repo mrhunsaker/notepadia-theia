@@ -3,8 +3,9 @@
 ## 2026.9.19
 
 - First release under the new **date-based versioning** scheme
-  (`YYYY.M.D`): `yarn bump:version` sets the root and electron app versions
-  from today's UTC date (or an explicit argument).
+  (`YYYY.M.D`): the repo stays at `0.0.0` and the build version is generated
+  by `scripts/set-build-version.mjs` (and injected by `package-electron.mjs` /
+  CI) at package time, so no committed version bump is needed.
 - Notepad++ editing essentials: new `Search`, `Encoding`, `Language`,
   `Settings` top-level menus plus a `Line Operations` submenu and a
   `Convert Case` submenu under Edit.

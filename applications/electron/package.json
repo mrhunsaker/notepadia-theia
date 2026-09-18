@@ -3,7 +3,7 @@
   "name": "notepadia-electron-app",
   "description": "Notepadia desktop application",
   "productName": "Notepadia",
-  "version": "2026.9.19",
+  "version": "0.0.0",
   "main": "lib/backend/electron-main.js",
   "homepage": "https://github.com/mrhunsaker/notepadia-theia",
   "license": "Apache-2.0",
@@ -66,7 +66,7 @@
     "start:debug": "yarn start --log-level=debug --remote-debugging-port=9222",
     "clean": "theia clean && rimraf node_modules",
     "clean:dist": "rimraf dist",
-    "package": "yarn clean:dist && yarn build:prod && electron-builder -c.mac.identity=null --publish never",
-    "package:preview": "yarn clean:dist && yarn build:prod && electron-builder -c.mac.identity=null --dir"
+    "package": "yarn clean:dist && yarn build:prod && node ../../scripts/package-electron.mjs",
+    "package:preview": "yarn clean:dist && yarn build:prod && node ../../scripts/package-electron.mjs --dir"
   }
 }

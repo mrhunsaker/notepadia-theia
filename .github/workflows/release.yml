@@ -54,7 +54,8 @@ jobs:
           elif [ -n "${GITHUB_REF_NAME}" ]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            VERSION="$(node -p "require('./applications/electron/package.json').version")"
+            # No tag and no input: use the current UTC date (YYYY.M.D).
+            VERSION="$(node scripts/set-build-version.mjs)"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -140,9 +141,12 @@ jobs:
       - name: Build Electron application
         run: yarn --cwd applications/electron build:prod
 
+      # The repository stays versioned 0.0.0; inject the generated build version
+      # into the (disposable) checkout before packaging. `set-build-version.mjs`
+      # generates it from the UTC date when no explicit version is given.
       - name: Set package version for release
         working-directory: applications/electron
-        run: node -e "const fs=require('fs');const p='package.json';const j=JSON.parse(fs.readFileSync(p));j.version='${{ needs.prepare.outputs.version }}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
+        run: node ../../scripts/set-build-version.mjs package.json "${{ needs.prepare.outputs.version }}"
 
       - name: Package and publish (${{ matrix.platform }})
         working-directory: applications/electron

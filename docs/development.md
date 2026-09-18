@@ -46,15 +46,26 @@ rebuilds the Electron native addons (`node-pty`, `drivelist`, `keytar`,
 
 ## Versioning
 
-Versions follow the date (`YYYY.M.D`, e.g. `2026.9.19`). Bump them with:
+The repository stays pinned to **`0.0.0`** and is never bumped in Git. The
+**build version** is generated from the current UTC date (`YYYY.M.D`, e.g.
+`2026.9.19`) and injected at build/package time:
 
 ```bash
-yarn bump:version            # uses today's UTC date (YYYY.M.D)
-yarn bump:version 2026.9.19  # explicit version
+yarn build:version                                  # prints today's build version
+node scripts/set-build-version.mjs package.json 2026.9.19   # inject an explicit version
 ```
 
-`scripts/bump-version.mjs` updates the root and `applications/electron/package.json`
-version fields and prints the change.
+`scripts/set-build-version.mjs` validates `YYYY.M.D` and writes the given
+version into a `package.json` file. Packaging always uses the generated version
+**without dirtying the working tree**:
+
+- Local desktop builds (`yarn package:win`, `package:linux`, `package:mac`, or
+  `yarn --cwd applications/electron package`) run
+  `scripts/package-electron.mjs`, which temporarily injects the version into
+  `applications/electron/package.json`, runs electron-builder, and restores the
+  file afterwards.
+- CI computes the version in the `prepare` job (from the release tag) and
+  injects it the same way into the disposable checkout.
 
 ## Lint and unit tests
 
