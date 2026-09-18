@@ -1,0 +1,175 @@
+name: Release Notepadia
+
+on:
+  push:
+    # Build and publish a GitHub Release for version tags, e.g. `v2026.9.19`.
+    # electron-builder uploads the installers and update manifests (latest.yml,
+    # latest-mac.yml, latest-linux.yml) to the release, which is what
+    # `electron-updater` in the installed app polls for automatic updates.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (e.g. 2026.9.19); defaults to the pushed tag"
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # macOS builds are unsigned on purpose (no signing cert configured yet).
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+
+      - name: Compute version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          elif [ -n "${GITHUB_REF_NAME}" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(node -p "require('./applications/electron/package.json').version")"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Create the draft release exactly once. The parallel packaging jobs
+      # below only ever upload into this release, so they cannot race each
+      # other on release creation (electron-builder does not retry a 422
+      # "already_exists" from the GitHub API when creating a release).
+      - name: Create draft GitHub release
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! gh release view "v${VERSION}" --json id >/dev/null 2>&1; then
+            gh release create "v${VERSION}" \
+              --draft \
+              --title "Notepadia ${VERSION}" \
+              --generate-notes \
+              --target "${GITHUB_SHA}"
+          else
+            echo "Draft release v${VERSION} already exists, reusing it"
+          fi
+
+  release:
+    name: Build and publish (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    needs: prepare
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-2022
+            targets: --win
+          - platform: linux
+            os: ubuntu-22.04
+            targets: --linux
+          - platform: macos
+            os: macos-15
+            targets: --mac
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+
+      - name: Install Linux packaging prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfuse2 rpm
+
+      - name: Verify environment
+        run: yarn verify
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build extensions
+        run: yarn build:extensions
+
+      # Rebuild native modules for the Electron ABI. node-pty is deliberately
+      # excluded: it ships N-API prebuilds (`.node` prebuilds compatible with the
+      # Electron ABI) and its binding.gyp hard-codes SpectreMitigation, so a
+      # from-source rebuild would fail with MSB8040 on windows-2022 runners.
+      - name: Rebuild native modules for Electron
+        run: yarn --cwd applications/electron rebuild --modules=drivelist,keytar,native-keymap,find-git-repositories
+
+      # `build:prod` re-runs `rebuild` internally; it is a no-op here because
+      # the step above already created the `.browser_modules` cache.
+      - name: Build Electron application
+        run: yarn --cwd applications/electron build:prod
+
+      - name: Set package version for release
+        working-directory: applications/electron
+        run: node -e "const fs=require('fs');const p='package.json';const j=JSON.parse(fs.readFileSync(p));j.version='${{ needs.prepare.outputs.version }}';fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')"
+
+      - name: Package and publish (${{ matrix.platform }})
+        working-directory: applications/electron
+        run: npx --no-install electron-builder ${{ matrix.targets }} --publish always
+
+      - name: Upload artifacts as workflow attachments
+        uses: actions/upload-artifact@v4
+        with:
+          name: notepadia-${{ matrix.platform }}
+          path: |
+            applications/electron/dist/*.exe
+            applications/electron/dist/*.yml
+            applications/electron/dist/*.blockmap
+            applications/electron/dist/*.dmg
+            applications/electron/dist/*.zip
+            applications/electron/dist/*.AppImage
+            applications/electron/dist/*.deb
+            applications/electron/dist/*.rpm
+          if-no-files-found: error
+
+  finalize:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs: [prepare, release]
+    steps:
+      # The matrix jobs above uploaded all installers and update manifests into
+      # the draft release. Publishing it makes it visible to electron-updater,
+      # which only resolves published releases.
+      - name: Publish draft release
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          gh release edit "v${VERSION}" --draft=false
+          gh release view "v${VERSION}" --json name,tagName,isDraft,assets --jq '{name,tagName,isDraft,assets: [.assets[].name]}'

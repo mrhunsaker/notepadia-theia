@@ -8,6 +8,7 @@ import {
     KeybindingContribution,
     WidgetFactory
 } from '@theia/core/lib/browser';
+import { ElectronIpcConnectionProvider, ElectronMainConnectionProvider } from '@theia/core/lib/electron-browser/messaging/electron-ipc-connection-source';
 
 import { NotepadiaContribution } from './notepadia-contribution';
 import { NotepadiaDropContribution } from './notepadia-drop-contribution';
@@ -23,8 +24,10 @@ import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribut
 import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
 import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
 import { NotepadiaFaviconContribution } from './notepadia-favicon-contribution';
+import { NotepadiaUpdaterContribution } from './notepadia-updater-contribution';
+import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
-export default new ContainerModule((bind) => {
+export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaContribution);
 
@@ -77,4 +80,18 @@ export default new ContainerModule((bind) => {
 
     bind(NotepadiaFaviconContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaFaviconContribution);
+
+    bind(NotepadiaUpdaterContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaUpdaterContribution);
+    bind(MenuContribution).toService(NotepadiaUpdaterContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaUpdaterContribution);
+
+    // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
+    // only exists in the packaged/desktop app, so the updater service proxy is only
+    // created there. In the browser app the contribution degrades to a no-op.
+    if (isBound(ElectronMainConnectionProvider)) {
+        bind(NotepadiaUpdaterService).toDynamicValue(context =>
+            ElectronIpcConnectionProvider.createProxy<NotepadiaUpdaterService>(context.container, NotepadiaUpdaterPath)
+        ).inSingletonScope();
+    }
 });

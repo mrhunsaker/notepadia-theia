@@ -1,0 +1,47 @@
+site_name: Notepadia
+site_description: Notepadia - a Notepad++-style desktop text editor built on Eclipse Theia
+site_url: https://mrhunsaker.github.io/notepadia-theia
+repo_url: https://github.com/mrhunsaker/notepadia-theia
+repo_name: mrhunsaker/notepadia-theia
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.top
+    - navigation.sections
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Overview: index.md
+  - Getting started: getting-started.md
+  - User guide: usage.md
+  - Architecture: architecture.md
+  - Development: development.md
+  - Packaging: packaging.md
+  - Releases & updates: releases.md

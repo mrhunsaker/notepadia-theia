@@ -1,7 +1,10 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 2026.9.19
 
+- First release under the new **date-based versioning** scheme
+  (`YYYY.M.D`): `yarn bump:version` sets the root and electron app versions
+  from today's UTC date (or an explicit argument).
 - Notepad++ editing essentials: new `Search`, `Encoding`, `Language`,
   `Settings` top-level menus plus a `Line Operations` submenu and a
   `Convert Case` submenu under Edit.
@@ -107,7 +110,81 @@
   (Electron 42.8.1, native addons rebuilt, production bundle inside
   `resources/app.asar`).
 - Documented packaging pipeline (and the outstanding icon/desktopName polish)
-  in `docs/ARCHITECTURE.md`.
+  in `docs/architecture.md`.
+
+### Document list panel
+
+- New `View ▸ Document List` toggle opens a right-side panel
+  (`notepadia.documentList`) listing every open document sorted by filename,
+  with a filter input, click-to-focus, active-tab highlighting and a dirty
+  indicator per entry.
+
+### Spaces vs tabs
+
+- `View ▸ Tab Size` gains `Insert Spaces` and `Use Tabs` toggles (wired to
+  `model.updateOptions({ insertSpaces })` and persisted through the preference
+  service); the status bar shows the current `Spaces:`/`Tabs:` mode.
+- Fixed a latent tab-size bug: `control.updateOptions({ tabSize })` is a
+  no-op, so tab size is applied via `model.updateOptions({ tabSize,
+  indentSize })`.
+
+### Product icons
+
+- Added a pink, Notepad-style product icon (`applications/electron/build/
+  icon.svg`) and generated `icon.png`, `icon.ico`, `icon.icns` and an
+  `icons/` PNG size set via `build/generate-icons.mjs`;
+  `electron-builder.yml` now wires them into win/mac/linux packaging, and the
+  browser app injects the same artwork as a runtime favicon.
+
+### Windows packaging and file associations
+
+- `applications/electron` now produces a Windows NSIS installer and a
+  portable package (`yarn package:win`), with file associations for
+  `.txt .log .ini .csv .json .xml .html .css .js .py .java .c .cpp .h .rs
+  .go .sh .ps1 .md .sql .yaml/.yml`.
+- Double-clicking an associated file opens Notepadia with that file loaded
+  (OS file-open routing into the editor).
+- Root helpers `yarn package:win` / `package:linux` / `package:mac` added
+  (all local builds use `--publish never`).
+
+### Automatic updates
+
+- `electron-updater` integrated into the desktop app, fed by GitHub Releases
+  (`publish.provider: github` in `electron-builder.yml`).
+- The electron-main process configures `autoUpdater` (auto-download,
+  install-on-quit) and reports status over Theia's Electron IPC; the frontend
+  exposes `Help ▸ Check for Updates...`, shows download progress, and prompts
+  to restart when an update is ready.
+- Windows NSIS installer now uses a fixed install directory
+  (`allowToChangeInstallationDirectory: false`) so updates can always find
+  the app.
+
+### Release workflow
+
+- New `.github/workflows/release.yml`: triggered by `v*` tags (or manually),
+  it builds and publishes installers on parallel Windows/Linux/macOS runners
+  (`--publish always`, version derived from the tag).
+- The workflow runs in three phases — **prepare** (creates the draft GitHub
+  Release once, so the parallel build jobs never race on release creation),
+  **build & publish** (the per-OS matrix uploads installers + update
+  manifests into that draft), and **finalize** (publishes the draft
+  automatically so `electron-updater` can serve it). No manual publish step.
+- macOS artifacts (DMG/zip) build **unsigned** in CI
+  (`CSC_IDENTITY_AUTO_DISCOVERY=false`); code-signing/notarization awaits an
+  Apple Developer ID certificate.
+- The native-module rebuild step excludes `node-pty` on Windows CI: it ships
+  Electron-compatible N-API prebuilds, and its `binding.gyp` requires
+  Spectre-mitigated MSVC libraries (MSB8040).
+
+### Documentation site
+
+- Added an MkDocs (Material) site published to
+  https://mrhunsaker.github.io/notepadia-theia/ via
+  `.github/workflows/docs.yml` (GitHub Pages with the "GitHub Actions"
+  source).
+- Pages: overview, getting started, user guide, architecture (migrated from
+  `docs/ARCHITECTURE.md`), development, packaging, releases & updates.
+- README now badges and links the docs site and the release/docs workflows.
 
 ## 0.1.1 (unreleased)
 

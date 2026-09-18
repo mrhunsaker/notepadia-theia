@@ -175,8 +175,10 @@ baseline upgrade is coordinated by the maintainers.
 
 ### Versioning
 
-The product version is `0.1.0` (pre-release). Releases are cut by maintainers,
-who bump the version in `package.json` and the application/manifest files.
+The product version follows the **date** (`YYYY.M.D`, e.g. `2026.9.19`) and is
+bumped with `yarn bump:version`. Releases are cut by maintainers, who bump the
+version and push the matching `vYYYY.M.D` tag; CI builds and publishes the
+release.
 
 Do **not** bump the version in contributor PRs. Maintainers handle releases.
 

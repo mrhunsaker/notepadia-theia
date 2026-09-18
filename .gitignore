@@ -15,5 +15,6 @@ Thumbs.db
 !.vscode/settings.json
 
 .browser_modules/
+site/
 e2e-artifacts/
 e2e/artifacts/

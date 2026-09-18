@@ -8,6 +8,9 @@
 ![GitHub top language](https://img.shields.io/github/languages/top/mrhunsaker/notepadia-theia)
 [![CI](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/build.yml?label=build)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/build.yml)
 [![E2E](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/e2e.yml?label=e2e)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/e2e.yml)
+[![Release](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/release.yml?label=release)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/release.yml)
+[![Docs](https://img.shields.io/github/actions/workflow/status/mrhunsaker/notepadia-theia/docs.yml?label=docs)](https://github.com/mrhunsaker/notepadia-theia/actions/workflows/docs.yml)
+[![Documentation](https://img.shields.io/badge/docs-notepadia--theia-blue)](https://mrhunsaker.github.io/notepadia-theia/)
 [![Last commit](https://img.shields.io/github/last-commit/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/commits/main)
 ![GitHub Release](https://img.shields.io/github/v/release/mrhunsaker/notepadia-theia)
 [![Contributors](https://img.shields.io/github/contributors/mrhunsaker/notepadia-theia)](https://github.com/mrhunsaker/notepadia-theia/graphs/contributors)
@@ -81,7 +84,15 @@ Build for Electron explicitly or package native installers:
 yarn build:electron   # build only, do not package
 yarn package:preview  # unpacked directory for local testing
 yarn package          # AppImage/RPM/DEB (and NSIS/portable on Windows)
+yarn package:win      # NSIS + portable (must run on Windows)
+yarn package:linux    # AppImage/RPM/DEB (must run on Linux)
+yarn package:mac      # DMG + ZIP (must run on macOS)
 ```
+
+The `package:*` helpers build with `--publish never`; CI is the only place
+that publishes (`v*` tag push). See
+[Releases & updates](https://mrhunsaker.github.io/notepadia-theia/releases/)
+for the release/update flow.
 
 The first installation/build may take a substantial amount of time because
 Theia contains native Node/Electron dependencies.
@@ -124,9 +135,15 @@ The Notepad++-style feature layer is implemented as the shared
 - product branding as Notepadia
 - product icons: a pink, Notepad-style icon for Windows (`.ico`), macOS
   (`.icns`) and Linux (size set) packaging, plus a matching browser favicon
-- Electron packaging configuration (AppImage, RPM, DEB)
-- CI workflows: build (browser app on Linux) and e2e (lint + build + 12
-  Puppeteer test suites with artifact upload on failure)
+- Windows installers (NSIS + portable) with file associations for common
+  text/source formats and OS file-open routing into the editor
+- automatic updates via electron-updater + GitHub Releases (Help >
+  Check for Updates...)
+- Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
+- CI workflows: build (browser app on Linux), e2e (lint + build + 12
+  Puppeteer test suites with artifact upload on failure), release (tag-triggered
+  publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
+  Pages)
 
 ## Architecture
 
@@ -152,6 +169,7 @@ Notepadia apps
           +-- keybindings (Theia + Monaco level)
           +-- language registrations
           +-- status bar
+          +-- automatic updates (electron-updater over Electron IPC)
           +-- e2e test infrastructure
 ```
 
@@ -180,13 +198,15 @@ running `yarn start` instance.
 
 ## Next milestones
 
-Tracked in `notepadia_prompt_20260915.json`. In order:
+Tracked in `notepadia_prompt_20260915.json`. The remaining work is:
 
-1. Windows packaging and file associations
-2. macOS packaging and signing
-3. automatic updates
-4. CI release workflow
-5. documentation site (mkdocs, published to GitHub Pages)
+1. macOS packaging and signing (installers build unsigned today; code-signing
+   and notarization require an Apple Developer ID certificate)
+
+See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
+for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),
+[development](https://mrhunsaker.github.io/notepadia-theia/development/) and
+[release](https://mrhunsaker.github.io/notepadia-theia/releases/) guidance.
 
 ## License
 

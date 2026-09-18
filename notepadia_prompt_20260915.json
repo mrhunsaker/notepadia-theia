@@ -1,8 +1,8 @@
 {
   "name": "notepadia-continuation-prompt",
-  "version": "5.2.3",
-  "date": "2026-09-15",
-  "previousVersion": "5.2.2",
+"version": "5.3.0",
+    "date": "2026-09-18",
+    "previousVersion": "5.2.4",
   "baseline": {
     "theia": "1.75.0",
     "node": ">=24",
@@ -26,7 +26,8 @@
     "Keep react/react-dom as direct dependencies of the application packages; they are peer dependencies of @theia/core.",
     "Do not reintroduce Yarn Berry artifacts (.pnp.cjs, .pnp.loader.mjs, .yarn/unplugged); the repository runs Yarn Classic with hoisted node_modules.",
     "Avoid AI, debugger, SCM, remote development and notebook features unless explicitly requested or required for a Notepad++ feature.",
-    "Once complete with a milestone, commit it to GitHub prior to continuing"
+    "Once complete with a milestone, commit it to GitHub prior to continuing",
+    "Use date-based product versions (YYYY.M.D, e.g. 2026.9.19) via yarn bump:version, and tag releases vYYYY.M.D"
   ],
   "product": {
     "name": "Notepadia",
@@ -38,7 +39,7 @@
     "packagingRuntime": "Electron"
   },
   "auditSummary": {
-    "date": "2026-09-15",
+    "date": "2026-09-18",
     "v3MilestonesCompleted": [
       "stabilize browser build and CI on Linux",
       "implement search and replace UX",
@@ -50,30 +51,41 @@
       "match Notepad++ menus and shortcuts",
       "validate Linux Electron packaging (AppImage/rpm/deb)"
     ],
-    "v3MilestonesRemaining": [
-      "add Windows file associations and portable packaging",
-      "add updater",
-      "add macOS packaging"
+    "v4MilestonesCompleted": [
+      "Windows NSIS installer and portable package",
+      "Windows file associations and OS file-open routing",
+      "automatic updates (electron-updater over GitHub Releases)",
+      "CI release workflow publishing installers for Windows/Linux/macOS",
+      "docs site on GitHub Pages (mkdocs)",
+      "product icons",
+      "document list panel and spaces-vs-tabs toggle"
+    ],
+    "v4MilestonesRemaining": [
+      "macOS code signing and notarization (installers build unsigned in CI; user has no Mac)",
+      "artifact checksums in the release workflow",
+      "unit tests (yarn test pipelines)"
     ],
     "gapsDiscovered": [
-      "no unit tests (lint is now real; e2e wired into CI)",
-      "file associations only configured for Linux desktop (not Windows/macOS)",
-      "no macOS code signing or notarization",
-      "no automatic update mechanism",
-      "no release/artifact publishing workflow",
-      "no public documentation site (mkdocs + GitHub Pages planned)"
+      "no unit tests (lint is real; 12 e2e suites wired into CI)",
+      "macOS file associations (plist UTIs) not configured",
+      "no macOS code signing or notarization (pending Apple Developer ID cert)",
+      "release workflow lacks artifact checksums/attestation",
+      "no version tag or published GitHub Release yet (updater flow untested end-to-end)"
     ]
   },
   "status": {
     "extension": "builds and installs as Notepadia extension",
     "browserApp": "builds and runs on Linux at localhost:3000",
-    "electronApp": "builds; Linux packaging validated (AppImage/rpm/deb in dist/)",
+    "electronApp": "builds; Linux packaging validated (AppImage/rpm/deb in dist/); Windows NSIS + portable validated with file associations and file-open routing; macOS DMG/zip built unsigned by the CI release workflow (no local Mac)",
+    "automaticUpdates": "electron-updater integrated (M19): electron-main autoUpdater service over Theia Electron IPC; Help > Check for Updates...; downloads and prompts to restart on quit; update feed = GitHub Releases (electron-builder publish.provider github)",
+    "releaseWorkflow": ".github/workflows/release.yml (M20): v* tag push or workflow_dispatch; builds on windows-2022/ubuntu-22.04/macos-15, rebuilds selected native modules, packages with --publish always and creates a draft GitHub Release",
+    "docsSite": "MkDocs (Material) site built and deployed to https://mrhunsaker.github.io/notepadia-theia/ by .github/workflows/docs.yml; mkdocs build --strict passes locally",
     "productIcons": "pink Notepad-style icons generated for win/mac/linux and wired into electron-builder.yml (verified embedded in the deb); browser app injects the same artwork as a favicon",
     "removedBerryArtifacts": true,
     "reactAddedAsPeerShim": true,
     "e2e": "12 suites green (p1-core, encoding, eol, recent, bookmarks, language, view-menu, search, document-list, spaces-tabs, menus-shortcuts, session-restore); wired into GitHub Actions e2e.yml (lint+build+test:e2e on push/PR)",
     "lint": "real linter on notepadia extension: ESLint 10 + typescript-eslint flat config, yarn lint passes clean",
-    "ci": "workflows: build.yml (browser build) and e2e.yml (lint + build + 12 e2e suites, puppeteer cached, 45m timeout, failure artifacts uploaded)"
+    "ci": "workflows: build.yml (browser build), e2e.yml (lint + build + 12 e2e suites, puppeteer cached, 45m timeout, failure artifacts uploaded), release.yml (tag/manual publish for win/linux/mac), docs.yml (MkDocs site to GitHub Pages)"
   },
   "features": {
     "core": {
@@ -177,11 +189,11 @@
       "Linux AppImage": { "status": "complete", "implementation": "Notepadia-0.1.0-x86_64.AppImage in electron/dist/" },
       "Linux rpm": { "status": "complete", "implementation": "Notepadia-0.1.0-x86_64.rpm in electron/dist/" },
       "Linux deb": { "status": "complete", "implementation": "Notepadia-0.1.0-amd64.deb in electron/dist/" },
-      "Windows NSIS installer": { "status": "pending", "implementation": "electron-builder.yml config exists; no Windows build/test performed yet" },
-      "Windows portable package": { "status": "pending", "implementation": "electron-builder.yml config exists; no Windows build/test performed yet" },
-      "file associations": { "status": "pending", "implementation": "Linux MimeType configured in .desktop entry; Windows registry associations and macOS plist UTIs not implemented" },
-      "macOS DMG": { "status": "pending", "implementation": "electron-builder.yml config exists; no macOS build/sign/notarize performed" },
-      "automatic updates": { "status": "pending", "implementation": "electron-updater not installed; needs integration with update server" },
+      "Windows NSIS installer": { "status": "complete", "implementation": "yarn package:win produces a working NSIS .exe (fixed install directory, allowToChangeInstallationDirectory: false so the updater always finds the app); validated locally and targeted by release.yml windows-2022 job" },
+      "Windows portable package": { "status": "complete", "implementation": "yarn package:win produces a portable .exe (runs without installation, app dir contains file associations proxy); validated locally and targeted by release.yml" },
+      "file associations": { "status": "complete", "implementation": "Windows registry associations for .txt .log .ini .csv .json .xml .html .css .js .py .java .c .cpp .h .rs .go .sh .ps1 .md .sql .yaml/.yml with OS file-open routing into the editor; Linux MimeType in the .desktop entry; macOS plist UTIs not yet configured" },
+      "macOS DMG": { "status": "partial", "implementation": "electron-builder.yml config exists; release.yml macos-15 job builds an unsigned DMG+zip (CSC_IDENTITY_AUTO_DISCOVERY=false); code signing and notarization pending an Apple Developer ID certificate" },
+      "automatic updates": { "status": "complete", "implementation": "electron-updater (6.8.9) integrated in electron-main + frontend over Theia Electron IPC; Help > Check for Updates..., auto-download, install-on-quit; feed = GitHub Releases via electron-builder publish.provider github; app-update.yml written on publish builds" },
       "product icons": { "status": "complete", "implementation": "Pink Notepad-style artwork in applications/electron/build/icon.svg; generated icon.png, icon.ico (16-256), icon.icns (icp4..ic10) and icons/16..1024 PNGs via build/generate-icons.mjs; electron-builder.yml sets win/mac/linux icon paths (verified embedded in the .deb hicolor tree); browser app injects the same SVG as a runtime favicon" }
     }
   },
@@ -330,8 +342,9 @@
     {
       "id": "M17",
       "title": "add Windows packaging and file associations",
-      "status": "done",
+      "status": "complete",
       "description": "Validate Electron packaging on Windows with NSIS installer, portable package, and file associations.",
+      "evidence": "electron-builder.yml wins target nsis + portable; file associations for 22 extensions with registry ProxyApp registration; double-click file opening routed into the editor via open-file handling. Verified locally with electron-builder --win --dir --publish never (win-unpacked tree built) under the Node 24/Electron 42 baseline. Root package:win/package:linux/package:mac helpers added.",
       "plan": [
         "Run yarn package on Windows (or cross-compile with electron-builder --win on Linux CI)",
         "Verify NSIS installer produces working .exe with desktop/start-menu shortcuts",
@@ -344,8 +357,9 @@
     {
       "id": "M18",
       "title": "add macOS packaging and signing",
-      "status": "pending",
-      "description": "Validate Electron packaging on macOS with DMG, code signing, and notarization.",
+      "status": "in_progress",
+      "description": "Validate Electron packaging on macOS with DMG, code signing, and notarization. Windows and Linux are done; the release workflow builds unsigned macOS artifacts (no local Mac), so only signing/notarization remains.",
+      "evidence": "release.yml macos-15 matrix job packages with --mac --publish always (unsigned, CSC_IDENTITY_AUTO_DISCOVERY=false); electron-builder.yml mac block targets dmg+zip and already sets entitlements.mac.plist/entitlements.mac.inherit.plist placeholders. Remaining: real code signing and notarization require an Apple Developer ID certificate (secrets APPLE_ID/APPLE_APP_SPECIFIC_PASSWORD/APPLE_TEAM_ID) plus plist UTIs for macOS file associations.",
       "plan": [
         "Run yarn package on macOS (or CI with macOS runner)",
         "Verify DMG mounts and installs correctly to /Applications",
@@ -359,8 +373,9 @@
     {
       "id": "M19",
       "title": "add automatic updates",
-      "status": "pending",
+      "status": "complete",
       "description": "Integrate electron-updater for automatic update checking and installation.",
+      "evidence": "electron-updater 6.8.9 installed in applications/electron; electron-builder.yml publish.provider=github (owner mrhunsaker, repo notepadia-theia); electron-main NotepadiaUpdater wraps autoUpdater (auto-download, quitAndInstall) and bridges status over Theia Electron IPC; frontend contribution adds Help > Check for Updates... with progress dialog and restart prompt (fires only when app.isPackaged). electron-builder asar inspection confirms electron-updater is packed; app-update.yml/latest.yml are emitted on publish builds (--publish always) only. tsc + ESLint pass.",
       "plan": [
         "Install electron-updater as dependency in applications/electron",
         "Configure update feed URL in electron-builder.yml (publish section)",
@@ -374,8 +389,9 @@
     {
       "id": "M20",
       "title": "add CI e2e tests and release workflow",
-      "status": "pending",
-      "description": "Full CI pipeline with build, lint, e2e tests, and release artifact publishing.",
+      "status": "complete",
+      "description": "Full CI pipeline with build, lint, e2e tests, and release artifact publishing. e2e was already wired in M10; this completes the release workflow.",
+      "evidence": ".github/workflows/release.yml triggered on v* tags or workflow_dispatch (version input); matrix windows-2022/ubuntu-22.04/macos-15 with shell bash; Node 24 + corepack + Yarn Classic 1.22.22; steps: verify, install, build:extensions, targeted native rebuild (drivelist,keytar,native-keymap,find-git-repositories -- node-pty excluded because its binding.gyp needs Spectre-mitigated MSVC libs and the N-API prebuild is Electron-compatible), build:prod, version patched into electron package.json, electron-builder $targets --publish always, artifacts uploaded, draft GitHub Release created. YAML validated (js-yaml). Remaining (tracked in nextActions): artifact checksums/attestation and real unit tests for yarn test.",
       "plan": [
         "Create .github/workflows/e2e.yml with ubuntu runner, Chromium install, yarn build, yarn test:e2e",
         "Create .github/workflows/release.yml triggered on tag push (v*)",
@@ -388,8 +404,9 @@
     {
       "id": "M21",
       "title": "add documentation site published to GitHub Pages (mkdocs)",
-      "status": "pending",
+      "status": "complete",
       "description": "At the end of all milestones, add a docs system built with mkdocs that can be published to the relevant GitHub Pages site for this repository.",
+      "evidence": "mkdocs.yml with Material theme (palette, admonitions, toc, details, superfences, tabbed; nav = index/getting-started/usage/architecture/development/packaging/releases; site_url https://mrhunsaker.github.io/notepadia-theia/); 7 authored pages under docs/ (old docs/ARCHITECTURE.md migrated to docs/architecture.md; rename staged with core.ignorecase=false); .github/workflows/docs.yml builds with Python 3.12 + mkdocs-material and deploys via deploy-pages@v4 on main (requires repo Pages source = GitHub Actions); mkdocs build --strict passes; README has Docs/Documentation badges and links.",
       "plan": [
         "Add mkdocs config (mkdocs.yml) with a Notepadia theme and nav structure",
         "Author docs content: quick start, feature guide, development/setup, architecture, packaging, contribution",
@@ -400,15 +417,15 @@
     }
   ],
   "deliverables": {
-    "source code": { "status": "complete", "notes": "14 TypeScript source files in extensions/notepadia/src/browser/ (incl. frontend module)" },
-    "tests": { "status": "in_progress", "notes": "12 e2e suites implemented and wired into GitHub Actions e2e.yml; no unit tests; per-suite logs + failure screenshots uploaded as artifacts" },
-    "package manifests": { "status": "complete", "notes": "Root, browser, electron, notepadia extension, e2e all have package.json; eslint devDependencies added to notepadia" },
+    "source code": { "status": "complete", "notes": "17 TypeScript source files in extensions/notepadia/src/ (browser, common, electron-main) incl. frontend/main modules" },
+    "tests": { "status": "in_progress", "notes": "12 e2e suites implemented and wired into GitHub Actions e2e.yml; no unit tests (nextActions); per-suite logs + failure screenshots uploaded as artifacts" },
+    "package manifests": { "status": "complete", "notes": "Root, browser, electron, notepadia extension, e2e all have package.json; eslint devDependencies added to notepadia; electron-updater added to electron app" },
     "lockfile": { "status": "complete", "notes": "yarn.lock present and maintained" },
-    "CI": { "status": "partial", "notes": "build.yml (browser build) + e2e.yml (lint, build, 12 e2e suites); no electron packaging, no release workflow yet" },
-    "installer configuration": { "status": "partial", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced; Windows/macOS untested" },
+    "CI": { "status": "complete", "notes": "build.yml (browser build) + e2e.yml (lint, build, 12 e2e suites) + release.yml (tag/manual publish for win/linux/mac with native-module rebuild) + docs.yml (MkDocs to GitHub Pages)" },
+    "installer configuration": { "status": "complete", "notes": "electron-builder.yml complete for all platforms; Linux artifacts produced and validated; Windows NSIS+portable with file associations validated; macOS built unsigned via CI (signing pending)" },
     "product icons": { "status": "complete", "notes": "applications/electron/build/icon.svg plus generated icon.png/.ico/.icns and icons/*.png; generator in build/generate-icons.mjs; wired into electron-builder.yml and exposed as a browser favicon" },
-    "release documentation": { "status": "not_started", "notes": "No CHANGELOG, no RELEASE.md, no version tags" },
-    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.2.3)" }
+    "release documentation": { "status": "in_progress", "notes": "CHANGELOG.md updated (desktop packaging, automatic updates, release workflow, docs site); docs/releases.md covers release/update flow on the site; no version tag or GitHub Release published yet" },
+    "updated JSON continuation prompt": { "status": "complete", "notes": "This file (v5.2.4)" }
   },
   "fileManifest": {
     "extensions/notepadia/src/browser/notepadia-contribution.ts": "Core commands (new, open, save, close, zoom, whitespace, tab size, insert spaces/tabs, line operations, close confirmation)",
@@ -425,6 +442,10 @@
     "extensions/notepadia/src/browser/notepadia-document-list-widget.ts": "Document list panel widget (notepadia.documentList): filter input, entries, click-to-focus, dirty dots",
     "extensions/notepadia/src/browser/notepadia-document-list-contribution.ts": "View > Document List toggle command/menu for the document list panel",
     "extensions/notepadia/src/browser/notepadia-favicon-contribution.ts": "Injects the Notepadia SVG artwork as the browser app favicon at runtime",
+    "extensions/notepadia/src/browser/notepadia-updater-contribution.ts": "Frontend updater UI: Help > Check for Updates..., download progress dialog, restart prompt via Theia Electron IPC",
+    "extensions/notepadia/src/common/notepadia-updater-protocol.ts": "Shared Electron IPC channel/event names + types for the updater bridge",
+    "extensions/notepadia/src/electron-main/notepadia-updater.ts": "Electron-main autoUpdater wrapper: config, auto-download, quitAndInstall, status/error events over IPC, guarded by app.isPackaged",
+    "extensions/notepadia/src/electron-main/notepadia-electron-main-module.ts": "Electron-main module wiring the updater into the backend lifecycle",
     "e2e/run.cjs": "E2E test runner (boots app, seeds workspace, runs 12 Puppeteer suites, writes e2e-artifacts/, rejects stale servers)",
     "e2e/lib.js": "Shared Puppeteer helpers (failure screenshots + console-error capture)",
     "e2e/p1-core.cjs": "Core feature tests (menus, file ops, line operations, favicon injection)",
@@ -444,6 +465,17 @@
     "applications/electron/build/generate-icons.mjs": "Generates icon.png/.ico/.icns and icons/*.png from icon.svg (rsvg-convert + ImageMagick)",
     ".github/workflows/build.yml": "CI workflow (browser build)",
     ".github/workflows/e2e.yml": "CI workflow (lint + build + 12 e2e suites, puppeteer cached, artifacts on failure)",
+    ".github/workflows/release.yml": "Release workflow: v* tag or manual dispatch, windows/linux/mac matrix, targeted native rebuild, electron-builder --publish always, draft GitHub Release, artifact upload",
+    ".github/workflows/docs.yml": "Docs workflow: builds mkdocs site and deploys to GitHub Pages (deploy only on main)",
+    "mkdocs.yml": "MkDocs Material config (github theme colors, admonitions, toc/details/superfences/tabbed, nav, site_url https://mrhunsaker.github.io/notepadia-theia/)",
+    "docs/index.md": "Docs site landing page (intro, feature list, project status/milestones)",
+    "docs/getting-started.md": "Install from GitHub Releases + first-run User guide",
+    "docs/usage.md": "Detailed feature walkthrough (files, editing, search, encoding, EOL, language, view, updates)",
+    "docs/architecture.md": "Architecture deep-dive (apps, extension, packaging, automatic updates) migrated from docs/ARCHITECTURE.md",
+    "docs/development.md": "Developer setup, bootstrap, build/lint/e2e, contribution guide",
+    "docs/packaging.md": "Electron packaging recipes (win/linux/mac, publish, updater config)",
+    "docs/releases.md": "Release/update flow, versioning, security officer checklist",
+    "CHANGELOG.md": "Changelog with 0.x history and date-versioned 2026.9.19 release section covering desktop packaging, automatic updates, release workflow and docs site",
     "extensions/notepadia/eslint.config.mjs": "ESLint 10 + typescript-eslint flat config for the notepadia extension",
     "README.md": "Project overview with Apache-2.0 badges, usage, architecture, testing",
     "CONTRIBUTING.md": "Contribution guide (prerequisites, workflow, conventions, releases)",
@@ -453,7 +485,10 @@
     "GOVERNANCE_ENFORCEMENT.md": "Local + CI quality enforcement and verification"
   },
   "nextActions": [
-    "Add Windows packaging and file associations (M17)",
-    "Add documentation site published to GitHub Pages with mkdocs (M21)"
+    "macOS code signing and notarization (M18): record Apple Developer ID secrets (csc link, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID) in GitHub Secrets and let release.yml sign/notarize the mac artifacts; optionally configure plist UTIs for macOS file associations",
+    "v2026.9.19 released (first date-versioned tag); release.yml now creates the draft once in a prepare job and publishes it in a finalize job — verify electron-updater serves the update from an older 0.x build",
+    "Add artifact checksums/attestation to the release workflow (M20 follow-up)",
+    "Add actual unit tests and wire them into yarn test within the workspace packages (M20 follow-up)",
+    "Update this continuation prompt file after each completed milestone (rules)"
   ]
 }

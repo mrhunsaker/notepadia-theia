@@ -1,6 +1,6 @@
 {
   "artifact": "notepadia-theia-1.75.0",
-  "product_version": "0.1.0",
+  "product_version": "2026.9.19",
   "theia_baseline": "1.75.0",
   "node_minimum": "24",
   "electron": "42.8.1",

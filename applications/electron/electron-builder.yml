@@ -2,6 +2,15 @@ appId: org.notepadia.desktop
 productName: Notepadia
 asar: true
 
+# Publishes release artifacts to GitHub Releases so `electron-updater` can serve
+# automatic updates from https://github.com/mrhunsaker/notepadia-theia/releases.
+# electron-builder also writes `dist/latest.yml` (the update manifest) during a
+# publish build; see .github/workflows/release.yml.
+publish:
+  provider: github
+  owner: mrhunsaker
+  repo: notepadia-theia
+
 # Native modules are already rebuilt for the Electron ABI by `theia rebuild:electron`
 # (invoked from the `rebuild` script before electron-builder runs). Rebuilding them
 # a second time here recompiles from source and fails on machines without Spectre-
@@ -93,7 +102,9 @@ win:
 
 nsis:
   oneClick: false
-  allowToChangeInstallationDirectory: true
+  # electron-updater can only apply updates for the default install directory,
+  # so users cannot be offered a custom install location (auto-update caveat).
+  allowToChangeInstallationDirectory: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Notepadia

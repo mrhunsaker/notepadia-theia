@@ -1,0 +1,113 @@
+# User guide
+
+A tour of the Notepad++-style behavior implemented by the `notepadia`
+extension.
+
+## Menus and commands
+
+Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
+`Settings`, while the `File` and `Edit` menus gain Notepad++-style sections:
+
+- **File**: New / Open / Save / Save As / Save All / Close / Close All /
+  Close All But Active, plus **Recent Files**.
+- **Edit**: Indent / Unindent / Duplicate Current Line / Delete Current Line /
+  Move Current Line Up + Down / Join Lines / comment line, a **Line
+  Operations** submenu, and a **Convert Case** submenu. **Bookmarks** are
+  also under Edit.
+- **Search**: Find / Find Next / Find Previous / Replace / Find in Files.
+
+Text manipulation reuses Monaco's hardened editing engine through
+`editor.action.*` triggers instead of bespoke string rewriting.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| Ctrl+D | Duplicate current line |
+| Ctrl+L | Delete current line |
+| Ctrl+F2 | Toggle bookmark on the current line |
+| F2 / Shift+F2 | Next / previous bookmark (wraps in file) |
+| F3 / Shift+F3 | Find next / previous |
+
+!!! note
+    The editor is forced onto the classic textarea input path
+    (`editContext: false`) so Theia's own keybinding layer stays
+    deterministic. The Ctrl+D / Ctrl+L chords are mirrored into Monaco's
+    keybinding service as a fallback.
+
+## Encoding
+
+The **Encoding** menu provides Notepad++-style operations backed by Theia's
+iconv-lite pipeline:
+
+- `Encode in UTF-8`
+- `Encode in UTF-8 BOM`
+- `Encode in UTF-16 LE` / `Encode in UTF-16 BE`
+- `Convert to ANSI (Windows 1252)`
+- `Change File Encoding...` — quick-pick to reopen/save with any supported
+  encoding (including the ISO-8859 family).
+- `Reload as UTF-8` (decode mode).
+
+The status bar shows the current encoding and is clickable to change it.
+UTF-16 LE/BE and UTF-8 BOM files round-trip as-is. A UTF-8-BOM encode is
+patched with the `EF BB BF` bytes post-write so the BOM survives (upstream
+collapses `utf8bom` to `utf8` at write time).
+
+## Line endings (EOL)
+
+`Edit ▸ EOL Conversion` offers:
+
+- `Convert to Unix Format (LF)`
+- `Convert to Windows Format (CRLF)`
+
+Both transform the buffer with Monaco's `setEOL` and are undoable.
+`Change Line Endings...` (also reachable by clicking the EOL entry in the
+status bar) offers the same targets as a quick-pick.
+
+!!! tip
+    Only LF and CRLF are offered. Monaco's line model splits on `\n`, so
+    classic CR cannot be a separators inside the editor; CR files are
+    detected and shown as `CR` in the status bar.
+
+## Bookmarks
+
+- `Ctrl+F2` toggles a bookmark on the current line.
+- `F2` / `Shift+F2` jump to the next / previous bookmark (wrapping).
+- `Edit ▸ Bookmarks ▸ Clear All Bookmarks` empties the current file's set.
+
+Bookmarks are per-model (keyed by URI), session-scoped, and rendered as
+glyphs in the line-number gutter.
+
+## Language menu
+
+- **`Change Language Mode...`** opens Monaco's language quick-pick.
+- A curated list (JavaScript, TypeScript, HTML, CSS, Markdown, YAML, XML,
+  Python, C, C++, C#, Java, PHP, Ruby, Go, Rust, Shell Script, SQL, Plain
+  Text) is registered at startup with lightweight Monarch tokenizers, and
+  each entry is a menu action switching the editor language.
+- The status bar shows the friendly language name and is clickable.
+
+## Recent Files
+
+`File ▸ Recent Files` lists recently opened editors (most recent first,
+deduplicated, capped at 15) with a `Clear Recent Files` entry. History
+survives reloads via localStorage.
+
+## Unsaved changes and drag-and-drop
+
+- `File ▸ Close` and `File ▸ Close All` confirm before discarding dirty
+  editors (Save / Don't Save / Cancel; Close All also offers Save All).
+- Dropping files onto the browser app window offers the built-in "Upload
+  Files..." flow to copy them into the workspace.
+
+## Automatic updates (desktop)
+
+Installed desktop builds check GitHub Releases for updates on startup and on
+`Help ▸ Check for Updates...`. When an update is found it downloads in the
+background and prompts to restart and install.
+
+!!! warning "Windows installer"
+    Updates apply only to the **default installation directory**. The
+    installer does not offer a custom install location (assisted installer,
+    fixed directory) so that `electron-updater` always knows where the app
+    lives.

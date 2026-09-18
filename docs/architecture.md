@@ -39,6 +39,7 @@ Notepadia owns:
 - status bar presentation
 - product branding
 - desktop packaging choices
+- automatic updates
 
 ## Dependency rule
 
@@ -91,7 +92,7 @@ Decisions taken for P1:
 2. Monaco's default editor keybindings are mirrored into Theia's own
    keybinding registry by `MonacoKeybindingContribution` (from
    `@theia/monaco`), with an `editorTextFocus` `when` clause. Choosing
-   `selectBindingByLocalContext` therefore prefers those defaults over a
+   `selectBindingByLocalContext` therefore prefers those defaults over an
    identical-scope binding with no `when`. To win the two colliding chords,
    the Ctrl+D (duplicate line vs. Monaco `addSelectionToNextFindMatch`) and
    Ctrl+L (delete line vs. Monaco `expandLineSelection`) bindings are
@@ -227,6 +228,33 @@ which is not installed in this build). The built-in Monaco editor core ships no
 are the only real tokenization available; keyword/string/number tokens are
 emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
 
+## Automatic updates
+
+The desktop app uses `electron-updater` fed by GitHub Releases
+(`publish.provider: github` in `electron-builder.yml`).
+
+- `extensions/notepadia/src/common/notepadia-updater-protocol.ts` defines the
+  RPC path `/services/notepadia/updater`, the `NotepadiaUpdateStatus` model and
+  the `NotepadiaUpdaterService` interface (RPC, proxied over the Electron IPC).
+- `extensions/notepadia/src/electron-main/notepadia-updater.ts` implements the
+  service in the electron-main process. It configures `autoUpdater`
+  (`autoDownload: true`, `autoInstallOnAppQuit: true`) when
+  `app.isPackaged`; otherwise it reports a `disabled` status. All
+  `autoUpdater` events (checking, available, not-available, download-progress,
+  downloaded, error) are forwarded to the connected frontend client.
+- `extensions/notepadia/src/browser/notepadia-updater-contribution.ts` is the
+  frontend half: it resolves the proxy from `ElectronIpcConnectionProvider`
+  **only when `ElectronMainConnectionProvider` is bound** (i.e. in the Electron
+  app, never in the browser app), auto-checks on start, exposes
+  `Help ▸ Check for Updates...`, and prompts to restart once an update is
+  downloaded.
+- The electron-main module binds the service plus an
+  `ElectronConnectionHandler` (`RpcConnectionHandler`) at `NotepadiaUpdaterPath`.
+
+Upstream references: `@theia/core` `ElectronMainConnectionProvider` /
+`ElectronConnectionHandler` / `ElectronMainApplicationContribution`, and the
+`RpcServer` protocol from `@theia/core/lib/common/messaging/proxy-factory`.
+
 ## Desktop packaging
 
 `applications/electron` builds the desktop app on the Electron target
@@ -235,17 +263,20 @@ it with `electron-builder`:
 
 - `yarn build:prod` produces the production frontend/backend bundles; this
   already runs `theia rebuild:electron` so native addons match Electron 42.
-- `npx electron-builder --linux AppImage -p never` yields
-  `dist/Notepadia-<version>-x86_64.AppImage`.
-- `npx electron-builder --linux rpm -p never` yields
-  `dist/Notepadia-<version>-x86_64.rpm`.
-- `npx electron-builder --linux deb -p never` yields
-  `dist/Notepadia-<version>-amd64.deb`. Linux metadata (category `Utility`,
-  MIME types, artifact naming) lives in `electron-builder.yml`, and
-  `package.json` must carry a `homepage` (RPM rejects a missing one).
-- RPM/DEB go through electron-builder's bundled `fpm` (Ruby), which needs
-  `libcrypt.so.1`. Hosts that lack it still build if the library is provided
-  via `LD_LIBRARY_PATH` (e.g. a copy from a bundled runtime).
+- Root helpers: `yarn package:win`, `yarn package:linux`, `yarn package:mac`
+  each clean `dist`, rebuild the extension and the app, then run
+  `electron-builder --publish never` for the given platform. `yarn package:preview`
+  produces an unpacked `dist/win-unpacked` directory for quick inspection.
+  Publishing itself is handled by CI (see [Releases & updates](releases.md)).
+- NSIS target: assisted installer (`oneClick: false`) with a **fixed install
+  directory** (`allowToChangeInstallationDirectory: false`): `electron-updater`
+  can only apply updates for the default location.
+- macOS builds are unsigned (`CSC_IDENTITY_AUTO_DISCOVERY=false`); a signing
+  certificate is not configured yet.
+- Linux metadata (category `Utility`, MIME types, artifact naming) lives in
+  `electron-builder.yml`, and `package.json` must carry a `homepage` (RPM
+  rejects a missing one). RPM/DEB go through electron-builder's bundled `fpm`
+  (Ruby), which needs `libcrypt.so.1` on hosts without it.
 - The packaged app ships the same `notepadia` extension as the browser app
   (verified by listing the `resources/app.asar` inside the extracted
   AppImage); product behavior is therefore identical between targets.

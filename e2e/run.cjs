@@ -1,4 +1,5 @@
-const { spawn, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
+const spawn = require('cross-spawn');
 const fs = require('fs');
 const http = require('http');
 const os = require('os');

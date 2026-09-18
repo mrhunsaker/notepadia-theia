@@ -49,7 +49,7 @@ export class NotepadiaEncodingContribution implements CommandContribution, MenuC
             }
             await editor.setEncoding(encoding, mode);
             if (encoding === 'utf8bom' && mode === EncodingMode.Encode) {
-                await this.ensureUtf8Bom(widget.editor.uri);
+                await this.ensureUtf8Bom(editor, widget.editor.uri);
             }
         };
 
@@ -109,8 +109,13 @@ export class NotepadiaEncodingContribution implements CommandContribution, MenuC
      * Theia's write pipeline collapses `utf8bom` to `utf8` before deciding on
      * the BOM, so a UTF-8 BOM encode never lands on disk. Write the BOM prefix
      * explicitly until that pipeline preserves the UTF-8 BOM.
+     *
+     * The manual write bypasses the editor resource, so the model's saved
+     * version/etag is now stale; re-sync the document afterwards, otherwise
+     * the next save (e.g. a subsequent UTF-16 encode) is dropped with a
+     * silently swallowed `FILE_MODIFIED_SINCE`.
      */
-    protected async ensureUtf8Bom(uri: URI): Promise<void> {
+    protected async ensureUtf8Bom(editor: MonacoEditor, uri: URI): Promise<void> {
         try {
             const content = (await this.fileService.readFile(uri)).value;
             const bytes = content.buffer;
@@ -121,6 +126,7 @@ export class NotepadiaEncodingContribution implements CommandContribution, MenuC
             prefixed.set([0xef, 0xbb, 0xbf]);
             prefixed.set(bytes, 3);
             await this.fileService.writeFile(uri, BinaryBuffer.wrap(prefixed));
+            await editor.document.sync();
         } catch (e) {
             console.error('Failed to write UTF-8 BOM', e);
         }
