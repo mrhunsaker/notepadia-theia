@@ -14,7 +14,8 @@
     "compile": "tsc -p tsconfig.json",
     "clean": "rm -rf lib *.tsbuildinfo",
     "lint": "eslint \"src/**/*.ts\"",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "yarn build && node --test \"test/**/*.test.cjs\""
   },
   "dependencies": {
     "@theia/core": "1.75.0",

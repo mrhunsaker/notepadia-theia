@@ -14,6 +14,11 @@ import { AbstractDialog } from '@theia/core/lib/browser/dialogs';
 import { Message } from '@theia/core/lib/browser/widgets';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
+import {
+    ColumnEditorConfig,
+    ColumnEditorMode,
+    columnTextsFor
+} from '../common/column-editor';
 
 /**
  * Notepad++ style "Edit > Column Editor...": inserts text, sequential
@@ -27,15 +32,7 @@ export namespace NotepadiaColumnEditorCommands {
     };
 }
 
-export type ColumnEditorMode = 'text' | 'number' | 'repeated';
-
-export interface ColumnEditorConfig {
-    mode: ColumnEditorMode;
-    text: string;
-    initialNumber: number;
-    increment: number;
-    leadingZeros: boolean;
-}
+export { ColumnEditorConfig, ColumnEditorMode } from '../common/column-editor';
 
 const DEFAULT_CONFIG: ColumnEditorConfig = {
     mode: 'text',
@@ -231,42 +228,19 @@ export class NotepadiaColumnEditorContribution implements CommandContribution, M
         }
 
         const operations: monaco.editor.IIdentifiedSingleEditOperation[] = [];
-        let number = config.initialNumber;
-        const count = rows.size;
-        const last = config.initialNumber + (config.increment * (count - 1));
-        const padWidth = config.leadingZeros
-            ? Math.max(String(Math.max(0, config.initialNumber)).length, String(Math.max(0, last)).length)
-            : 0;
+        const texts = columnTextsFor(config, rows.size);
 
         let index = 0;
         for (const [line, column] of Array.from(rows).sort((a, b) => a[0] - b[0])) {
             operations.push({
                 range: new monaco.Range(line, column, line, column),
-                text: this.textFor(config, index++, number, padWidth)
+                text: texts[index++]
             });
-            number += config.increment;
         }
 
         control.pushUndoStop();
         control.executeEdits('notepadia.column-editor', operations);
         control.pushUndoStop();
         control.revealLineInCenter(rows.keys().next().value ?? 1);
-    }
-
-    protected textFor(config: ColumnEditorConfig, index: number, number: number, padWidth: number): string {
-        switch (config.mode) {
-            case 'number': {
-                const value = String(number);
-                return padWidth > 0 ? value.padStart(padWidth, '0') : value;
-            }
-            case 'repeated': {
-                if (!config.text) {
-                    return '';
-                }
-                return config.text[(index) % config.text.length];
-            }
-            default:
-                return config.text;
-        }
     }
 }

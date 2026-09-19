@@ -16,6 +16,7 @@ import {
 } from '@theia/core/lib/browser/status-bar/status-bar-types';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
+import { changeToSteps, MacroStep } from '../common/macro-steps';
 
 /**
  * Notepad++ style macro recording and playback. A macro is the ordered list
@@ -36,10 +37,6 @@ export namespace NotepadiaMacroCommands {
     export const DISCARD: Command = { id: 'notepadia.macro.discard', label: 'Discard Recording' };
     export const CLEAR: Command = { id: 'notepadia.macro.clear', label: 'Clear Macro' };
 }
-
-export type MacroStep =
-    | { kind: 'type'; text: string }
-    | { kind: 'delete'; count: number };
 
 const PLAYBACK_DELAY_MS = 10;
 
@@ -127,12 +124,7 @@ export class NotepadiaMacroContribution implements CommandContribution, MenuCont
                 return;
             }
             for (const change of e.changes) {
-                if (change.rangeLength > 0) {
-                    target.push({ kind: 'delete', count: change.rangeLength });
-                }
-                if (change.text.length > 0) {
-                    target.push({ kind: 'type', text: change.text });
-                }
+                target.push(...changeToSteps(change.rangeLength, change.text));
             }
         }));
     }

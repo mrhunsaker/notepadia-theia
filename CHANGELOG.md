@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.9.18 (unit tests)
+
+- `yarn test` is no longer a no-op: the Notepad++-style logic is extracted
+  into dependency-free pure modules under `extensions/notepadia/src/common`
+  (`blank-ops`, `column-editor`, `macro-steps`) and covered by 44 Node test
+  runner assertions (`node --test`), wired into `yarn test` (extension builds,
+  then runs the tests) and as a step in `e2e.yml`.
+- The extraction is pure refactoring: the browser contributions now import the
+  same functions, and all 16 e2e suites still pass after the move.
+
 ## 2026.9.18 (M23)
 
 - New top-level **Macros** menu with a Notepad++-style macro editor:

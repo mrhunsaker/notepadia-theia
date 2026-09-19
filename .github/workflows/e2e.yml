@@ -54,6 +54,9 @@ jobs:
       - name: Build browser application and extensions
         run: yarn build
 
+      - name: Run unit tests
+        run: yarn test
+
       - name: Run e2e suites
         run: yarn test:e2e
 
