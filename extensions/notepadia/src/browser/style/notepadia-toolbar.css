@@ -1,0 +1,83 @@
+/*
+ * A3: Notepad++ toolbar.
+ *
+ * A 26px chrome row of 24x24 icon buttons between the menubar and the tab
+ * bar. Every color comes from theme tokens. The printer button has no
+ * codicon, so it is drawn here as a CSS mask of an inline SVG (fill is
+ * irrelevant to a mask) and colored with `currentColor`, which keeps color
+ * strings out of TypeScript.
+ */
+
+.notepadia-toolbar-row {
+    display: flex;
+    align-items: center;
+    height: 26px;
+    padding: 0 4px;
+    margin: 0;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--theia-tab-border, #adadad);
+    background: var(--theia-titleBar-activeBackground, #f0f0f0);
+    color: var(--theia-foreground, #000000);
+}
+
+.notepadia-toolbar-row:focus {
+    outline: none;
+}
+
+.notepadia-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    box-sizing: border-box;
+    flex: none;
+}
+
+.notepadia-toolbar-btn:hover:not(:disabled) {
+    background: var(--theia-menubar-selectionBackground, #c8c8c8);
+}
+
+.notepadia-toolbar-btn:focus-visible {
+    outline: 1px solid var(--theia-focusBorder, #0078d7);
+    outline-offset: -1px;
+}
+
+.notepadia-toolbar-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.notepadia-toolbar-btn[aria-pressed='true'] {
+    background: var(--theia-menubar-selectionBackground, #c8c8c8);
+}
+
+.notepadia-toolbar-separator {
+    width: 0;
+    height: 16px;
+    margin: 0 4px;
+    border-left: 1px solid var(--theia-tab-border, #adadad);
+    flex: none;
+}
+
+.notepadia-toolbar-glyph {
+    display: block;
+    font: normal normal normal 16px/1 codicon;
+    color: inherit;
+}
+
+.notepadia-toolbar-print-glyph {
+    display: block;
+    width: 16px;
+    height: 16px;
+    background-color: currentColor;
+    -webkit-mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Cpath fill="%23000" d="M5 1h6v7H5V1zm-3 6h12v5h-2v-1H4v1H2V7zm4 4h4v5H6V11z"/%3E%3C/svg%3E') no-repeat center / 16px 16px;
+    mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Cpath fill="%23000" d="M5 1h6v7H5V1zm-3 6h12v5h-2v-1H4v1H2V7zm4 4h4v5H6V11z"/%3E%3C/svg%3E') no-repeat center / 16px 16px;
+}

@@ -33,6 +33,7 @@ import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
+import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE } from './notepadia-shell-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
