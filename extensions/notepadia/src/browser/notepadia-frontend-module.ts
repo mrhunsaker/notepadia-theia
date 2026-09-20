@@ -33,7 +33,13 @@ import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
+import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
+
+// Product stylesheet layer. The webpack application build resolves this css
+// through the extension's src directory; the build's copy-static step also
+// emits it beside lib/browser.
+import '../../src/browser/style/index.css';
 
 export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
@@ -128,6 +134,9 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(NotepadiaPrintContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaPrintContribution);
     bind(MenuContribution).toService(NotepadiaPrintContribution);
+
+    bind(NotepadiaThemeContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaThemeContribution);
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only

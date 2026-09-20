@@ -19,6 +19,7 @@ const SUITES = [
     'bookmarks',
     'language',
     'view-menu',
+    'theme',
     'search',
     'document-list',
     'spaces-tabs',

@@ -1,0 +1,7 @@
+/*
+ * Notepadia stylesheet layer. Imported from the frontend module; the
+ * extension build copies this directory beside lib/browser so both webpack
+ * and the runtime can resolve the css.
+ */
+@import "./notepadia-shell.css";
+@import "./notepadia-marks.css";

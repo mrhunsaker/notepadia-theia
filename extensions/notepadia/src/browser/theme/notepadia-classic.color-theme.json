@@ -1,0 +1,135 @@
+{
+  "name": "Notepadia Classic",
+  "type": "light",
+  "description": "Notepad++ default palette: white editor, grey gutter, grey selection, light chrome",
+  "colors": {
+    "editor.background": "#FFFFFF",
+    "editor.foreground": "#000000",
+    "editorLineNumber.foreground": "#808080",
+    "editorLineNumber.activeForeground": "#000000",
+    "editor.selectionBackground": "#C0C0C0",
+    "editor.lineHighlightBackground": "#E8E8FF",
+    "editor.lineHighlightBorder": "#E8E8FF",
+    "editorCursor.foreground": "#000000",
+    "editorIndentGuide.background": "#C0C0C0",
+    "editorWhitespace.foreground": "#A0A0A0",
+    "editorCurrentLineHighlight.background": "#E8E8FF",
+    "titleBar.activeBackground": "#F0F0F0",
+    "titleBar.activeForeground": "#000000",
+    "titleBar.inactiveBackground": "#F0F0F0",
+    "titleBar.inactiveForeground": "#000000",
+    "menubar.selectionBackground": "#C8C8C8",
+    "menubar.selectionForeground": "#000000",
+    "menubar.selectionBorder": "#C8C8C8",
+    "statusBar.background": "#F0F0F0",
+    "statusBar.foreground": "#000000",
+    "statusBarItem.hoverBackground": "#E1E1E1",
+    "tab.activeBackground": "#FFFFFF",
+    "tab.activeForeground": "#000000",
+    "tab.activeBorder": "#0078D7",
+    "tab.inactiveBackground": "#E1E1E1",
+    "tab.inactiveForeground": "#404040",
+    "tab.border": "#ADADAD",
+    "sideBar.background": "#F0F0F0",
+    "sideBar.foreground": "#000000",
+    "sideBarSectionHeader.background": "#E1E1E1",
+    "panel.background": "#F0F0F0",
+    "panel.foreground": "#000000",
+    "panel.border": "#ADADAD",
+    "focusBorder": "#0078D7",
+    "menu.background": "#F0F0F0",
+    "menu.foreground": "#000000",
+    "menu.selectionBackground": "#C8C8C8",
+    "menu.selectionForeground": "#000000",
+    "menu.separatorBackground": "#ADADAD",
+    "editorWidget.background": "#FAFAFA",
+    "editorWidget.foreground": "#000000",
+    "list.activeSelectionBackground": "#C0C0C0",
+    "list.activeSelectionForeground": "#000000",
+    "list.hoverBackground": "#E1E1E1",
+    "list.hoverForeground": "#000000",
+    "list.focusBackground": "#C0C0C0",
+    "list.focusForeground": "#000000",
+    "input.background": "#FFFFFF",
+    "input.foreground": "#000000",
+    "button.background": "#0078D7",
+    "button.foreground": "#FFFFFF",
+    "dropdown.background": "#F0F0F0",
+    "dropdown.foreground": "#000000",
+    "scrollbarSlider.background": "#ADADAD",
+    "scrollbarSlider.hoverBackground": "#9E9E9E",
+    "scrollbarSlider.activeBackground": "#808080"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "keyword",
+        "storage",
+        "storage.type",
+        "keyword.control",
+        "keyword.other"
+      ],
+      "settings": {
+        "foreground": "#0000FF",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": [
+        "string",
+        "string.quoted.single",
+        "string.quoted.double",
+        "string.quoted.other"
+      ],
+      "settings": {
+        "foreground": "#808080"
+      }
+    },
+    {
+      "scope": [
+        "comment",
+        "comment.line",
+        "comment.block"
+      ],
+      "settings": {
+        "foreground": "#008000",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": [
+        "constant",
+        "constant.numeric",
+        "constant.language",
+        "constant.character",
+        "constant.character.escape"
+      ],
+      "settings": {
+        "foreground": "#FF8000"
+      }
+    },
+    {
+      "scope": [
+        "keyword.operator",
+        "keyword.operator.arithmetic",
+        "keyword.operator.assignment",
+        "keyword.operator.comparison",
+        "keyword.operator.logical",
+        "punctuation.operator"
+      ],
+      "settings": {
+        "foreground": "#000080"
+      }
+    },
+    {
+      "scope": [
+        "meta.preprocessor",
+        "keyword.directive",
+        "preprocessor"
+      ],
+      "settings": {
+        "foreground": "#804000"
+      }
+    }
+  ]
+}

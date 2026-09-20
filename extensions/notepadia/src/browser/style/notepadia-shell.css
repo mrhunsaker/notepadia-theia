@@ -1,0 +1,22 @@
+/*
+ * Notepadia shell chrome. A2 fills this in (hiding the VS Code activity
+ * bars, breadcrumbs, minimap and non-Notepad++ status bar items). A1 only
+ * establishes the layer with chrome rules that mirror the theme palette.
+ */
+
+body.vs #theia-statusBar {
+  font-size: 12px;
+}
+
+/* Notepad++ bookmark glyph: amber square in the editor line-number gutter.
+ * Lived inline in notepadia-bookmark-contribution.ts before the stylesheet
+ * layer; kept here so no TypeScript file carries a color string. */
+.notepadia-bookmark-glyph::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #f2b01e;
+  margin-left: 1px;
+}

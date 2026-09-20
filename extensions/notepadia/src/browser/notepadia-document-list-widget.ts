@@ -25,7 +25,7 @@ export class NotepadiaDocumentListWidget extends BaseWidget {
 .notepadia-document-list-entry.active { background: var(--theia-list-activeSelectionBackground); color: var(--theia-list-activeSelectionForeground); }
 .notepadia-document-list-file-label { overflow: hidden; text-overflow: ellipsis; }
 .notepadia-document-list-active-mark { width: 8px; height: 8px; border-radius: 50%; flex: none; background: transparent; }
-.notepadia-document-list-entry.dirty .notepadia-document-list-active-mark { background: var(--theia-notificationsWarningIcon-foreground, #cca700); }
+.notepadia-document-list-entry.dirty .notepadia-document-list-active-mark { background: var(--theia-notificationsWarningIcon-foreground); }
 `;
 
     protected readonly filterInput: HTMLInputElement;

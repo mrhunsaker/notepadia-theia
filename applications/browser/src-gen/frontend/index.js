@@ -25,7 +25,11 @@ FrontendApplicationConfigProvider.set({
     "uriScheme": "theia",
     "preferences": {
         "files.enableTrash": false,
-        "security.workspace.trust.enabled": false
+        "security.workspace.trust.enabled": false,
+        "workbench.colorTheme": "Notepadia Classic",
+        "editor.fontFamily": "Consolas, 'Courier New', 'DejaVu Sans Mono', monospace",
+        "editor.fontSize": 13,
+        "editor.lineHeight": 0
     }
 });
 

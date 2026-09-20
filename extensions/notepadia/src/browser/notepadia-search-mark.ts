@@ -55,12 +55,14 @@ function resolvedTerm(term: string, mode: SearchMode, findIsRegex: boolean): { t
     }
 }
 
-const STYLES: ReadonlyArray<{ readonly className: string; readonly color: string }> = [
-    { className: 'notepadia-mark-0', color: 'rgba(244, 67, 54, 0.35)' },
-    { className: 'notepadia-mark-1', color: 'rgba(33, 150, 243, 0.35)' },
-    { className: 'notepadia-mark-2', color: 'rgba(0, 150, 136, 0.35)' },
-    { className: 'notepadia-mark-3', color: 'rgba(156, 39, 176, 0.3)' },
-    { className: 'notepadia-mark-4', color: 'rgba(255, 152, 0, 0.4)' }
+// Class-name slot palette; the colors live in style/notepadia-marks.css so no
+// TypeScript file carries a hard-coded color string.
+const STYLES: ReadonlyArray<{ readonly className: string }> = [
+    { className: 'notepadia-mark-0' },
+    { className: 'notepadia-mark-1' },
+    { className: 'notepadia-mark-2' },
+    { className: 'notepadia-mark-3' },
+    { className: 'notepadia-mark-4' }
 ];
 
 interface FindStateLike {
@@ -87,12 +89,9 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
     ) { }
 
     onStart(_app: FrontendApplication): void {
-        const style = document.createElement('style');
-        style.id = 'notepadia-search-mark-style';
-        style.textContent = STYLES
-            .map(s => `.${s.className} { background: ${s.color}; }`)
-            .join('\n');
-        document.head.appendChild(style);
+        // The .notepadia-mark-N rules were moved out of a document.head
+        // <style> injection into style/notepadia-marks.css (imported by the
+        // frontend module through style/index.css).
         this.editorManager.onCurrentEditorChanged(() => this.applyToCurrent());
         this.editorManager.onCreated(() => this.applyToCurrent());
     }

@@ -38,11 +38,6 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
     ) { }
 
     async onStart(_app: FrontendApplication): Promise<void> {
-        const style = document.createElement('style');
-        style.id = 'notepadia-bookmark-style';
-        style.textContent = `.${NotepadiaBookmarkContribution.DECORATION_CLASS}::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; background: #f2b01e; margin-left: 1px; }`;
-        document.head.appendChild(style);
-
         const disposables = new DisposableCollection();
         disposables.push(this.editorManager.onCurrentEditorChanged(() => {
             const current = this.currentModelKey();

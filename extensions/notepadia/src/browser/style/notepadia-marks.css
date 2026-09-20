@@ -1,0 +1,10 @@
+/*
+ * Search > Mark highlight palette. The class names are assigned by
+ * notepadia-search-mark.ts from its STYLES array; the colors live here so no
+ * TypeScript file carries a hard-coded color string.
+ */
+.notepadia-mark-0 { background: rgba(244, 67, 54, 0.35); }
+.notepadia-mark-1 { background: rgba(33, 150, 243, 0.35); }
+.notepadia-mark-2 { background: rgba(0, 150, 136, 0.35); }
+.notepadia-mark-3 { background: rgba(156, 39, 176, 0.3); }
+.notepadia-mark-4 { background: rgba(255, 152, 0, 0.4); }
