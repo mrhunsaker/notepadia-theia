@@ -12,17 +12,47 @@ import {
 } from '@theia/core/lib/common/menu';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
+import { extendedToLiteral } from '../common/extended-search';
 
 /**
  * Notepad++ style Search > Mark: color every occurrence of the current
  * search term in the document (configurable palette of 5 styles, one per
  * Mark action), clear them, or extend the selection to the next occurrence.
+ * The "Use Extended Search Mode" toggle below the Mark entries makes the
+ * term interpret \n, \t, \r, \\ literals (Notepad++ escape mode), applied to
+ * Mark / Mark All / Select and Find Next.
  */
 export namespace NotepadiaSearchMarkCommands {
     export const MARK: Command = { id: 'notepadia.search.mark', label: 'Mark' };
     export const MARK_ALL: Command = { id: 'notepadia.search.markAll', label: 'Mark All' };
     export const CLEAR: Command = { id: 'notepadia.search.clearMarks', label: 'Clear Marks' };
     export const SELECT_FIND_NEXT: Command = { id: 'notepadia.search.selectFindNext', label: 'Select and Find Next' };
+    export const EXTENDED_MODE: Command = { id: 'notepadia.search.extendedMode', label: 'Use Extended Search Mode' };
+    export const MODE_NORMAL: Command = { id: 'notepadia.search.mode.normal', label: 'Search Mode: Normal' };
+    export const MODE_EXTENDED: Command = { id: 'notepadia.search.mode.extended', label: 'Search Mode: Extended' };
+    export const MODE_REGEX: Command = { id: 'notepadia.search.mode.regex', label: 'Search Mode: Regular Expression' };
+}
+
+export type SearchMode = 'normal' | 'extended' | 'regex';
+
+/**
+ * Term transformation used by every Mark-family action, mirroring Notepad++'s
+ * search mode radio group:
+ *  - normal: the term is used verbatim, following the Find widget's own
+ *    regex / match-case flags;
+ *  - extended: the term is decoded with the Notepad++ escape table and then
+ *    searched as a literal string;
+ *  - regex: the term is passed through untouched as a regular expression.
+ */
+function resolvedTerm(term: string, mode: SearchMode, findIsRegex: boolean): { term: string; isRegex: boolean } {
+    switch (mode) {
+        case 'extended':
+            return { term: extendedToLiteral(term), isRegex: false };
+        case 'regex':
+            return { term, isRegex: true };
+        default:
+            return { term, isRegex: findIsRegex };
+    }
 }
 
 const STYLES: ReadonlyArray<{ readonly className: string; readonly color: string }> = [
@@ -38,6 +68,8 @@ interface FindStateLike {
     matchCase?: boolean;
     isRegex?: boolean;
 }
+
+const MODE_KEY = 'notepadia.search.mode';
 
 @injectable()
 export class NotepadiaSearchMarkContribution implements CommandContribution, MenuContribution, FrontendApplicationContribution {
@@ -73,6 +105,22 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
             isEnabled: () => this.currentEditor() !== undefined,
             execute: () => this.selectFindNext()
         });
+        commands.registerCommand(NotepadiaSearchMarkCommands.EXTENDED_MODE, {
+            isToggled: () => this.searchMode() === 'extended',
+            execute: () => this.setSearchMode(this.searchMode() === 'extended' ? 'normal' : 'extended')
+        });
+        commands.registerCommand(NotepadiaSearchMarkCommands.MODE_NORMAL, {
+            isToggled: () => this.searchMode() === 'normal',
+            execute: () => this.setSearchMode('normal')
+        });
+        commands.registerCommand(NotepadiaSearchMarkCommands.MODE_EXTENDED, {
+            isToggled: () => this.searchMode() === 'extended',
+            execute: () => this.setSearchMode('extended')
+        });
+        commands.registerCommand(NotepadiaSearchMarkCommands.MODE_REGEX, {
+            isToggled: () => this.searchMode() === 'regex',
+            execute: () => this.setSearchMode('regex')
+        });
     }
 
     registerMenus(menus: MenuModelRegistry): void {
@@ -82,6 +130,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.MARK_ALL.id, order: 'b' });
         menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.CLEAR.id, order: 'c' });
         menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.SELECT_FIND_NEXT.id, order: 'd' });
+        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.EXTENDED_MODE.id, order: 'e' });
     }
 
     protected currentEditor(): MonacoEditor | undefined {
@@ -96,15 +145,16 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         if (!editor || !control || !model) {
             return;
         }
-        const term = this.searchTerm(control);
-        if (!term) {
+        const rawTerm = this.searchTerm(control);
+        if (!rawTerm) {
             return;
         }
         const findState = this.findState(control);
+        const { term, isRegex } = resolvedTerm(rawTerm, this.searchMode(), !!findState?.isRegex);
         const matches = model.findMatches(
             term,
             true,
-            !!findState?.isRegex,
+            isRegex,
             !!findState?.matchCase,
             null,
             false,
@@ -143,15 +193,16 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         if (!control || !model) {
             return;
         }
-        const term = this.searchTerm(control);
-        if (!term) {
+        const rawTerm = this.searchTerm(control);
+        if (!rawTerm) {
             return;
         }
         const findState = this.findState(control);
+        const { term, isRegex } = resolvedTerm(rawTerm, this.searchMode(), !!findState?.isRegex);
         const selections = control.getSelections() || [];
         const last = selections[selections.length - 1];
         const from = last ? last.getEndPosition() : { lineNumber: 1, column: 1 };
-        const match = model.findNextMatch(term, from, !!findState?.isRegex, !!findState?.matchCase, null, false);
+        const match = model.findNextMatch(term, from, isRegex, !!findState?.matchCase, null, false);
         if (!match) {
             return;
         }
@@ -165,17 +216,24 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
     }
 
     protected searchTerm(control: monaco.editor.ICodeEditor): string | undefined {
+        // Notepad++ semantics: Mark / Select and Find Next operate on the term
+        // in the Find box. Only fall back to the current selection when the
+        // Find box is empty (the selection is what the Find widget seeds the
+        // box with). Preferring the selection over the Find box caused stale
+        // selections (e.g. the caret left behind by a previous interaction) to
+        // silently override what the user typed.
+        const fromFind = this.findState(control)?.searchString;
+        if (fromFind) {
+            return fromFind;
+        }
         const selection = control.getSelection();
         if (selection && !selection.isEmpty()) {
-            const text = control.getModel()?.getValueInRange(new monaco.Range(
+            return control.getModel()?.getValueInRange(new monaco.Range(
                 selection.startLineNumber, selection.startColumn,
                 selection.endLineNumber, selection.endColumn
             ));
-            if (text) {
-                return text;
-            }
         }
-        return this.findState(control)?.searchString || undefined;
+        return undefined;
     }
 
     protected findState(control: monaco.editor.ICodeEditor): FindStateLike | undefined {
@@ -188,6 +246,21 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         } catch {
             return undefined;
         }
+    }
+
+    protected searchMode(): SearchMode {
+        const stored = window.localStorage.getItem(MODE_KEY);
+        if (stored === 'extended' || stored === '1') {
+            return 'extended';
+        }
+        if (stored === 'regex') {
+            return 'regex';
+        }
+        return 'normal';
+    }
+
+    protected setSearchMode(mode: SearchMode): void {
+        window.localStorage.setItem(MODE_KEY, mode);
     }
 
     protected currentUri(): string | undefined {

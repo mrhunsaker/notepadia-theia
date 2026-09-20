@@ -27,7 +27,11 @@ const SUITES = [
     'column-editor',
     'blank-ops',
     'search-mark',
-    'macros'
+    'macros',
+    'escape-search',
+    'sessions',
+    'character-panel',
+    'print'
 ];
 
 function seedWorkspace() {
@@ -48,6 +52,7 @@ function seedWorkspace() {
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
     write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    write('escape.txt', Buffer.from('alpha\tbeta\none\ttwo\nno tab here\nback\\slash\n(paren) more\n', 'utf8'));
     write('indent.txt', alpha);
 
     write('blank-tab.txt', Buffer.from('\talpha\n    beta\n', 'utf8'));

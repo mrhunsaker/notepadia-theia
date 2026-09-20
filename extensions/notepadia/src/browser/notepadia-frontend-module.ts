@@ -29,6 +29,10 @@ import { NotepadiaColumnEditorContribution } from './notepadia-column-editor';
 import { NotepadiaBlankAndLineOperationsContribution } from './notepadia-blank-and-line-operations';
 import { NotepadiaSearchMarkContribution } from './notepadia-search-mark';
 import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
+import { NotepadiaSessionContribution } from './notepadia-session-contribution';
+import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
+import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
+import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
 export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
@@ -106,6 +110,24 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(NotepadiaMacroContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaMacroContribution);
     bind(MenuContribution).toService(NotepadiaMacroContribution);
+
+    bind(NotepadiaSessionContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaSessionContribution);
+    bind(MenuContribution).toService(NotepadiaSessionContribution);
+
+    bind(NotepadiaCharacterPanelWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaCharacterPanelWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaCharacterPanelWidget)
+    }));
+
+    bind(NotepadiaCharacterPanelContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaCharacterPanelContribution);
+    bind(MenuContribution).toService(NotepadiaCharacterPanelContribution);
+
+    bind(NotepadiaPrintContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaPrintContribution);
+    bind(MenuContribution).toService(NotepadiaPrintContribution);
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only

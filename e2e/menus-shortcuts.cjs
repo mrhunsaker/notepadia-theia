@@ -19,7 +19,9 @@ async function press(page, mods, key) {
     assert('File menu is Notepad++ order',
         JSON.stringify(fileItems) === JSON.stringify(
             ['New', 'Open...', 'Recent Files', 'Save', 'Save As...', 'Save All',
-                'Close', 'Close All', 'Close All But Active']),
+                'Close', 'Close All', 'Close All But Active',
+                'Save Session...', 'Load Session...',
+                'Print', 'Print Preview...']),
         JSON.stringify(fileItems));
     await closeMenus(page);
 
