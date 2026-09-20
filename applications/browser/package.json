@@ -21,7 +21,17 @@
           "workbench.colorTheme": "Notepadia Classic",
           "editor.fontFamily": "Consolas, 'Courier New', 'DejaVu Sans Mono', monospace",
           "editor.fontSize": 13,
-          "editor.lineHeight": 0
+          "editor.lineHeight": 0,
+          "breadcrumbs.enabled": false,
+          "editor.minimap.enabled": false,
+          "editor.glyphMargin": true,
+          "editor.folding": true,
+          "editor.renderLineHighlight": "line",
+          "editor.occurrencesHighlight": "off",
+          "editor.lightbulb.enabled": "off",
+          "editor.suggest.showWords": false,
+          "editor.scrollBeyondLastLine": false,
+          "editor.roundedSelection": false
         }
       }
     },

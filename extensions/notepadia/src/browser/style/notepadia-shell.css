@@ -20,3 +20,32 @@ body.vs #theia-statusBar {
   background: #f2b01e;
   margin-left: 1px;
 }
+
+/*
+ * Notepad++ window surface: menubar, tab bar, editor, status bar - and
+ * nothing else. All chrome rules are gated on body.notepadia-chrome (set by
+ * notepadia-shell-contribution.ts) so the shell can be inspected by dropping
+ * the class.
+ */
+
+/* No app icon next to the menubar. */
+body.notepadia-chrome #theia:icon {
+  display: none;
+}
+
+/* No activity bars / side tab strips. The Folder as Workspace panel content
+ * still renders inside the expanded left area. */
+body.notepadia-chrome .theia-app-left.theia-app-sides,
+body.notepadia-chrome .theia-app-right.theia-app-sides {
+  display: none;
+}
+
+/* No breadcrumbs above the editor. */
+body.notepadia-chrome .theia-breadcrumbs {
+  display: none;
+}
+
+/* View > Status Bar toggle. */
+body.notepadia-chrome.notepadia-statusbar-hidden #theia-statusBar {
+  display: none;
+}

@@ -34,6 +34,8 @@ import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widge
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
+import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE } from './notepadia-shell-contribution';
+import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
 // Product stylesheet layer. The webpack application build resolves this css
@@ -137,6 +139,24 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
 
     bind(NotepadiaThemeContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaThemeContribution);
+
+    bind(NotepadiaShellContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaShellContribution);
+    bind(CommandContribution).toService(NotepadiaShellContribution);
+    bind(MenuContribution).toService(NotepadiaShellContribution);
+
+    bind(PreferenceContribution).toConstantValue({
+        schema: {
+            type: 'object',
+            properties: {
+                [NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE]: {
+                    type: 'boolean',
+                    description: 'Show the Notepadia toolbar.',
+                    default: true
+                }
+            }
+        }
+    });
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only
