@@ -33,9 +33,10 @@ import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
-import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE } from './notepadia-shell-contribution';
+import { NotepadiaToolbarWidget } from './notepadia-toolbar-widget';
+import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
@@ -145,6 +146,13 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(FrontendApplicationContribution).toService(NotepadiaShellContribution);
     bind(CommandContribution).toService(NotepadiaShellContribution);
     bind(MenuContribution).toService(NotepadiaShellContribution);
+
+    // The toolbar is a single long-lived widget in the shell's top area rather
+    // than a WidgetFactory-created view, so it is bound as a singleton and
+    // injected straight into its contribution.
+    bind(NotepadiaToolbarWidget).toSelf().inSingletonScope();
+    bind(NotepadiaToolbarContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaToolbarContribution);
 
     bind(PreferenceContribution).toConstantValue({
         schema: {

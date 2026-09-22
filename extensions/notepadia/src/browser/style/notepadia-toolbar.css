@@ -1,30 +1,67 @@
 /*
- * A3: Notepad++ toolbar.
+ * Notepad++ toolbar (A3).
  *
- * A 26px chrome row of 24x24 icon buttons between the menubar and the tab
- * bar. Every color comes from theme tokens. The printer button has no
- * codicon, so it is drawn here as a CSS mask of an inline SVG (fill is
- * irrelevant to a mask) and colored with `currentColor`, which keeps color
- * strings out of TypeScript.
+ * Every colour is a Theia theme token, so the toolbar follows Notepadia
+ * Classic / Classic Dark (A1) and any other installed theme without a second
+ * set of rules.
  */
 
-.notepadia-toolbar-row {
+/*
+ * Theia 1.75 keeps the menu bar in `#theia-top-panel`, which is a `display:
+ * flex` row. A second widget added to the top area therefore lands *beside*
+ * the menu bar, not below it. Wrapping the row lets the toolbar take a full
+ * width of its own and become its own 26px strip underneath the menu bar;
+ * hiding the widget collapses the panel back to the menu bar alone.
+ */
+body.notepadia-chrome #theia-top-panel {
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+
+body.notepadia-chrome .notepadia-toolbar {
+    flex: 0 0 100%;
+    order: 2;
+}
+
+.notepadia-toolbar {
+    /* Notepad++ ships a 26px toolbar strip. */
+    min-height: 26px;
+    height: 26px;
+    max-height: 26px;
+    flex: 0 0 26px;
+    overflow: hidden;
+    background: var(--theia-menu-background, var(--theia-editor-background));
+    color: var(--theia-menu-foreground, var(--theia-foreground));
+    border-bottom: 1px solid var(--theia-menu-border, var(--theia-contrastBorder, transparent));
+    box-sizing: border-box;
+}
+
+.notepadia-toolbar-container {
     display: flex;
     align-items: center;
-    height: 26px;
-    padding: 0 4px;
-    margin: 0;
-    box-sizing: border-box;
-    border-bottom: 1px solid var(--theia-tab-border, #adadad);
-    background: var(--theia-titleBar-activeBackground, #f0f0f0);
-    color: var(--theia-foreground, #000000);
+    height: 100%;
+    padding: 0 2px;
+    gap: 1px;
+    /*
+     * The full Notepad++ button set is about 700px wide. Below that the strip
+     * scrolls rather than wrapping to a second row, because a toolbar that
+     * changes height would reflow the editor every time the window is resized.
+     */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
 }
 
-.notepadia-toolbar-row:focus {
-    outline: none;
+.notepadia-toolbar-container::-webkit-scrollbar {
+    height: 3px;
 }
 
-.notepadia-toolbar-btn {
+.notepadia-toolbar-container::-webkit-scrollbar-thumb {
+    background: var(--theia-scrollbarSlider-background);
+}
+
+.notepadia-toolbar-button {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -33,51 +70,83 @@
     padding: 0;
     margin: 0;
     border: 1px solid transparent;
-    border-radius: 2px;
+    border-radius: 3px;
     background: transparent;
     color: inherit;
     cursor: pointer;
-    box-sizing: border-box;
-    flex: none;
+    /* Lumino sets a default cursor on top-panel children. */
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-.notepadia-toolbar-btn:hover:not(:disabled) {
-    background: var(--theia-menubar-selectionBackground, #c8c8c8);
+.notepadia-toolbar-button:hover:not(.notepadia-toolbar-button-disabled) {
+    background: var(--theia-toolbar-hoverBackground, var(--theia-list-hoverBackground));
+    border-color: var(--theia-menu-selectionBorder, transparent);
 }
 
-.notepadia-toolbar-btn:focus-visible {
-    outline: 1px solid var(--theia-focusBorder, #0078d7);
+.notepadia-toolbar-button:active:not(.notepadia-toolbar-button-disabled) {
+    background: var(--theia-toolbar-activeBackground, var(--theia-list-activeSelectionBackground));
+}
+
+/*
+ * A visible focus ring is the whole point of the roving tabindex; never trade
+ * it for a cleaner resting state.
+ */
+.notepadia-toolbar-button:focus-visible,
+.notepadia-toolbar-button:focus {
+    outline: 1px solid var(--theia-focusBorder);
     outline-offset: -1px;
 }
 
-.notepadia-toolbar-btn:disabled {
-    opacity: 0.3;
+.notepadia-toolbar-button-toggled {
+    background: var(--theia-inputOption-activeBackground, var(--theia-list-activeSelectionBackground));
+    border-color: var(--theia-inputOption-activeBorder, var(--theia-focusBorder));
+    color: var(--theia-inputOption-activeForeground, inherit);
+}
+
+/*
+ * Disabled buttons keep `aria-disabled` rather than the `disabled` attribute so
+ * they stay in the tab ring; the greying is what communicates the state
+ * visually, and pointer-events must stay on so the tooltip still appears.
+ */
+.notepadia-toolbar-button-disabled {
+    opacity: 0.4;
     cursor: default;
 }
 
-.notepadia-toolbar-btn[aria-pressed='true'] {
-    background: var(--theia-menubar-selectionBackground, #c8c8c8);
+.notepadia-toolbar-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    pointer-events: none;
 }
 
 .notepadia-toolbar-separator {
-    width: 0;
+    flex: 0 0 auto;
+    width: 1px;
     height: 16px;
-    margin: 0 4px;
-    border-left: 1px solid var(--theia-tab-border, #adadad);
-    flex: none;
+    margin: 0 3px;
+    background: var(--theia-menu-separatorBackground, var(--theia-contrastBorder, currentColor));
+    opacity: 0.5;
 }
 
-.notepadia-toolbar-glyph {
-    display: block;
-    font: normal normal normal 16px/1 codicon;
-    color: inherit;
+/* High-contrast and forced-colors users get real system colours. */
+@media (forced-colors: active) {
+    .notepadia-toolbar-icon {
+        forced-color-adjust: auto;
+    }
+
+    .notepadia-toolbar-button-toggled {
+        border-color: Highlight;
+    }
+
+    .notepadia-toolbar-button:focus {
+        outline: 2px solid Highlight;
+    }
 }
 
-.notepadia-toolbar-print-glyph {
-    display: block;
-    width: 16px;
-    height: 16px;
-    background-color: currentColor;
-    -webkit-mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Cpath fill="%23000" d="M5 1h6v7H5V1zm-3 6h12v5h-2v-1H4v1H2V7zm4 4h4v5H6V11z"/%3E%3C/svg%3E') no-repeat center / 16px 16px;
-    mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"%3E%3Cpath fill="%23000" d="M5 1h6v7H5V1zm-3 6h12v5h-2v-1H4v1H2V7zm4 4h4v5H6V11z"/%3E%3C/svg%3E') no-repeat center / 16px 16px;
+@media (prefers-reduced-motion: reduce) {
+    .notepadia-toolbar-button {
+        transition: none;
+    }
 }

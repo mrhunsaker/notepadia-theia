@@ -20,6 +20,7 @@ const SUITES = [
     'language',
     'view-menu',
     'theme',
+    'toolbar',
     'search',
     'document-list',
     'spaces-tabs',
