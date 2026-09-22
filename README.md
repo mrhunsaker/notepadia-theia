@@ -143,6 +143,13 @@ The Notepad++-style feature layer is implemented as the shared
   five styles; Select and Find Next adds each next occurrence to the
   selection
 - View > Document Map toggles the minimap for the active editor
+- Notepad++ window surface: Notepadia Classic light/dark themes, an extension
+  stylesheet layer, and shell chrome reduced to the Notepad++ shape (no
+  activity bar, no right-hand panel, no breadcrumbs, a minimal status bar)
+- a 26px Notepad++-style toolbar under the menu bar: 26 buttons grouped as
+  file actions, print, clipboard, undo/redo, search, zoom, view toggles and
+  macros, with tooltips, roving-tabindex keyboard navigation, `aria-pressed`
+  states on real toggles, and a persistent `View > Toolbar` toggle
 - product branding as Notepadia
 - product icons: a pink, Notepad-style icon for Windows (`.ico`), macOS
   (`.icns`) and Linux (size set) packaging, plus a matching browser favicon
@@ -151,7 +158,7 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 16
+- CI workflows: build (browser app on Linux), e2e (lint + build + 22
   Puppeteer test suites with artifact upload on failure), release (tag-triggered
   publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
   Pages)
@@ -196,7 +203,7 @@ yarn lint
 yarn build
 ```
 
-Run the 16 end-to-end suites (headless Chromium via Puppeteer):
+Run the 22 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -209,18 +216,29 @@ running `yarn start` instance.
 
 ## Next milestones
 
-Tracked in `notepadia_prompt_20260919.json`. Remaining work:
+Tracked in `pair_programming_prompt.json`. The Notepad++ visual identity
+work (themes, shell chrome and the toolbar) is complete. Remaining work, in
+execution order:
 
-1. The macOS build in the release workflow is fully verified unsigned
-   (plist, file associations, DMG; code-signing/notarization is a
-   configuration-only drop-in once an Apple Developer ID certificate and
-   notarization credentials exist)
-2. M23's higher-value missing Notepad++ features are implemented: Macros,
-   Column Editor, Blank Operations, Split Lines / Remove Consecutive
-   Duplicate Lines, Search Mark/Select-and-Find-Next and the Document Map.
-   (Optional follow-up: Search Mark extended escape mode.)
-3. Real unit tests for `yarn test`, and the first published `vYYYY.M.D`
-   release to prove the end-to-end updater flow
+1. Phase 1 finish: the Notepad++ default behavior profile (word wrap and
+   auto-indent defaults, untitled naming), status-bar parity with a real
+   INS/OVR mode, and tab-bar fidelity with Notepad++ dirty/read-only icons
+   and context menu
+2. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
+   dialog (Find / Replace / Mark / Find-in-Files tabs) instead of Monaco's
+   inline widget
+3. Browser-target correctness: opening and saving files from the user's own
+   computer, resolving browser-reserved keybinding conflicts, and
+   unsaved-work protection and crash recovery
+4. Remaining menu and panel debt: menu completeness including the Window
+   menu, the Function List panel and Folder-as-Workspace presentation, an
+   incremental search bar, a browser-appropriate Run menu, and the Search
+   Results window
+5. Accessibility and release verification: keyboard/screen-reader/contrast
+   verification, test growth with a visual baseline, a documentation truth
+   pass, macOS release-workflow verification, Electron parity for everything
+   added, and the first published `vYYYY.M.D` release to prove the updater
+   flow end to end
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),

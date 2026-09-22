@@ -228,6 +228,35 @@ which is not installed in this build). The built-in Monaco editor core ships no
 are the only real tokenization available; keyword/string/number tokens are
 emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
 
+### Toolbar
+
+`NotepadiaToolbarContribution` mounts the Notepad++ toolbar into the shell's
+top area and `NotepadiaToolbarWidget` renders it as a 26px strip. Key
+decisions:
+
+- The widget is added in `onDidInitializeLayout` (not `onStart`) so the menu
+  bar, which is added during the `onStart` phase, exists first.
+- The declarative model lives in `notepadia-toolbar-items.ts`, which is
+  deliberately **import-free** so the compiled module can be loaded from the
+  Node-side unit tests; the tests cross-check every button's command id
+  against the registered commands and fail the build if a button ever points
+  at a command that does not exist.
+- Theia 1.75 lays the top area out as a flex *row*, so a second widget would
+  sit beside the menu bar. The stylesheet layer wraps the panel instead
+  (`#theia-top-panel { flex-wrap: wrap }`, the toolbar at `flex: 0 0 100%`),
+  putting the strip onto its own row below the menu bar.
+- Lumino hard-sizes the top panel to its fit minimum (~the menu bar's 32px),
+  which no CSS can grow, so a second row would sit behind the editor area and
+  swallow clicks. The contribution raises the panel's box-layout **size
+  basis** (`BoxPanel.setSizeBasis`, by exactly the 26px strip) and lowers it
+  again when `View ▸ Toolbar` hides the toolbar, so the editor area shifts
+  down below the strip.
+- Accessibility: a single tab stop (roving tabindex, `nextFocusIndex` helpers
+  unit-tested without a DOM), arrow + `Home`/`End` navigation, and
+  `aria-pressed` only on buttons whose command reports a real toggled state
+  (the `editor.wordWrap` preference gates the Word Wrap button because Theia's
+  `toggleWordWrap` handler registers no `isToggled`).
+
 ## Automatic updates
 
 The desktop app uses `electron-updater` fed by GitHub Releases

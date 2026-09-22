@@ -23,8 +23,13 @@ The product is organized as a monorepo:
   Ctrl+F2 bookmarks, and more.
 - Encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI, ISO-8859 family).
 - EOL conversion (LF / CRLF) with live status-bar display.
-- Bookmarks with gutter glyphs and next/previous navigation.
+- Bookmarks with gutter glyphs and next/previous navigation, plus a Document
+  Map (toggleable minimap) for the editor.
 - Curated `Language` menu with lightweight Monarch tokenizers.
+- A Notepad++-style 26px toolbar under the menu bar (file, print, clipboard,
+  undo/redo, search, zoom, view toggles, macros) with keyboard navigation.
+- Notepadia Classic light/dark themes and a Notepad++ window surface (no
+  activity bar, no right-hand panel, no breadcrumbs).
 - Recent files with session persistence.
 - Automatic updates over GitHub Releases (desktop app).
 
@@ -44,6 +49,15 @@ Project milestones:
 - **M19** Automatic updates (electron-updater).
 - **M20** CI release workflow (GitHub Actions).
 - **M21** Documentation site (MkDocs on GitHub Pages).
+- **M22** macOS release-workflow verification (unsigned builds; signing
+  pending an Apple Developer ID).
+- **M23** Macros, Column Editor, Blank Operations, Split Lines /
+  Remove Consecutive Duplicate Lines, Search Mark / Select-and-Find-Next,
+  and the Document Map.
+- **M24** Unit tests for extracted logic, wired into `yarn test`.
+- **M25** Escape-search mode, named sessions, character panel, and print.
+- **M26** Notepad++ visual identity: Notepadia Classic light/dark themes,
+  shell-chrome reduction, and the toolbar.
 
 See [Architecture](architecture.md) for the internal design, and
 [Releases & updates](releases.md) for how new builds reach users.

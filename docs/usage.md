@@ -19,6 +19,28 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.
 
+## Toolbar
+
+A 26px Notepad++-style toolbar runs under the menu bar. `View ▸ Toolbar`
+toggles the strip on and off, and the choice survives reloads.
+
+- **Groups**, left to right: file actions (New, Open, Save, Save All, Close,
+  Close All), Print, clipboard (Cut / Copy / Paste), history (Undo / Redo),
+  search (Find, Replace, Find Next, Find Previous), zoom (In / Out /
+  Restore Default), view toggles (Word Wrap, Show All Characters, Document
+  Map, Folder as Workspace) and macros (Start Recording, Stop Recording,
+  Play Recording).
+- **State**: buttons that map to a real toggle — `Word Wrap`,
+  `Show All Characters`, `Document Map`, `Folder as Workspace` and
+  `Start Recording` — render `aria-pressed`, so their state is visible and
+  announced. Buttons without a toggled meaning never claim one.
+- **Keyboard**: the strip is a single tab stop (ARIA toolbar / roving
+  tabindex). `→` / `←` move between buttons, `Home` / `End` jump to the
+  first/last, and `Enter` activates the focused button. Disabled buttons are
+  skipped.
+- Toolbar buttons follow the current editor: file/editor actions such as Save
+  and Undo are enabled only while a file is open.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |
