@@ -142,6 +142,15 @@ The Notepad++-style feature layer is implemented as the shared
 - Search > Mark: Mark/Mark All/Clear Marks color the search term in one of
   five styles; Select and Find Next adds each next occurrence to the
   selection
+- extended search mode (Search > Search Mode > Extended): Notepad++'s `\n`,
+  `\r`, `\t`, `\xHH`, `\o...`, `\d...`, `\b...` escapes are expanded to
+  literals before searching
+- Edit > Character Panel: a keyboard-accessible ASCII/symbol grid that inserts
+  the picked character at the caret
+- File > Save Session... / Load Session...: named session files persist the
+  open tab set, order, active tab, caret positions and bookmarks
+- File > Print (Ctrl+P): prints the active document through an iframe with
+  syntax colors, line numbers and header/footer variables
 - View > Document Map toggles the minimap for the active editor
 - Notepad++ window surface: Notepadia Classic light/dark themes, an extension
   stylesheet layer, and shell chrome reduced to the Notepad++ shape (no
@@ -150,6 +159,10 @@ The Notepad++-style feature layer is implemented as the shared
   file actions, print, clipboard, undo/redo, search, zoom, view toggles and
   macros, with tooltips, roving-tabindex keyboard navigation, `aria-pressed`
   states on real toggles, and a persistent `View > Toolbar` toggle
+- a Notepad++-style tab bar: red/blue floppy saved-dirty icons and a padlock
+  for read-only tabs, Notepad++'s right-click tab menu (Close All BUT This,
+  Close All to the Left/Right, Copy File Path/Name/Directory Path), and
+  middle-click to close a tab
 - product branding as Notepadia
 - product icons: a pink, Notepad-style icon for Windows (`.ico`), macOS
   (`.icns`) and Linux (size set) packaging, plus a matching browser favicon
@@ -158,7 +171,7 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 22
+- CI workflows: build (browser app on Linux), e2e (lint + build + 23
   Puppeteer test suites with artifact upload on failure), release (tag-triggered
   publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
   Pages)
@@ -203,7 +216,7 @@ yarn lint
 yarn build
 ```
 
-Run the 22 end-to-end suites (headless Chromium via Puppeteer):
+Run the 23 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -217,13 +230,12 @@ running `yarn start` instance.
 ## Next milestones
 
 Tracked in `pair_programming_prompt.json`. The Notepad++ visual identity
-work (themes, shell chrome and the toolbar) is complete. Remaining work, in
-execution order:
+work (themes, shell chrome, the toolbar and the tab bar) is complete. Remaining
+work, in execution order:
 
 1. Phase 1 finish: the Notepad++ default behavior profile (word wrap and
-   auto-indent defaults, untitled naming), status-bar parity with a real
-   INS/OVR mode, and tab-bar fidelity with Notepad++ dirty/read-only icons
-   and context menu
+   auto-indent defaults, untitled naming) and status-bar parity with a real
+   INS/OVR mode
 2. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
    dialog (Find / Replace / Mark / Find-in-Files tabs) instead of Monaco's
    inline widget

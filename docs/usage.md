@@ -41,6 +41,24 @@ toggles the strip on and off, and the choice survives reloads.
 - Toolbar buttons follow the current editor: file/editor actions such as Save
   and Undo are enabled only while a file is open.
 
+## Tab bar
+
+The editor tab bar uses Notepad++'s own state icons instead of VS Code's dot:
+
+- a **red floppy** means the file has unsaved changes, a **blue floppy** that
+  it is saved, and a **padlock** that the document is read-only.
+
+Right-clicking a tab opens the Notepad++ tab menu rather than VS Code's:
+
+- **Close**, **Close All BUT This**, **Close All to the Left** and **Close All
+  to the Right**
+- **Save** and **Save As...**
+- **Print**
+- **Copy File Path**, **Copy File Name** and **Copy Directory Path**
+
+Middle-clicking a tab closes it. `View > Tab Bar > Draw Close Button` toggles
+whether every tab shows an always-visible `x` on hover.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

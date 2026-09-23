@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026.9.23 (WS-A visual identity: themes, shell chrome, toolbar, tab bar)
+
+- **Notepad++ tab bar fidelity**: tabs show Notepad++'s icon states — a red
+  floppy for modified, a blue floppy when saved, a padlock when read-only —
+  replacing the VS Code dot. Right-clicking a tab opens the Notepad++ menu
+  (Close, Close All BUT This, Close All to the Left/Right, Save, Save As...,
+  Print, Copy File Path/Name/Directory Path) instead of VS Code's tab menu.
+  Middle-click closes a tab. `View > Tab Bar > Draw Close Button` toggles the
+  always-visible close button on tabs.
+- **Notepadia Classic theme layer**: a light theme keyed to Notepad++'s
+  defaults (white editor, grey gutter, black text) and a dark counterpart,
+  both registered with Monaco; all styling now lives in one extension-owned
+  stylesheet layer using Theia color tokens. `Notepadia Classic` is the
+  default on a cold profile.
+- **Shell chrome reduction**: the activity bar, right panel, breadcrumbs,
+  minimap and non-Notepad++ status bar items are hidden by default;
+  `View > Folder as Workspace` brings the left panel back.
+- **Notepad++-style toolbar**: a 26px icon toolbar under the menubar
+  (file, print, clipboard, undo/redo, search, zoom, view toggles, macros)
+  with tooltips, roving-tabindex keyboard navigation and `aria-pressed`
+  states; `View > Toolbar` persists.
+- **Extended search mode**: Search > Mark respects a Search Mode submenu
+  (Normal / Extended / Regular Expression); extended mode expands Notepad++'s
+  `\n \r \t \0 \xHH \oOOO \dDDD \bBBBBBBB` escapes to literals
+  (`src/common/extended-search.ts`, unit tested).
+- **Character Panel** (Edit > Character Panel): a keyboard-accessible ASCII
+  and symbol grid that inserts the picked character at the caret.
+- **Named sessions** (File > Save Session... / Load Session...): session
+  files persist the open tab set, order, active tab, caret positions and
+  bookmarks (`src/common/sessions.ts`, unit tested).
+- **Print** (File > Print, Ctrl+P): renders the document into an iframe with
+  syntax colors, line numbers and header/footer variables before opening the
+  print dialog.
+- e2e grew to 23 suites.
+
 ## 2026.9.18 (unit tests)
 
 - `yarn test` is no longer a no-op: the Notepad++-style logic is extracted

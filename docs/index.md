@@ -30,6 +30,9 @@ The product is organized as a monorepo:
   undo/redo, search, zoom, view toggles, macros) with keyboard navigation.
 - Notepadia Classic light/dark themes and a Notepad++ window surface (no
   activity bar, no right-hand panel, no breadcrumbs).
+- A Notepad++-style tab bar: red/blue floppy saved-dirty icons and a padlock
+  for read-only tabs, the Notepad++ right-click tab menu, and middle-click to
+  close.
 - Recent files with session persistence.
 - Automatic updates over GitHub Releases (desktop app).
 
@@ -57,7 +60,8 @@ Project milestones:
 - **M24** Unit tests for extracted logic, wired into `yarn test`.
 - **M25** Escape-search mode, named sessions, character panel, and print.
 - **M26** Notepad++ visual identity: Notepadia Classic light/dark themes,
-  shell-chrome reduction, and the toolbar.
+  shell-chrome reduction, the toolbar, and tab-bar fidelity (floppy saved/dirty
+  icons, the Notepad++ tab context menu, middle-click close).
 
 See [Architecture](architecture.md) for the internal design, and
 [Releases & updates](releases.md) for how new builds reach users.
