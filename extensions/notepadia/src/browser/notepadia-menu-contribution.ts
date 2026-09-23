@@ -5,6 +5,7 @@ import {
 } from '@theia/core/lib/common';
 import { CommonCommands, CommonMenus } from '@theia/core/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
+import { NotepadiaShellCommands } from './notepadia-shell-contribution';
 
 @injectable()
 export class NotepadiaMenuContribution implements MenuContribution {
@@ -241,8 +242,10 @@ export class NotepadiaMenuContribution implements MenuContribution {
         // View
         const viewZoom = [...CommonMenus.VIEW, '1_notepadia-zoom'];
         const viewTabSize = [...CommonMenus.VIEW, '2_notepadia-tab-size'];
+        const viewTabBar = [...CommonMenus.VIEW, '3_notepadia-tab-bar'];
         menus.registerSubmenu(viewZoom, 'Zoom');
         menus.registerSubmenu(viewTabSize, 'Tab Size');
+        menus.registerSubmenu(viewTabBar, 'Tab Bar');
         menus.registerMenuAction(viewZoom, {
             commandId: NotepadiaCommands.ZOOM_IN.id,
             label: 'Zoom In',
@@ -297,6 +300,17 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: 'editor.action.toggleWordWrap',
             label: 'Toggle Word Wrap',
             order: 'z'
+        });
+
+        // View > Tab Bar. Notepad++ offers Multi-line, Vertical and Lock here;
+        // Theia has no native backing for any of them (the multi-line tab bar is
+        // a core feature that cannot be toggled per-view), so only the genuinely
+        // implementable "Draw Close Button" toggle ships; the rest return with
+        // the A6/C3 milestones, which own tab-bar preferences.
+        menus.registerMenuAction(viewTabBar, {
+            commandId: NotepadiaShellCommands.TOGGLE_DRAW_CLOSE_BUTTON.id,
+            label: 'Draw Close Button',
+            order: 'a'
         });
 
         // Settings

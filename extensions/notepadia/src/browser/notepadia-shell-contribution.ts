@@ -1,13 +1,16 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
-import { FrontendApplication, FrontendApplicationContribution } from '@theia/core/lib/browser';
+import { FrontendApplication, FrontendApplicationContribution, Widget } from '@theia/core/lib/browser';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-menus';
 import { StatusBar } from '@theia/core/lib/browser/status-bar/status-bar';
 import { PreferenceService } from '@theia/core/lib/common/preferences';
+import { NOTEPADIA_TAB_ID_PREFIX } from './notepadia-tab-decorator';
 
 export const NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE = 'notepadia.toolbar.visible';
+/** Draw a close button on every tab (A4); when disabled it only shows on the active tab. */
+export const NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE = 'notepadia.tabBar.drawCloseButton';
 
 /**
  * Body classes owned by the shell layer. `notepadia-chrome` gates the
@@ -16,6 +19,7 @@ export const NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE = 'notepadia.toolbar.visible';
  */
 export const NOTEPADIA_CHROME_CLASS = 'notepadia-chrome';
 export const NOTEPADIA_STATUS_BAR_HIDDEN_CLASS = 'notepadia-statusbar-hidden';
+export const NOTEPADIA_TAB_CLOSE_ALL_CLASS = 'notepadia-tabclose-all';
 
 export namespace NotepadiaShellCommands {
     export const TOGGLE_FOLDER_WORKSPACE: Command = {
@@ -29,6 +33,10 @@ export namespace NotepadiaShellCommands {
     export const TOGGLE_STATUS_BAR: Command = {
         id: 'notepadia.view.toggleStatusBar',
         label: 'Status Bar'
+    };
+    export const TOGGLE_DRAW_CLOSE_BUTTON: Command = {
+        id: 'notepadia.view.toggleDrawCloseButton',
+        label: 'Draw Close Button'
     };
 }
 
@@ -64,6 +72,56 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
                 this.statusBar.removeElement(id).catch(() => { });
             }
         }, 0);
+
+        // A4 - middle-clicking a tab closes it (mouse buttons 2+ are reported
+        // through the `auxclick` event). Capture so the close happens even when
+        // a child of the tab handles the click.
+        document.addEventListener('auxclick', this.handleAuxClick, true);
+
+        // A4 - View > Tab Bar > Draw Close Button.
+        this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
+        this.preferenceService.onPreferenceChanged(event => {
+            if (event.preferenceName === NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE) {
+                this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
+            }
+        });
+    }
+
+    /** Middle click anywhere on a tab closes that tab (Notepad++ behavior). */
+    protected readonly handleAuxClick = (event: MouseEvent): void => {
+        if (event.button !== 1) {
+            return;
+        }
+        const tab = event.target instanceof Element ? event.target.closest<HTMLElement>('.lm-TabBar-tab') : undefined;
+        if (!tab) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const tabId = tab.id || '';
+        if (!tabId.startsWith(NOTEPADIA_TAB_ID_PREFIX)) {
+            return;
+        }
+        this.closeTab(tabId.slice(NOTEPADIA_TAB_ID_PREFIX.length));
+    };
+
+    /** Close a widget by id through the shell (which prompts when the tab is dirty). */
+    protected closeTab(widgetId: string): void {
+        const widget: Widget | undefined = this.shell.getWidgetById(widgetId);
+        if (!widget) {
+            return;
+        }
+        for (const tabBar of this.shell.mainAreaTabBars) {
+            const title = [...tabBar.titles].find(candidate => candidate.owner === widget);
+            if (title) {
+                void this.shell.closeTabs(tabBar, candidate => candidate === title);
+                return;
+            }
+        }
+    }
+
+    protected applyDrawCloseButton(drawOnEveryTab: boolean): void {
+        document.body.classList.toggle(NOTEPADIA_TAB_CLOSE_ALL_CLASS, drawOnEveryTab);
     }
 
     async onDidInitializeLayout(): Promise<void> {
@@ -95,6 +153,13 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
         commands.registerCommand(NotepadiaShellCommands.TOGGLE_STATUS_BAR, {
             isToggled: () => !document.body.classList.contains(NOTEPADIA_STATUS_BAR_HIDDEN_CLASS),
             execute: () => document.body.classList.toggle(NOTEPADIA_STATUS_BAR_HIDDEN_CLASS)
+        });
+        commands.registerCommand(NotepadiaShellCommands.TOGGLE_DRAW_CLOSE_BUTTON, {
+            isToggled: () => this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true),
+            execute: () => {
+                const drawOnEveryTab = this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true);
+                this.preferenceService.set(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, !drawOnEveryTab).catch(() => { });
+            }
         });
     }
 

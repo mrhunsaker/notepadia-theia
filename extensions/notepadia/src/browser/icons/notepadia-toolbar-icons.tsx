@@ -1,5 +1,5 @@
 /*
- * Toolbar glyphs (A3).
+ * Toolbar and document-tab glyphs (A3, A4).
  *
  * These are inlined as React elements rather than shipped as an external
  * sprite file. A sprite would have to be resolved through the application's
@@ -9,6 +9,10 @@
  *
  * Grid is 16x16. Strokes are 1.25 wide on a whole- or half-pixel grid so the
  * glyphs stay crisp at the 26px toolbar height.
+ *
+ * The tab-state glyphs (TAB_GLYPHS) are the same art the tab bar paints as
+ * data-URI backgrounds in style/notepadia-shell.css; they are exported so the
+ * shapes exist in one place for anything that renders them inline.
  */
 
 import * as React from '@theia/core/shared/react';
@@ -21,6 +25,9 @@ const S = {
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const
 };
+
+/** Solid fills, used where the artwork is a silhouette rather than an outline. */
+const F = { fill: 'currentColor' as const };
 
 /** A magnifier, shared by every search/zoom glyph. */
 const magnifier = (
@@ -197,3 +204,33 @@ export function toolbarIcon(icon: NotepadiaToolbarIcon): React.ReactNode {
         </svg>
     );
 }
+
+/**
+ * Document-tab state glyphs (A4). A 3.5" floppy carries the dirty/saved state
+ * and a padlock the read-only state, matching Notepad++. `style/notepadia-shell.css`
+ * paints these shapes onto the tab bar as data-URI backgrounds so they are not
+ * theme-masked by `--theia-icon-foreground`; these nodes mirror that art for
+ * inline use (tooltips, dialogs).
+ */
+export const TAB_GLYPHS: Record<'saved' | 'dirty' | 'readonly', React.ReactNode> = {
+    'saved': (
+        <>
+            <path d="M2.8 1.8h8.2L13.6 4.4v9.9H2.8z" {...F} />
+            <path d="M4.8 1.8v3.3H8V1.8z" fill="#ffffff" />
+            <path d="M4.2 8.2h7.6V10H4.2z" {...F} />
+        </>
+    ),
+    'dirty': (
+        <>
+            <path d="M2.8 1.8h8.2L13.6 4.4v9.9H2.8z" {...F} />
+            <path d="M4.8 1.8v3.3H8V1.8z" fill="#ffffff" />
+            <path d="M4.2 8.2h7.6V10H4.2z" {...F} />
+        </>
+    ),
+    'readonly': (
+        <>
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" {...S} />
+            <rect x="4" y="7" width="8" height="6" rx="1" fill="currentColor" />
+        </>
+    )
+};

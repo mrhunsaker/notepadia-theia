@@ -33,7 +33,8 @@ const SUITES = [
     'escape-search',
     'sessions',
     'character-panel',
-    'print'
+    'print',
+    'tab-bar'
 ];
 
 function seedWorkspace() {

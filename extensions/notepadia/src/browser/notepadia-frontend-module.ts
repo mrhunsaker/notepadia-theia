@@ -34,7 +34,10 @@ import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widge
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
-import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE } from './notepadia-shell-contribution';
+import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE, NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE } from './notepadia-shell-contribution';
+import { NotepadiaTabDecorator } from './notepadia-tab-decorator';
+import { NotepadiaTabContextMenuContribution } from './notepadia-tab-context-menu';
+import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
 import { NotepadiaToolbarWidget } from './notepadia-toolbar-widget';
 import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
@@ -147,6 +150,16 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(CommandContribution).toService(NotepadiaShellContribution);
     bind(MenuContribution).toService(NotepadiaShellContribution);
 
+    // A4 - Notepad++ tab bar: state icons and the tab context menu.
+    bind(NotepadiaTabDecorator).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaTabDecorator);
+    bind(TabBarDecorator).toService(NotepadiaTabDecorator);
+
+    bind(NotepadiaTabContextMenuContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaTabContextMenuContribution);
+    bind(MenuContribution).toService(NotepadiaTabContextMenuContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaTabContextMenuContribution);
+
     // The toolbar is a single long-lived widget in the shell's top area rather
     // than a WidgetFactory-created view, so it is bound as a singleton and
     // injected straight into its contribution.
@@ -161,6 +174,11 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
                 [NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE]: {
                     type: 'boolean',
                     description: 'Show the Notepadia toolbar.',
+                    default: true
+                },
+                [NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE]: {
+                    type: 'boolean',
+                    description: 'Draw a close button on every tab of the tab bar.',
                     default: true
                 }
             }

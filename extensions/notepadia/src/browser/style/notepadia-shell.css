@@ -49,3 +49,107 @@ body.notepadia-chrome .theia-breadcrumbs {
 body.notepadia-chrome.notepadia-statusbar-hidden #theia-statusBar {
   display: none;
 }
+
+/*
+ * A4 - Notepad++ tab bar.
+ *
+ * Shape: square corners, a 1px separator between tabs, a 2px blue top accent
+ * on the active tab and a compact 22px tab height. Only the tab bar over the
+ * editor area is reshaped; side/bottom panels keep their own chrome.
+ */
+
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] {
+  min-height: 23px;
+}
+
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-content {
+  min-height: 22px;
+}
+
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-tab {
+  height: 22px;
+  line-height: 22px;
+  min-width: 40px;
+  max-width: 220px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--theia-tab-inactiveForeground);
+  font-size: 12px;
+  box-shadow: none;
+}
+
+/* 1px separator between tabs. */
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-tab + .lm-TabBar-tab {
+  border-left: 1px solid var(--theia-tab-border);
+}
+
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-tab:hover {
+  background: var(--theia-tab-inactiveBackground);
+  color: var(--theia-foreground);
+}
+
+/* Active tab: flat surface with the 2px top accent. */
+body.notepadia-chrome #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-tab.lm-mod-current {
+  background: var(--theia-editorGroupHeader-tabsBackground);
+  color: var(--theia-foreground);
+  box-shadow: inset 0 2px 0 var(--theia-focusBorder);
+}
+
+/*
+ * Tab state icons. A blue floppy marks a clean file, a red floppy a modified
+ * file and a padlock a read-only file (Notepad++). These are painted on the
+ * label because the tab renderer has no per-tab class API; notepadia-tab-decorator
+ * flips the class on the `.lm-TabBar-tab` element and these rules draw the art
+ * on it. The default file icon is suppressed for state tabs.
+ */
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab[class*="notepadia-tab-"] .lm-TabBar-tabIcon {
+  display: none;
+}
+
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-saved .lm-TabBar-tabLabel,
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-dirty .lm-TabBar-tabLabel,
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-readonly .lm-TabBar-tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-saved .lm-TabBar-tabLabel::before,
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-dirty .lm-TabBar-tabLabel::before,
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-readonly .lm-TabBar-tabLabel::before {
+  content: '';
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-saved .lm-TabBar-tabLabel::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http:%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20fill%3D'%230078d4'%20d%3D'M2.8%201.8h8.2L13.6%204.4v9.9H2.8z'%2F%3E%3Cpath%20fill%3D'%23ffffff'%20d%3D'M4.8%201.8v3.3H8V1.8z'%2F%3E%3Cpath%20fill%3D'%230078d4'%20d%3D'M4.2%208.2h7.6V10H4.2z'%2F%3E%3C%2Fsvg%3E");
+}
+
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-dirty .lm-TabBar-tabLabel::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http:%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20fill%3D'%23e0483d'%20d%3D'M2.8%201.8h8.2L13.6%204.4v9.9H2.8z'%2F%3E%3Cpath%20fill%3D'%23ffffff'%20d%3D'M4.8%201.8v3.3H8V1.8z'%2F%3E%3Cpath%20fill%3D'%23e0483d'%20d%3D'M4.2%208.2h7.6V10H4.2z'%2F%3E%3C%2Fsvg%3E");
+}
+
+body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-readonly .lm-TabBar-tabLabel::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http:%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20fill%3D'none'%20stroke%3D'%235b6570'%20stroke-width%3D'1.4'%20d%3D'M5.5%207V5a2.5%202.5%200%200%201%205%200v2'%2F%3E%3Crect%20x%3D'4'%20y%3D'7'%20width%3D'8'%20height%3D'6'%20rx%3D'1'%20fill%3D'%235b6570'%2F%3E%3Ccircle%20cx%3D'8'%20cy%3D'9.7'%20r%3D'1'%20fill%3D'%23ffffff'%2F%3E%3C%2Fsvg%3E");
+}
+
+/*
+ * View > Tab Bar > Draw Close Button. The default (body class present) shows
+ * the close glyph on every tab, matching Notepad++; without the class the
+ * glyph appears only on the active tab.
+ */
+body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable:not(.lm-mod-current) > .lm-TabBar-tabCloseIcon,
+body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable:not(.lm-mod-current):hover > .lm-TabBar-tabCloseIcon {
+  display: none;
+}
+
+body.notepadia-chrome.notepadia-tabclose-all .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable > .lm-TabBar-tabCloseIcon {
+  display: inline-block;
+}
