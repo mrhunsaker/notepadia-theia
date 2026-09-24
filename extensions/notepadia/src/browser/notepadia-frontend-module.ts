@@ -11,6 +11,7 @@ import {
 import { ElectronIpcConnectionProvider, ElectronMainConnectionProvider } from '@theia/core/lib/electron-browser/messaging/electron-ipc-connection-source';
 
 import { NotepadiaContribution } from './notepadia-contribution';
+import { NotepadiaUntitledResourceResolver } from './notepadia-untitled-resource-resolver';
 import { NotepadiaDropContribution } from './notepadia-drop-contribution';
 import { NotepadiaEditorKeybindingContribution } from './notepadia-editor-keybinding-contribution';
 import { NotepadiaEncodingContribution } from './notepadia-encoding-contribution';
@@ -34,13 +35,15 @@ import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widge
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
-import { NotepadiaShellContribution, NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE, NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE } from './notepadia-shell-contribution';
+import { NotepadiaShellContribution } from './notepadia-shell-contribution';
+import { NotepadiaPreferenceContribution } from './notepadia-preference-contribution';
 import { NotepadiaTabDecorator } from './notepadia-tab-decorator';
 import { NotepadiaTabContextMenuContribution } from './notepadia-tab-context-menu';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
 import { NotepadiaToolbarWidget } from './notepadia-toolbar-widget';
 import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
+import { UntitledResourceResolver } from '@theia/core/lib/common/resource';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 
 // Product stylesheet layer. The webpack application build resolves this css
@@ -48,9 +51,16 @@ import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepad
 // emits it beside lib/browser.
 import '../../src/browser/style/index.css';
 
-export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
+export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaContribution);
+
+    // New unsaved documents are named `new 1`, `new 2`, ... like Notepad++.
+    // The core `ResourceResolver` to-service binding follows the same symbol,
+    // so rebinding the resolver here also replaces the resource resolver.
+    bind(NotepadiaUntitledResourceResolver).toSelf().inSingletonScope();
+    rebind(UntitledResourceResolver).to(NotepadiaUntitledResourceResolver).inSingletonScope();
 
     bind(NotepadiaEncodingContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaEncodingContribution);
@@ -167,23 +177,7 @@ export default new ContainerModule((bind, _unbind, isBound, _rebind) => {
     bind(NotepadiaToolbarContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaToolbarContribution);
 
-    bind(PreferenceContribution).toConstantValue({
-        schema: {
-            type: 'object',
-            properties: {
-                [NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE]: {
-                    type: 'boolean',
-                    description: 'Show the Notepadia toolbar.',
-                    default: true
-                },
-                [NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE]: {
-                    type: 'boolean',
-                    description: 'Draw a close button on every tab of the tab bar.',
-                    default: true
-                }
-            }
-        }
-    });
+    bind(PreferenceContribution).toConstantValue(NotepadiaPreferenceContribution);
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only

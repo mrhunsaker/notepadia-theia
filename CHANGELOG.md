@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026.9.24 (Notepad++ default behavior profile + persistent Document Map)
+
+- **Notepad++ default behavior on a cold profile** (`theia.frontend.config.preferences`
+  in both apps): word wrap off, 4-wide real tabs (`insertSpaces: false`,
+  `detectIndentation: false`), no auto-closing brackets/quotes/surround, no
+  suggestions while typing or on trigger characters, formatting off on
+  paste/type, no trailing-whitespace trim, whitespace/control characters
+  hidden, line numbers on, rulers empty, autosave off.
+- **Notepadia's own preferences** now ship as a `PreferenceContribution`
+  (`notepadia-preference-contribution.ts`), so `notepadia.toolbar.visible`,
+  `notepadia.statusBar.visible`, `notepadia.tabBar.multiLine`,
+  `notepadia.documentMap.visible`, `notepadia.session.restore` and
+  `notepadia.search.extendedMode` are visible and editable in Settings.
+- **Persistent Document Map**: the View > Document Map toggle now writes the
+  `notepadia.documentMap.visible` preference (User scope) and mirrors it into
+  `editor.minimap.enabled`, so the minimap state applies to every open editor
+  and survives opening a second tab and a page reload (previously one editor's
+  live settings were changed in place and lost).
+- **Notepad++ untitled naming**: `File > New` (Ctrl+N) opens `new 1`, `new 2`,
+  ... in plain text with no extension, through a `NotepadiaUntitledResourceResolver`
+  rebinding the core `UntitledResourceResolver`.
+- e2e: cold-profile default now asserts `Tabs: 4`; View-menu suite asserts the
+  Document Map persists to a second editor tab and across a reload. The e2e
+  runner uses a per-run `THEIA_CONFIG_DIR` so suites always start from a cold
+  profile.
+
 ## 2026.9.23 (WS-A visual identity: themes, shell chrome, toolbar, tab bar)
 
 - **Notepad++ tab bar fidelity**: tabs show Notepad++'s icon states — a red

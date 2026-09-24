@@ -8,6 +8,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const PORT = process.env.E2E_PORT || '3100';
 const WS = process.env.E2E_WS || path.join(os.tmpdir(), 'notepadia-e2e-ws');
+const CONFIG_DIR = process.env.E2E_CONFIG_DIR || path.join(os.tmpdir(), 'notepadia-e2e-config');
 const URL = `http://127.0.0.1:${PORT}/`;
 const ARTIFACT_DIR = process.env.E2E_ARTIFACTS || path.join(ROOT, 'e2e-artifacts');
 
@@ -40,6 +41,11 @@ const SUITES = [
 function seedWorkspace() {
     fs.rmSync(WS, { recursive: true, force: true });
     fs.mkdirSync(WS, { recursive: true });
+    // Fresh config dir: user-scope preferences persist server-side for the
+    // browser app, so a per-run THEIA_CONFIG_DIR keeps every suite on a cold
+    // profile (A6 step 6).
+    fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
     const write = (name, buf) => fs.writeFileSync(path.join(WS, name), buf);
     const alpha = Buffer.from('alpha\nbeta\ngamma\n', 'utf8');
     write('sample.txt', alpha);
@@ -100,7 +106,8 @@ function startServer() {
     const theia = path.join(ROOT, 'node_modules', '.bin', 'theia');
     const child = spawn(theia,
         ['start', '--app-target=browser', '--hostname', '127.0.0.1', '--port', PORT, WS],
-        { cwd: path.join(ROOT, 'applications', 'browser'), stdio: ['ignore', 'pipe', 'pipe'] });
+        { cwd: path.join(ROOT, 'applications', 'browser'), stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env, THEIA_CONFIG_DIR: CONFIG_DIR } });
     child.stdout.on('data', d => process.stdout.write('[server] ' + d));
     child.stderr.on('data', d => process.stdout.write('[server] ' + d));
     child.on('exit', code => { console.log(`[server] exited (${code})`); });

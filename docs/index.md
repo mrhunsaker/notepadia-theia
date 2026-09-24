@@ -23,8 +23,12 @@ The product is organized as a monorepo:
   Ctrl+F2 bookmarks, and more.
 - Encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI, ISO-8859 family).
 - EOL conversion (LF / CRLF) with live status-bar display.
+- A Notepad++ default behavior profile: on a cold profile the editor starts
+  with word wrap off, 4-wide real tabs, no auto-closing brackets/suggestions,
+  formatting off, and Notepad++-style `new 1`, `new 2`, ... plaintext untitled
+  documents.
 - Bookmarks with gutter glyphs and next/previous navigation, plus a Document
-  Map (toggleable minimap) for the editor.
+  Map (persistent, preference-backed minimap) for the editor.
 - Curated `Language` menu with lightweight Monarch tokenizers.
 - A Notepad++-style 26px toolbar under the menu bar (file, print, clipboard,
   undo/redo, search, zoom, view toggles, macros) with keyboard navigation.
@@ -62,6 +66,9 @@ Project milestones:
 - **M26** Notepad++ visual identity: Notepadia Classic light/dark themes,
   shell-chrome reduction, the toolbar, and tab-bar fidelity (floppy saved/dirty
   icons, the Notepad++ tab context menu, middle-click close).
+- **M27** Notepad++ default behavior profile: editor defaults in the app
+  preference blocks, Notepadia's own settings in the Settings UI, a persistent
+  preference-backed Document Map, and Notepad++-style untitled naming.
 
 See [Architecture](architecture.md) for the internal design, and
 [Releases & updates](releases.md) for how new builds reach users.

@@ -56,6 +56,10 @@ async function typeIndentedLineAndSave(page, marker) {
     const initialWord = await statusWord(page);
     assert('status shows an indent mode', ['Spaces', 'Tabs'].includes(initialWord),
         'status=' + await indentStatus(page));
+    // A6: with Notepad++ defaults on a cold profile the initial mode is real
+    // tabs (insertSpaces=false) at width 4.
+    assert('cold-profile default is tabs-4', (await indentStatus(page)) === 'Tabs: 4',
+        'status=' + await indentStatus(page));
 
     await openMenuBar(page, 'View');
     await hoverByLabel(page, 'Tab Size');

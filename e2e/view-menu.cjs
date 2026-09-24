@@ -1,8 +1,29 @@
 const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
     currentLine, openMenuBar, hoverByLabel, clickByLabel, subLabels, closeMenus } = require('./lib.js');
 
+const URL = process.env.E2E_URL || 'http://127.0.0.1:3000/';
+
 async function findSubmenuItems(page) {
     return subLabels(page);
+}
+
+// Width of the minimap in the *visible* monaco editor; 0 (or null) means the
+// Document Map is hidden.
+async function minimapWidth(page) {
+    return page.evaluate(() => {
+        const visible = Array.from(document.querySelectorAll('.monaco-editor'))
+            .find(e => e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0);
+        if (!visible) return null;
+        const m = visible.querySelector('.minimap');
+        return m ? m.getBoundingClientRect().width : 0;
+    });
+}
+
+async function pageReload(page) {
+    await page.reload({ waitUntil: 'networkidle2' });
+    await waitFor(page, '#theia-app-shell', 60000);
+    await waitFor(page, '.lm-MenuBar', 30000);
+    await sleep(2500);
 }
 
 (async () => {
@@ -16,6 +37,7 @@ async function findSubmenuItems(page) {
     assert('View menu has Zoom submenu', viewTop.includes('Zoom'), JSON.stringify(viewTop.filter(t => t && t !== 'View')));
     assert('View menu has Tab Size submenu', viewTop.includes('Tab Size'), JSON.stringify(viewTop));
     assert('View menu has Show All Characters', viewTop.includes('Show All Characters'), JSON.stringify(viewTop));
+    assert('View menu has Document Map', viewTop.includes('Document Map'), JSON.stringify(viewTop));
     await hoverByLabel(page, 'Zoom');
     await sleep(600);
     const zoomItems = await findSubmenuItems(page);
@@ -76,6 +98,41 @@ async function findSubmenuItems(page) {
     });
     assert('Zoom In grows line height', lineHeightAfter !== null && lineHeightAfter > lineHeightBefore,
         'before=' + lineHeightBefore + ' after=' + lineHeightAfter);
+
+    // A6: View > Document Map toggles a preference that applies to every
+    // open editor and survives tab switching and a page reload.
+    await closeMenus(page);
+    const docMapHiddenBefore = await minimapWidth(page);
+    assert('Document Map hidden on cold profile', docMapHiddenBefore !== null && docMapHiddenBefore === 0,
+        'minimap width=' + docMapHiddenBefore);
+
+    await openMenuBar(page, 'View');
+    await clickByLabel(page, 'Document Map');
+    await sleep(1200);
+    const docMapOn1 = await minimapWidth(page);
+    assert('Document Map can be toggled on', docMapOn1 !== null && docMapOn1 > 0,
+        'minimap width=' + docMapOn1);
+
+    await openFile(page, 'app.js');
+    await sleep(600);
+    const docMapOn2 = await minimapWidth(page);
+    assert('Document Map persists to a second editor tab', docMapOn2 !== null && docMapOn2 > 0,
+        'minimap width=' + docMapOn2);
+
+    await pageReload(page);
+    await openFile(page, 'sample.txt');
+    await sleep(1200);
+    const docMapAfterReload = await minimapWidth(page);
+    assert('Document Map survives a page reload', docMapAfterReload !== null && docMapAfterReload > 0,
+        'minimap width=' + docMapAfterReload);
+
+    await openMenuBar(page, 'View');
+    await clickByLabel(page, 'Document Map');
+    await sleep(1200);
+    const docMapOff = await minimapWidth(page);
+    assert('Document Map can be toggled off', docMapOff !== null && docMapOff === 0,
+        'minimap width=' + docMapOff);
+    await closeMenus(page);
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

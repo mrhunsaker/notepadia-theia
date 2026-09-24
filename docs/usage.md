@@ -3,6 +3,44 @@
 A tour of the Notepad++-style behavior implemented by the `notepadia`
 extension.
 
+## Default behavior profile
+
+On a cold profile (no saved settings) Notepadia starts with
+Notepad++-style defaults rather than VS Code-style editor intelligence:
+
+- **word wrap off**, **4-wide real tabs** (`insertSpaces: false`), tab-size
+  detection disabled
+- no auto-closing brackets, quotes or auto-surround
+- no suggestions popup while typing (`quickSuggestions` off) and no
+  suggestions on trigger characters
+- formatting off on paste/type, no trimming of trailing whitespace on save
+- whitespace and control characters hidden, line numbers on, rulers off,
+  autosave off
+
+Each of these lives in the app's `theia.frontend.config.preferences` block in
+`applications/browser/package.json` and `applications/electron/package.json`,
+so they take effect before any user setting and can be overridden per
+workspace or per user.
+
+## Document Map
+
+`View ▸ Document Map` toggles the minimap, the narrow overview of the whole
+file beside the editor. The toggle writes the `notepadia.documentMap.visible`
+preference (mirrored into `editor.minimap.enabled`), so the choice:
+
+- applies to **every** open editor at once,
+- survives opening other tabs and a page reload,
+- is editable directly in Settings alongside the Notepad++ preferences.
+
+The "minimap hidden on a cold profile" default is part of the behavior
+profile above.
+
+## New documents
+
+`File ▸ New` (Ctrl+N) opens a new untitled document named `new 1`, `new 2`,
+... like Notepad++, in plain text (no extension, no language detection).
+Save As... (Ctrl+Shift+S) prompts for a real file name.
+
 ## Menus and commands
 
 Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and

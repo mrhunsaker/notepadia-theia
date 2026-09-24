@@ -151,7 +151,12 @@ The Notepad++-style feature layer is implemented as the shared
   open tab set, order, active tab, caret positions and bookmarks
 - File > Print (Ctrl+P): prints the active document through an iframe with
   syntax colors, line numbers and header/footer variables
-- View > Document Map toggles the minimap for the active editor
+- View > Document Map toggles the minimap, applied to every open editor via
+  the `editor.minimap.enabled` preference and persisted across tabs and reloads
+- a Notepad++ default behavior profile as the cold-start baseline: word wrap
+  off, 4-wide real tabs (`editor.insertSpaces: false`), no auto-closing
+  brackets/surround, no suggestions on type, formatting-off by default, and
+  untitled documents named `new 1`, `new 2`, ... in plain text
 - Notepad++ window surface: Notepadia Classic light/dark themes, an extension
   stylesheet layer, and shell chrome reduced to the Notepad++ shape (no
   activity bar, no right-hand panel, no breadcrumbs, a minimal status bar)
@@ -230,12 +235,13 @@ running `yarn start` instance.
 ## Next milestones
 
 Tracked in `pair_programming_prompt.json`. The Notepad++ visual identity
-work (themes, shell chrome, the toolbar and the tab bar) is complete. Remaining
-work, in execution order:
+work (themes, shell chrome, the toolbar and the tab bar) is complete. Phase 1
+finish — the Notepad++ default behavior profile (word-wrap and auto-indent
+defaults, untitled naming) and the persistent Document Map — is complete.
+Remaining work, in execution order:
 
-1. Phase 1 finish: the Notepad++ default behavior profile (word wrap and
-   auto-indent defaults, untitled naming) and status-bar parity with a real
-   INS/OVR mode
+1. Status-bar parity with a real Notepad++ editing engine (INS/OVR mode, plus
+   any remaining parity gaps)
 2. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
    dialog (Find / Replace / Mark / Find-in-Files tabs) instead of Monaco's
    inline widget

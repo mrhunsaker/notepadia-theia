@@ -7,11 +7,14 @@ import {
     CommandRegistry,
     MessageService
 } from '@theia/core/lib/common';
-import { CommonCommands, ApplicationShell } from '@theia/core/lib/browser';
+import { CommonCommands, ApplicationShell, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { Saveable, SaveableWidget } from '@theia/core/lib/browser/saveable';
 import { PreferenceScope, PreferenceService } from '@theia/core/lib/common/preferences';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorWidget } from '@theia/editor/lib/browser/editor-widget';
+import { NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE } from './notepadia-preference-contribution';
+
+export const MINIMAP_PREFERENCE = 'editor.minimap.enabled';
 
 export namespace NotepadiaCommands {
     export const NEW_DOCUMENT: Command = {
@@ -176,7 +179,7 @@ export namespace NotepadiaCommands {
 }
 
 @injectable()
-export class NotepadiaContribution implements CommandContribution {
+export class NotepadiaContribution implements CommandContribution, FrontendApplicationContribution {
     protected closeInProgress = false;
 
     constructor(
@@ -186,9 +189,31 @@ export class NotepadiaContribution implements CommandContribution {
         @inject(PreferenceService) protected readonly preferences: PreferenceService
     ) {}
 
+    onStart(): void {
+        // Keep the notepadia Document Map preference and the underlying monaco
+        // minimap preference in sync: the monaco editor provider reactively
+        // applies `editor.minimap.enabled` to every open editor, while the menu
+        // toggles and reads the Notepad++-named preference. Mirroring here means
+        // editing either preference in Preferences updates both.
+        this.preferences.onPreferenceChanged(change => {
+            if (change.preferenceName === NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE) {
+                const value = this.preferences.get<boolean>(NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE, false);
+                void this.preferences.set(MINIMAP_PREFERENCE, value, PreferenceScope.User);
+            } else if (change.preferenceName === MINIMAP_PREFERENCE) {
+                const value = this.preferences.get<boolean>(MINIMAP_PREFERENCE, false);
+                void this.preferences.set(NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE, value, PreferenceScope.User);
+            }
+        });
+    }
+
     registerCommands(commands: CommandRegistry): void {
         commands.registerCommand(NotepadiaCommands.NEW_DOCUMENT, {
-            execute: () => commands.executeCommand(CommonCommands.NEW_FILE.id)
+            execute: async () => {
+                const editor = await commands.executeCommand<EditorWidget>(CommonCommands.NEW_UNTITLED_TEXT_FILE.id);
+                if (editor) {
+                    editor.editor.setLanguage('plaintext');
+                }
+            }
         });
 
         commands.registerCommand(NotepadiaCommands.CLOSE, {
@@ -438,25 +463,12 @@ export class NotepadiaContribution implements CommandContribution {
     }
 
     protected documentMapEnabled(): boolean {
-        const editor = this.currentEditor;
-        if (!editor) {
-            return false;
-        }
-        const control = MonacoEditor.get(editor)?.getControl();
-        const options = control?.getOption(monaco.editor.EditorOption.minimap);
-        return !!options?.enabled;
+        return this.preferences.get<boolean>(NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE, false);
     }
 
     protected toggleDocumentMap(): void {
-        const editor = this.currentEditor;
-        if (!editor) {
-            return;
-        }
-        const control = MonacoEditor.get(editor)?.getControl();
-        if (!control) {
-            return;
-        }
-        control.updateOptions({ minimap: { enabled: !this.documentMapEnabled() } });
+        const enabled = !this.documentMapEnabled();
+        void this.preferences.set(NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE, enabled, PreferenceScope.User);
     }
 
     protected currentTextModel(): monaco.editor.ITextModel | undefined {
