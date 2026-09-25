@@ -131,7 +131,10 @@ The Notepad++-style feature layer is implemented as the shared
   (View > Tab Size) with a status bar indicator
 - go to line and matching bracket navigation
 - language support: 22 curated languages with Monarch tokenizers
-- live status bar with line/column, encoding, EOL, indent mode and insert mode
+- full Notepad++ status bar: length/lines, `Ln  Col  Pos`, selection,
+  encoding, EOL, indent mode and an INS/OVR indicator
+- real INS/OVR overtype mode: `Insert` (or a click on the mode indicator)
+  toggles a block caret and overwrites characters as you type, like Notepad++
 - a Macros menu: record/stop/discard/playback/clear with a status-bar REC
   indicator while recording
 - Column Editor (Edit > Line Operations): text, sequential numbers or cycled
@@ -176,7 +179,7 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 23
+- CI workflows: build (browser app on Linux), e2e (lint + build + 24
   Puppeteer test suites with artifact upload on failure), release (tag-triggered
   publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
   Pages)
@@ -221,7 +224,7 @@ yarn lint
 yarn build
 ```
 
-Run the 23 end-to-end suites (headless Chromium via Puppeteer):
+Run the 24 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -236,23 +239,22 @@ running `yarn start` instance.
 
 Tracked in `pair_programming_prompt.json`. The Notepad++ visual identity
 work (themes, shell chrome, the toolbar and the tab bar) is complete. Phase 1
-finish — the Notepad++ default behavior profile (word-wrap and auto-indent
-defaults, untitled naming) and the persistent Document Map — is complete.
+— the Notepad++ default behavior profile (word-wrap and auto-indent
+defaults, untitled naming), the persistent Document Map, and status-bar
+parity with a real INS/OVR overtype mode — is complete.
 Remaining work, in execution order:
 
-1. Status-bar parity with a real Notepad++ editing engine (INS/OVR mode, plus
-   any remaining parity gaps)
-2. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
+1. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
    dialog (Find / Replace / Mark / Find-in-Files tabs) instead of Monaco's
    inline widget
-3. Browser-target correctness: opening and saving files from the user's own
+2. Browser-target correctness: opening and saving files from the user's own
    computer, resolving browser-reserved keybinding conflicts, and
    unsaved-work protection and crash recovery
-4. Remaining menu and panel debt: menu completeness including the Window
+3. Remaining menu and panel debt: menu completeness including the Window
    menu, the Function List panel and Folder-as-Workspace presentation, an
    incremental search bar, a browser-appropriate Run menu, and the Search
    Results window
-5. Accessibility and release verification: keyboard/screen-reader/contrast
+4. Accessibility and release verification: keyboard/screen-reader/contrast
    verification, test growth with a visual baseline, a documentation truth
    pass, macOS release-workflow verification, Electron parity for everything
    added, and the first published `vYYYY.M.D` release to prove the updater

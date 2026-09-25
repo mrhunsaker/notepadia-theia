@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026.9.25 (Notepad++ status bar parity + real INS/OVR overtype mode)
+
+- **Live Notepad++ status bar fields**: the status bar now shows the
+  document length and line count (`length : 1,234  lines : 56`), the caret
+  position as `Ln : 3  Col : 12  Pos : 47` (1-based line/column with the
+  0-based, thousands-grouped character offset) and the selection size as
+  `Sel : 18 | 2` (characters | lines, summed across all cursors) — all three
+  formatted exactly like Notepad++ and updated live from the model. The whole
+  bar re-renders once per animation frame, so it stays responsive in large
+  files.
+- **Real INS/OVR overtype mode** (previously a hard-coded `INS` label): the
+  `Insert` key — or a click on the mode indicator — toggles between insert
+  and overtype. In OVR the caret becomes a block and typed characters
+  replace the character under the cursor instead of inserting (typing at the
+  end of a line continues to insert). Implemented with a capture-phase
+  keydown interceptor on the editor that routes printable keystrokes through
+  Monaco's `executeEdits`, so undo, selection and IME handling are
+  unaffected. Uses `@theia/monaco-editor-core`'s `Range`, `Position`,
+  `getValueLengthInRange` and `setPosition` APIs.
+- New pure formatters `formatCaret`, `formatSelection` and `formatLength`
+  (`src/common/status-fields.ts`) with unit tests, plus a `status-bar` e2e
+  suite covering the length/selection/caret fields and the INS→OVR→INS
+  overwrite behavior (24 suites total).
+
 ## 2026.9.24 (Notepad++ default behavior profile + persistent Document Map)
 
 - **Notepad++ default behavior on a cold profile** (`theia.frontend.config.preferences`

@@ -25,6 +25,7 @@ const SUITES = [
     'search',
     'document-list',
     'spaces-tabs',
+    'status-bar',
     'menus-shortcuts',
     'session-restore',
     'column-editor',

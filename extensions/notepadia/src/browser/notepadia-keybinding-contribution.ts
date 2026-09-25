@@ -5,6 +5,7 @@ import {
     KeybindingRegistry
 } from '@theia/core/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
+import { NotepadiaOvertypeCommands } from './notepadia-overtype-contribution';
 
 @injectable()
 export class NotepadiaKeybindingContribution implements KeybindingContribution {
@@ -86,6 +87,12 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
         keybindings.registerKeybinding({
             command: NotepadiaCommands.ZOOM_RESET.id,
             keybinding: 'ctrlcmd+0'
+        });
+        // The Insert key toggles Notepad++'s INS/OVR overtype mode.
+        keybindings.registerKeybinding({
+            command: NotepadiaOvertypeCommands.TOGGLE_OVERTYPE.id,
+            keybinding: 'insert',
+            when: 'editorTextFocus'
         });
     }
 }

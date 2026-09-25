@@ -16,6 +16,7 @@ import { NotepadiaDropContribution } from './notepadia-drop-contribution';
 import { NotepadiaEditorKeybindingContribution } from './notepadia-editor-keybinding-contribution';
 import { NotepadiaEncodingContribution } from './notepadia-encoding-contribution';
 import { NotepadiaEolContribution } from './notepadia-eol-contribution';
+import { NotepadiaOvertypeContribution } from './notepadia-overtype-contribution';
 import { NotepadiaBookmarkContribution } from './notepadia-bookmark-contribution';
 import { NotepadiaKeybindingContribution } from './notepadia-keybinding-contribution';
 import { NotepadiaLanguageContribution } from './notepadia-language-contribution';
@@ -98,6 +99,10 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(NotepadiaStatusBarContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaStatusBarContribution);
+
+    bind(NotepadiaOvertypeContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaOvertypeContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaOvertypeContribution);
 
     bind(NotepadiaDocumentListWidget).toSelf();
     bind(WidgetFactory).toDynamicValue(ctx => ({

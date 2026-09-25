@@ -106,6 +106,7 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+F2 | Toggle bookmark on the current line |
 | F2 / Shift+F2 | Next / previous bookmark (wraps in file) |
 | F3 / Shift+F3 | Find next / previous |
+| Insert | Toggle INS/OVR (overtype) mode |
 
 !!! note
     The editor is forced onto the classic textarea input path
@@ -164,6 +165,28 @@ glyphs in the line-number gutter.
   Text) is registered at startup with lightweight Monarch tokenizers, and
   each entry is a menu action switching the editor language.
 - The status bar shows the friendly language name and is clickable.
+
+## Status bar and INS/OVR overtype mode
+
+The status bar shows the Notepad++ fields, live, left to right:
+
+- the language name (clickable to change language mode)
+- the caret position as `Ln : 3  Col : 12  Pos : 47` — 1-based line and
+  column with the 0-based character offset, thousands-grouped
+- the selection size as `Sel : 18 | 2` (characters | lines); with no
+  selection it reads `Sel : 0 | 0`
+- the document size as `length : 1,234  lines : 56` (length includes the
+  line endings)
+- the encoding (clickable) and the EOL (clickable)
+- the indent mode (`Spaces: 4` / `Tabs: 4`)
+- the mode indicator `INS` / `OVR`
+
+Pressing `Insert` (or clicking the mode indicator) toggles overtype mode.
+In OVR the caret becomes a block and each character you type replaces the
+character under the cursor instead of inserting, exactly like Notepad++ —
+typing at the end of a line just inserts normally. Toggling back to INS
+restores insert behavior. The status bar is throttled to render once per
+animation frame, so it stays responsive even in very large files.
 
 ## Recent Files
 

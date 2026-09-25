@@ -1,3 +1,4 @@
+import * as monaco from '@theia/monaco-editor-core';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { DisposableCollection } from '@theia/core/lib/common/disposable';
@@ -12,6 +13,11 @@ import { PreferenceService } from '@theia/core/lib/common/preferences';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { EditorCommands } from '@theia/editor/lib/browser/editor-command';
 import { notepadiaLanguageName } from './notepadia-language-contribution';
+import { formatCaret, formatLength, formatSelection } from '../common/status-fields';
+import {
+    NotepadiaOvertypeCommands,
+    NotepadiaOvertypeContribution
+} from './notepadia-overtype-contribution';
 
 const ENCODING_LABELS: Record<string, string> = {
     utf8: 'UTF-8',
@@ -32,11 +38,13 @@ function eolLabel(eol?: string): string {
 @injectable()
 export class NotepadiaStatusBarContribution implements FrontendApplicationContribution {
     protected readonly toDispose = new DisposableCollection();
+    protected scheduled = false;
 
     constructor(
         @inject(StatusBar) protected readonly statusBar: StatusBar,
         @inject(EditorManager) protected readonly editorManager: EditorManager,
-        @inject(PreferenceService) protected readonly preferences: PreferenceService
+        @inject(PreferenceService) protected readonly preferences: PreferenceService,
+        @inject(NotepadiaOvertypeContribution) protected readonly overtype: NotepadiaOvertypeContribution
     ) {}
 
     onStart(): void {
@@ -50,6 +58,8 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             }
         });
 
+        this.overtype.onDidChange(() => this.update());
+
         this.editorManager.onCurrentEditorChanged(() => {
             this.toDispose.dispose();
             const editor = this.editorManager.currentEditor;
@@ -58,7 +68,10 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
                 this.toDispose.push(monaco.document.onDidChangeEncoding(() => this.update()));
                 this.toDispose.push(monaco.document.onDidChangeContent(() => this.update()));
                 this.toDispose.push(monaco.onLanguageChanged(() => this.update()));
-                const model = monaco.getControl().getModel();
+                const control = monaco.getControl();
+                this.toDispose.push(control.onDidChangeCursorPosition(() => this.update()));
+                this.toDispose.push(control.onDidChangeCursorSelection(() => this.update()));
+                const model = control.getModel();
                 if (model) {
                     this.toDispose.push(model.onDidChangeOptions(() => this.update()));
                 }
@@ -67,14 +80,27 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         });
     }
 
+    /** Coalesce bursts (keystrokes, cursor moves) into one render per frame. */
     protected update(): void {
+        if (this.scheduled) {
+            return;
+        }
+        this.scheduled = true;
+        requestAnimationFrame(() => {
+            this.scheduled = false;
+            this.render();
+        });
+    }
+
+    protected render(): void {
         const editor = this.editorManager.currentEditor;
         const monaco = editor ? MonacoEditor.get(editor) : undefined;
         const control = monaco?.getControl();
         const position = control?.getPosition();
+        const model: monaco.editor.ITextModel | null | undefined = control?.getModel();
         const encoding = monaco?.getEncoding() || 'utf8';
-        const eol = control?.getModel()?.getEOL();
-        const languageId = monaco?.getControl().getModel()?.getLanguageId();
+        const eol = model?.getEOL();
+        const languageId = model?.getLanguageId();
 
         this.statusBar.setElement('notepadia.language', {
             text: notepadiaLanguageName(languageId),
@@ -85,11 +111,25 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         });
 
         this.statusBar.setElement('notepadia.position', {
-            text: position
-                ? `Ln ${position.lineNumber}, Col ${position.column}`
-                : 'Ln 1, Col 1',
+            text: position && model
+                ? formatCaret(position.lineNumber, position.column, model.getOffsetAt(position))
+                : 'Ln : 1  Col : 1  Pos : 0',
             alignment: StatusBarAlignment.RIGHT,
             priority: 100
+        });
+
+        this.statusBar.setElement('notepadia.selection', {
+            text: this.selectionText(control),
+            alignment: StatusBarAlignment.RIGHT,
+            priority: 97
+        });
+
+        this.statusBar.setElement('notepadia.length', {
+            text: model
+                ? formatLength(model.getValueLength(), model.getLineCount())
+                : 'length : 0  lines : 0',
+            alignment: StatusBarAlignment.RIGHT,
+            priority: 95
         });
 
         this.statusBar.setElement('notepadia.encoding', {
@@ -108,7 +148,7 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             priority: 80
         });
 
-        const modelOptions = control?.getModel()?.getOptions();
+        const modelOptions = model?.getOptions();
         const insertSpaces = modelOptions?.insertSpaces;
         const tabSize = modelOptions?.tabSize;
         this.statusBar.setElement('notepadia.indent', {
@@ -121,9 +161,31 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         });
 
         this.statusBar.setElement('notepadia.mode', {
-            text: 'INS',
+            text: this.overtype.isOvertypeEnabled() ? 'OVR' : 'INS',
+            tooltip: 'Toggle Overtype Mode (Insert)',
+            command: NotepadiaOvertypeCommands.TOGGLE_OVERTYPE.id,
             alignment: StatusBarAlignment.RIGHT,
             priority: 70
         });
+    }
+
+    /** 'Sel : chars | lines' summing the char and line span of every cursor selection. */
+    protected selectionText(control?: monaco.editor.IStandaloneCodeEditor): string {
+        const fmt = formatSelection(0, 0);
+        const model = control?.getModel();
+        const selections = control?.getSelections();
+        if (!model || !selections) {
+            return fmt;
+        }
+        let chars = 0;
+        let lines = 0;
+        for (const selection of selections) {
+            if (selection.isEmpty()) {
+                continue;
+            }
+            chars += model.getValueLengthInRange(selection);
+            lines += Math.abs(selection.endLineNumber - selection.startLineNumber) + 1;
+        }
+        return formatSelection(chars, lines);
     }
 }

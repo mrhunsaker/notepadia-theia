@@ -29,6 +29,9 @@ The product is organized as a monorepo:
   documents.
 - Bookmarks with gutter glyphs and next/previous navigation, plus a Document
   Map (persistent, preference-backed minimap) for the editor.
+- A full Notepad++ status bar — length/lines, `Ln / Col / Pos`, selection,
+  encoding, EOL, indent mode and an `INS`/`OVR` indicator — with a real
+  overtype mode toggled by the `Insert` key.
 - Curated `Language` menu with lightweight Monarch tokenizers.
 - A Notepad++-style 26px toolbar under the menu bar (file, print, clipboard,
   undo/redo, search, zoom, view toggles, macros) with keyboard navigation.
