@@ -45,6 +45,11 @@ The product is organized as a monorepo:
   for read-only tabs, the Notepad++ right-click tab menu, and middle-click to
   close.
 - Recent files with session persistence.
+- Files on your own computer, as a first-class concept: `Open From This
+  Computer...`, `Save To This Computer...` and `Upload to Workspace...` sit
+  next to Theia's own workspace-only `Open...` and `Save As...`, so it is
+  always clear which disk a command touches. On Chromium, a file opened from
+  your disk keeps its handle and Ctrl+S writes back to that same file.
 - Automatic updates over GitHub Releases (desktop app).
 
 ## Project status

@@ -47,7 +47,10 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 `Settings`, while the `File` and `Edit` menus gain Notepad++-style sections:
 
 - **File**: New / Open / Save / Save As / Save All / Close / Close All /
-  Close All But Active, plus **Recent Files**.
+  Close All But Active, plus **Open From This Computer...** /
+  **Upload to Workspace...** / **Save To This Computer...** for the user's own
+  disk (see [Files on your own computer](#files-on-your-own-computer)), plus
+  **Recent Files**.
 - **Edit**: Indent / Unindent / Duplicate Current Line / Delete Current Line /
   Move Current Line Up + Down / Join Lines / comment line, a **Line
   Operations** submenu, and a **Convert Case** submenu. **Bookmarks** are
@@ -223,6 +226,58 @@ character under the cursor instead of inserting, exactly like Notepad++ —
 typing at the end of a line just inserts normally. Toggling back to INS
 restores insert behavior. The status bar is throttled to render once per
 animation frame, so it stays responsive even in very large files.
+
+## Files on your own computer
+
+Notepad++'s `File ▸ Open` and `File ▸ Save` always mean **the disk of the
+machine you are sitting at**. Notepadia is a browser app served by another
+machine, so it has two entirely separate storages and the menu names them
+explicitly. Nothing else in the UI is ambiguous about this:
+
+| Command | Reads from | Creates / writes to | Changes the tab? |
+| --- | --- | --- | --- |
+| `Open...`, `Save`, `Save As...`, `Save All` | server workspace | server workspace | yes |
+| `Open From This Computer...` | **your disk** | a new in-browser tab (nothing is written to the server) | opens a new tab |
+| `Save To This Computer...` | the open tab | **a copy on your disk** | no |
+| `Upload to Workspace...` | **your disk** | server workspace | opens the uploaded file |
+
+On Chromium, `Open From This Computer...` keeps the handle to the file it
+picked, so **Ctrl+S on that tab writes straight back to the same file on your
+disk** instead of asking for a server-side name. The tab is titled with the
+real file name (`notes.txt`), not `new 1`, and a second copy of the same name
+opens as `notes (2).txt`.
+
+`Save To This Computer...` never changes the tab. It asks where to write, and on
+a browser without the picker it falls back to an ordinary download, so you end up
+with a copy on your disk and the tab untouched.
+
+`Upload to Workspace...` is the deliberate route for getting a file *into* the
+server workspace, where the Files tree, Find in Files and every other
+workspace-aware feature can see it. It is the working replacement for Theia's
+own `Upload Files...` command, which is only enabled when a node happens to be
+selected in the Files tree and is therefore a dead entry in the File menu.
+
+A cancelled picker is never treated as an error: closing the dialog does
+nothing at all. If the browser refuses write permission, the message names the
+file that was not saved.
+
+### Browser support
+
+| Browser | Reading (`Open From This Computer...`) | Writing (`Save To This Computer...`) | Ctrl+S write-back |
+| --- | --- | --- | --- |
+| Chromium 99+ (Chrome, Edge, Opera, Brave) | OS picker, file handle kept | OS picker, writes to the picked file | yes, to the original file |
+| Firefox, Safari | OS picker via `<input type="file">` | browser download | no - Ctrl+S offers Save As |
+
+The File System Access API needs a **secure context**, so `https://` or
+`http://localhost`. On plain `http://` the app automatically falls back to the
+upload/download route.
+
+!!! note "No keyboard shortcut for Open From This Computer..."
+    Notepad++ opens local files with Ctrl+O, but the browser claims Ctrl+O (and
+    Ctrl+Shift+O, which is bookmark-all-tabs in Chromium) before the page ever
+    sees the key, and a web app cannot intercept either. Rather than invent a
+    different chord and create a new browser conflict, these three commands are
+    menu-only.
 
 ## Recent Files
 

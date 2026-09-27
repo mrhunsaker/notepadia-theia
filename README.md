@@ -118,6 +118,12 @@ The Notepad++-style feature layer is implemented as the shared
 - file navigator/filesystem, editor tabs, session restore and recent files
 - Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
   Settings) and Ctrl/Cmd shortcuts
+- both storages, explicitly named in the File menu: `Open...` / `Save As...`
+  work in the server workspace, while `Open From This Computer...`,
+  `Save To This Computer...` and `Upload to Workspace...` reach the disk of the
+  machine you are sitting at. On Chromium, a file opened with Open From This
+  Computer keeps its file handle, so Ctrl+S on that tab writes back to the same
+  local file; Firefox and Safari fall back to an upload/download round trip
 - search/replace in the active document (find next/previous, replace all,
   regex, match case, whole word) through the tabbed Find dialog
 - find in files / replace in files via Theia's search-in-workspace, driven
@@ -249,9 +255,9 @@ defaults, untitled naming), the persistent Document Map, and status-bar
 parity with a real INS/OVR overtype mode — is complete.
 Remaining work, in execution order:
 
-1. Browser-target correctness: opening and saving files from the user's own
-   computer, resolving browser-reserved keybinding conflicts, and
-   unsaved-work protection and crash recovery
+1. Browser-target correctness: resolving browser-reserved keybinding
+   conflicts, and unsaved-work protection and crash recovery (opening and
+   saving files from the user's own computer is done)
 2. Remaining menu and panel debt: menu completeness including the Window
    menu, the Function List panel and Folder-as-Workspace presentation, an
    incremental search bar, a browser-appropriate Run menu, and the Search

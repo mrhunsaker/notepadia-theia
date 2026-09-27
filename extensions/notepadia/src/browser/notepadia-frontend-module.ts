@@ -38,6 +38,7 @@ import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
+import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaShellContribution } from './notepadia-shell-contribution';
 import { NotepadiaPreferenceContribution } from './notepadia-preference-contribution';
@@ -167,6 +168,14 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaPrintContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaPrintContribution);
     bind(MenuContribution).toService(NotepadiaPrintContribution);
+
+    // D1 - the user's own disk, which a browser-hosted app otherwise has no
+    // way to reach. Owns the Ctrl+S write-back handler for tabs that carry a
+    // FileSystemFileHandle, so it is bound before anything that also claims
+    // `file.save` would have a chance to run first.
+    bind(NotepadiaLocalFilesContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaLocalFilesContribution);
+    bind(MenuContribution).toService(NotepadiaLocalFilesContribution);
 
     bind(NotepadiaThemeContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaThemeContribution);

@@ -18,7 +18,11 @@ async function press(page, mods, key) {
     const fileItems = await subLabels(page);
     assert('File menu is Notepad++ order',
         JSON.stringify(fileItems) === JSON.stringify(
-            ['New', 'Open...', 'Recent Files', 'Save', 'Save As...', 'Save All',
+            ['New', 'Open...',
+                // D1: the user's own disk, grouped next to the workspace Open...
+                'Open From This Computer...', 'Upload to Workspace...',
+                'Recent Files',
+                'Save', 'Save As...', 'Save To This Computer...', 'Save All',
                 'Close', 'Close All', 'Close All But Active',
                 'Save Session...', 'Load Session...',
                 'Print', 'Print Preview...']),

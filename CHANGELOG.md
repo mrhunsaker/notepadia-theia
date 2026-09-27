@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026.9.27 (Files on your own computer)
+
+- **Open and save files on the disk you are sitting at.** A Notepad++ user
+  reads `File ▸ Open` and `File ▸ Save` as "my own disk". Notepadia is served
+  by another machine, so those commands only ever touched the *server's*
+  workspace and a remote user had no way at all to read a file off their
+  laptop or get one back. Three new File menu entries, with names that say
+  which storage they use:
+  - `Open From This Computer...` reads one or more files from
+    your disk into new tabs.
+  - `Save To This Computer...` writes the current tab to your disk and leaves
+    the tab alone.
+  - `Upload to Workspace...` copies a file from your disk into the server
+    workspace, where the Files tree, Find in Files and the rest of the
+    workspace-aware features can see it.
+- **A tab opened from your disk is really backed by your disk.** On Chromium
+  the picked `FileSystemFileHandle` is remembered per tab, so ordinary Ctrl+S
+  writes straight back to the same file instead of falling through to Theia's
+  Save As dialog. Every other tab — workspace files, `new 1`, anything without
+  a handle — keeps Theia's own save behaviour untouched. The tab is titled
+  with the real file name rather than `new N`, and a second copy of the same
+  name opens as `notes (2).txt`.
+- **Firefox and Safari degrade cleanly.** Without the File System Access API
+  the open route becomes a hidden `<input type="file" multiple>` and the save
+  route becomes a Blob download, so the round trip still works. The API is also
+  feature-detected at call time, so an insecure context (`http://` without
+  localhost) falls back instead of failing.
+- **A cancelled picker is not an error.** Dismissing the dialog does nothing
+  at all. A refused write permission produces a message that names the file
+  that was not saved.
+- **The dead `Upload Files...` / `Download` File menu entries stay hidden, and
+  are now replaced by working equivalents.** Both of Theia's commands are only
+  enabled when a node is selected in the Files tree, so as File menu entries
+  they could never run.
+- New `src/common/local-files.ts` holds the name arithmetic (tab naming,
+  dedupe, save-name suggestion) and the picker error triage as pure functions
+  with unit tests. A new `local-files` e2e suite (26 suites total) drives the
+  upload/download fallback end to end: a local file opens in a correctly named
+  tab with the right content, `Save To This Computer...` fires a real download
+  whose file lands on disk with the document text, Ctrl+S on a handle-less tab
+  does not silently download, and `Upload to Workspace...` writes the file into
+  the server workspace.
+
 ## 2026.9.27 (Notepad++ tabbed Find dialog)
 
 - **One modeless Find dialog, four Notepad++ tabs**: `Ctrl+F`, `Ctrl+H`,

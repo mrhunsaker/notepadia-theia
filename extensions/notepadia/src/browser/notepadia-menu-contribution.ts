@@ -61,6 +61,11 @@ export class NotepadiaMenuContribution implements MenuContribution {
         unregister(CommonCommands.SAVE_ALL.id, fileSave);
         unregister(CommonCommands.SAVE_AS.id, fileSave);
         unregister(CommonCommands.AUTO_SAVE.id, fileAutoSave);
+        // D1: Theia's own `file.upload` and `file.download` are only enabled
+        // when a node is selected in the Files tree, so as File menu entries
+        // they can never run - a dead control. NotepadiaLocalFilesContribution
+        // registers working equivalents instead ("Upload to Workspace..." and
+        // "Save To This Computer..."), so these stay hidden.
         unregister('file.upload', fileDownloadUpload);
         unregister('file.download', fileDownloadUpload);
         unregister(CommonCommands.CLOSE_MAIN_TAB.id, fileClose);

@@ -113,5 +113,11 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             keybinding: 'insert',
             when: 'editorTextFocus'
         });
+        // D1 deliberately registers NO chord for Open From This Computer... .
+        // Notepad++ uses Ctrl+O, but the browser claims Ctrl+O and Ctrl+Shift+O
+        // itself (the latter is Chromium's bookmark-all-tabs) and a web page
+        // cannot intercept either. Inventing a different chord would trade one
+        // browser conflict for another, so the command stays menu-only until
+        // the keybinding-conflict pass (D2) decides how to handle it.
     }
 }

@@ -37,7 +37,8 @@ const SUITES = [
     'sessions',
     'character-panel',
     'print',
-    'tab-bar'
+    'tab-bar',
+    'local-files'
 ];
 
 function seedWorkspace() {
