@@ -52,10 +52,42 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
   Move Current Line Up + Down / Join Lines / comment line, a **Line
   Operations** submenu, and a **Convert Case** submenu. **Bookmarks** are
   also under Edit.
-- **Search**: Find / Find Next / Find Previous / Replace / Find in Files.
+- **Search**: Find / Find Next / Find Previous / Replace / Find in Files /
+  Replace in Files / Mark, plus a **Mark** submenu (Mark All, Clear All Marks,
+  Select and Find Next).
 
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.
+
+## The Find dialog
+
+`Ctrl+F`, `Ctrl+H`, `Ctrl+Shift+F` and `Ctrl+M` all open the same modeless
+dialog with four Notepad++ tabs — **Find**, **Replace**, **Find in Files** and
+**Mark**. The dialog floats over the editor and is not modal, so you can keep
+typing while it is open. Monaco's inline find widget is disabled; `Escape`
+closes the dialog from the editor, the menu bar or anywhere else.
+
+Shared controls: **Find what**, **Search Mode** (Normal / Extended /
+Regular expression), the options checkboxes (Match case, Match whole word
+only, Backward direction, Wrap around, In selection) and a status line
+reporting the match position, e.g. `2 of 4` or `4 results on current document`.
+
+- **Find**: `Find Next`, `Count`, `Find All in Current Document` (selects
+  every hit) and `Find All in All Opened Documents`.
+- **Replace**: `Replace`, `Replace All` and `Replace All in All Opened
+  Documents`, all of which are ordinary undoable edits.
+- **Find in Files**: `Filters` and `Directory` narrow the workspace search,
+  `In hidden folders` includes dot-folders, and `Find All` / `Replace All`
+  drive the existing search-in-workspace backend.
+- **Mark**: marks every occurrence in the current document in one of five
+  styles, with `Mark All`, `Clear All Marks`, `Select and Find Next` and a
+  `Purge for each search` option. The same actions remain available under
+  `Search ▸ Mark`.
+
+!!! note
+    The editor's search engine matches within a single line, so the
+    `. matches newline` option is shown disabled with an explanation rather
+    than silently doing nothing. Notepad++ supports it; this build does not.
 
 ## Toolbar
 
@@ -106,6 +138,10 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+F2 | Toggle bookmark on the current line |
 | F2 / Shift+F2 | Next / previous bookmark (wraps in file) |
 | F3 / Shift+F3 | Find next / previous |
+| Ctrl+F | Open the tabbed Find dialog (Find tab) |
+| Ctrl+H | Open the tabbed Find dialog (Replace tab) |
+| Ctrl+Shift+F | Open the tabbed Find dialog (Find in Files tab) |
+| Ctrl+M | Open the tabbed Find dialog (Mark tab) |
 | Insert | Toggle INS/OVR (overtype) mode |
 
 !!! note

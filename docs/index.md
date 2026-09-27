@@ -17,8 +17,12 @@ The product is organized as a monorepo:
 
 ## Highlights
 
-- Notepad++-style menu layout: `Search`, `Encoding`, `Language`, `Settings`
+- A Notepad++-style menu layout: `Search`, `Encoding`, `Language`, `Settings`
   menus plus Npp-style `File`/`Edit` sections.
+- One modeless, tabbed Find dialog (Find / Replace / Find in Files / Mark)
+  behind Ctrl+F, Ctrl+H, Ctrl+Shift+F and Ctrl+M, replacing Monaco's inline
+  find widget, with the Find in Files tab driving workspace search and the
+  Mark tab providing the five Notepad++ mark styles.
 - Notepad++-style shortcuts: Ctrl+D (duplicate line), Ctrl+L (delete line),
   Ctrl+F2 bookmarks, and more.
 - Encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI, ISO-8859 family).
@@ -72,6 +76,9 @@ Project milestones:
 - **M27** Notepad++ default behavior profile: editor defaults in the app
   preference blocks, Notepadia's own settings in the Settings UI, a persistent
   preference-backed Document Map, and Notepad++-style untitled naming.
+- **M28** Notepad++ tabbed Find dialog: a single modeless dialog for Find,
+  Replace, Find in Files and Mark, with workspace search, the five mark
+  styles, and the Mark controls kept in a `Search ▸ Mark` submenu.
 
 See [Architecture](architecture.md) for the internal design, and
 [Releases & updates](releases.md) for how new builds reach users.

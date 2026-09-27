@@ -6,21 +6,19 @@ import {
     CommandContribution,
     CommandRegistry
 } from '@theia/core/lib/common/command';
-import {
-    MenuContribution,
-    MenuModelRegistry
-} from '@theia/core/lib/common/menu';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
-import { extendedToLiteral } from '../common/extended-search';
+import { resolveSearch, type NotepadiaSearchMode as SearchMode } from '../common/find-options';
+import { NotepadiaFindState } from './notepadia-find-state';
 
 /**
  * Notepad++ style Search > Mark: color every occurrence of the current
- * search term in the document (configurable palette of 5 styles, one per
- * Mark action), clear them, or extend the selection to the next occurrence.
- * The "Use Extended Search Mode" toggle below the Mark entries makes the
- * term interpret \n, \t, \r, \\ literals (Notepad++ escape mode), applied to
- * Mark / Mark All / Select and Find Next.
+ * search term in the document (configurable palette of 5 styles, explicit
+ * style slots exposed in the Find dialog's Mark tab), clear them, or extend
+ * the selection to the next occurrence. The dialog's Search Mode radios
+ * (Normal / Extended / Regular expression) make the term interpret \n, \t,
+ * \r, \\ literals (Notepad++ escape mode), applied to Mark / Mark All /
+ * Select and Find Next.
  */
 export namespace NotepadiaSearchMarkCommands {
     export const MARK: Command = { id: 'notepadia.search.mark', label: 'Mark' };
@@ -33,27 +31,15 @@ export namespace NotepadiaSearchMarkCommands {
     export const MODE_REGEX: Command = { id: 'notepadia.search.mode.regex', label: 'Search Mode: Regular Expression' };
 }
 
-export type SearchMode = 'normal' | 'extended' | 'regex';
+export type { NotepadiaSearchMode as SearchMode } from '../common/find-options';
 
 /**
  * Term transformation used by every Mark-family action, mirroring Notepad++'s
- * search mode radio group:
- *  - normal: the term is used verbatim, following the Find widget's own
- *    regex / match-case flags;
- *  - extended: the term is decoded with the Notepad++ escape table and then
- *    searched as a literal string;
- *  - regex: the term is passed through untouched as a regular expression.
+ * search mode radio group. The radio lives in the Find dialog (B2) and the
+ * Mark submenu, both of which keep `NotepadiaSearchMode` in sync; `resolveSearch`
+ * (src/common/find-options.ts) applies the mode so the dialog and the Mark
+ * commands can never drift apart.
  */
-function resolvedTerm(term: string, mode: SearchMode, findIsRegex: boolean): { term: string; isRegex: boolean } {
-    switch (mode) {
-        case 'extended':
-            return { term: extendedToLiteral(term), isRegex: false };
-        case 'regex':
-            return { term, isRegex: true };
-        default:
-            return { term, isRegex: findIsRegex };
-    }
-}
 
 // Class-name slot palette; the colors live in style/notepadia-marks.css so no
 // TypeScript file carries a hard-coded color string.
@@ -65,6 +51,9 @@ const STYLES: ReadonlyArray<{ readonly className: string }> = [
     { className: 'notepadia-mark-4' }
 ];
 
+/** Number of distinct Mark styles exposed by the Find dialog's Mark tab. */
+export const MARK_STYLE_COUNT = STYLES.length;
+
 interface FindStateLike {
     searchString?: string;
     matchCase?: boolean;
@@ -74,7 +63,7 @@ interface FindStateLike {
 const MODE_KEY = 'notepadia.search.mode';
 
 @injectable()
-export class NotepadiaSearchMarkContribution implements CommandContribution, MenuContribution, FrontendApplicationContribution {
+export class NotepadiaSearchMarkContribution implements CommandContribution, FrontendApplicationContribution {
 
     // style slot -> decorations for the current model
     protected readonly marks = new Map<string /* uri */, Array<{ generation: number; decorations: monaco.editor.IModelDeltaDecoration[] }>>();
@@ -85,7 +74,8 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
     protected generation = 0;
 
     constructor(
-        @inject(EditorManager) protected readonly editorManager: EditorManager
+        @inject(EditorManager) protected readonly editorManager: EditorManager,
+        @inject(NotepadiaFindState) protected readonly findState: NotepadiaFindState
     ) { }
 
     onStart(_app: FrontendApplication): void {
@@ -122,22 +112,22 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         });
     }
 
-    registerMenus(menus: MenuModelRegistry): void {
-        const mark = ['menubar', '3_search', 'notepadia-mark'];
-        menus.registerSubmenu(mark, 'Mark');
-        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.MARK.id, order: 'a' });
-        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.MARK_ALL.id, order: 'b' });
-        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.CLEAR.id, order: 'c' });
-        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.SELECT_FIND_NEXT.id, order: 'd' });
-        menus.registerMenuAction(mark, { commandId: NotepadiaSearchMarkCommands.EXTENDED_MODE.id, order: 'e' });
-    }
-
     protected currentEditor(): MonacoEditor | undefined {
         const widget = this.editorManager.currentEditor;
         return widget ? MonacoEditor.get(widget) : undefined;
     }
 
-    protected mark(): void {
+    public mark(): void {
+        this.markAll();
+    }
+
+    /**
+     * Color every occurrence of the current search term. Mirrors the Mark tab
+     * of the Notepad++ Find dialog: an explicit `style` slot can be chosen
+     * (the menu path omits it and keeps rotating through the palette), and
+     * `purge` wipes any earlier marks on the document first.
+     */
+    public markAll(options: { style?: number; purge?: boolean } = {}): void {
         const editor = this.currentEditor();
         const control = editor?.getControl();
         const model = control?.getModel();
@@ -148,14 +138,14 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         if (!rawTerm) {
             return;
         }
-        const findState = this.findState(control);
-        const { term, isRegex } = resolvedTerm(rawTerm, this.searchMode(), !!findState?.isRegex);
+        const resolved = this.resolve(control, rawTerm);
+        const { matchCase, wholeWord } = this.searchFlags(control);
         const matches = model.findMatches(
-            term,
+            resolved.term,
             true,
-            isRegex,
-            !!findState?.matchCase,
-            null,
+            resolved.isRegex,
+            matchCase,
+            wholeWord ? control.getOption(monaco.editor.EditorOption.wordSeparators) : null,
             false,
             10000
         );
@@ -163,20 +153,28 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
             return;
         }
         const uri = model.uri.toString();
-        const slot = STYLES[this.generation];
+        if (options.purge) {
+            this.marks.delete(uri);
+        }
+        const slotIndex = options.style !== undefined
+            ? ((options.style % STYLES.length) + STYLES.length) % STYLES.length
+            : this.generation;
+        const slot = STYLES[slotIndex];
         const decorations: monaco.editor.IModelDeltaDecoration[] = matches.map(match => ({
             range: match.range,
             options: { inlineClassName: slot.className }
         }));
         const entries = this.marks.get(uri) || [];
-        const without = entries.filter(entry => entry.generation !== this.generation);
-        without.push({ generation: this.generation, decorations });
+        const without = entries.filter(entry => entry.generation !== slotIndex);
+        without.push({ generation: slotIndex, decorations });
         this.marks.set(uri, without);
-        this.generation = (this.generation + 1) % STYLES.length;
+        if (options.style === undefined) {
+            this.generation = (this.generation + 1) % STYLES.length;
+        }
         this.applyTo(uri);
     }
 
-    protected clear(): void {
+    public clear(): void {
         const uri = this.currentUri();
         if (!uri) {
             return;
@@ -185,7 +183,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         this.applyTo(uri);
     }
 
-    protected selectFindNext(): void {
+    public selectFindNext(): void {
         const editor = this.currentEditor();
         const control = editor?.getControl();
         const model = control?.getModel();
@@ -196,12 +194,19 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         if (!rawTerm) {
             return;
         }
-        const findState = this.findState(control);
-        const { term, isRegex } = resolvedTerm(rawTerm, this.searchMode(), !!findState?.isRegex);
+        const resolved = this.resolve(control, rawTerm);
+        const { matchCase, wholeWord } = this.searchFlags(control);
         const selections = control.getSelections() || [];
         const last = selections[selections.length - 1];
         const from = last ? last.getEndPosition() : { lineNumber: 1, column: 1 };
-        const match = model.findNextMatch(term, from, isRegex, !!findState?.matchCase, null, false);
+        const match = model.findNextMatch(
+            resolved.term,
+            from,
+            resolved.isRegex,
+            matchCase,
+            wholeWord ? control.getOption(monaco.editor.EditorOption.wordSeparators) : null,
+            false
+        );
         if (!match) {
             return;
         }
@@ -214,6 +219,27 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         control.revealRangeInCenter(range);
     }
 
+    /**
+     * Search flags coming from the Find dialog (B2). The dialog is the single
+     * find UI now, so Match case and Match whole word requested there also
+     * apply to the Mark commands; when no term was ever typed (menu Mark on a
+     * selection) the editor's own find-widget state is honoured instead.
+     */
+    protected searchFlags(control: monaco.editor.ICodeEditor): { matchCase: boolean; wholeWord: boolean } {
+        const state = this.findState.get();
+        const controller = this.controllerState(control) as (FindStateLike & { wholeWord?: boolean }) | undefined;
+        const fromDialog = state.term !== '';
+        return {
+            matchCase: fromDialog ? state.caseSensitive : !!controller?.matchCase,
+            wholeWord: fromDialog ? state.wholeWord : !!controller?.wholeWord
+        };
+    }
+
+    /** Shared resolver so the Mark engine and the dialog agree on the term. */
+    protected resolve(control: monaco.editor.ICodeEditor, rawTerm: string): { term: string; isRegex: boolean } {
+        return resolveSearch(rawTerm, this.searchMode());
+    }
+
     protected searchTerm(control: monaco.editor.ICodeEditor): string | undefined {
         // Notepad++ semantics: Mark / Select and Find Next operate on the term
         // in the Find box. Only fall back to the current selection when the
@@ -221,7 +247,11 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         // box with). Preferring the selection over the Find box caused stale
         // selections (e.g. the caret left behind by a previous interaction) to
         // silently override what the user typed.
-        const fromFind = this.findState(control)?.searchString;
+        const fromDialog = this.findState.get().term;
+        if (fromDialog) {
+            return fromDialog;
+        }
+        const fromFind = this.controllerState(control)?.searchString;
         if (fromFind) {
             return fromFind;
         }
@@ -235,7 +265,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         return undefined;
     }
 
-    protected findState(control: monaco.editor.ICodeEditor): FindStateLike | undefined {
+    protected controllerState(control: monaco.editor.ICodeEditor): FindStateLike | undefined {
         try {
             const findController = (control as unknown as {
                 getContribution?(id: string): unknown | null;
@@ -247,7 +277,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         }
     }
 
-    protected searchMode(): SearchMode {
+    public searchMode(): SearchMode {
         const stored = window.localStorage.getItem(MODE_KEY);
         if (stored === 'extended' || stored === '1') {
             return 'extended';
@@ -258,7 +288,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Men
         return 'normal';
     }
 
-    protected setSearchMode(mode: SearchMode): void {
+    public setSearchMode(mode: SearchMode): void {
         window.localStorage.setItem(MODE_KEY, mode);
     }
 

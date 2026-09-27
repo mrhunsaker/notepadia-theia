@@ -23,6 +23,7 @@ const SUITES = [
     'theme',
     'toolbar',
     'search',
+    'find-dialog',
     'document-list',
     'spaces-tabs',
     'status-bar',
@@ -62,6 +63,11 @@ function seedWorkspace() {
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
     write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    // Dedicated fixtures for the destructive Replace All checks. One per
+    // suite, because each rewrites its file on disk: a shared one would hand
+    // the next suite the FOO left behind instead of the seeded text.
+    write('replace-dialog.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    write('replace-menu.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
     write('escape.txt', Buffer.from('alpha\tbeta\none\ttwo\nno tab here\nback\\slash\n(paren) more\n', 'utf8'));
     write('indent.txt', alpha);
 

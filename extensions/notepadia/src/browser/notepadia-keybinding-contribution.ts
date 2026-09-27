@@ -6,6 +6,7 @@ import {
 } from '@theia/core/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaOvertypeCommands } from './notepadia-overtype-contribution';
+import { NotepadiaFindCommands } from './notepadia-find-contribution';
 
 @injectable()
 export class NotepadiaKeybindingContribution implements KeybindingContribution {
@@ -65,6 +66,24 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
         keybindings.registerKeybinding({
             command: 'search-in-workspace.replace',
             keybinding: 'ctrlcmd+shift+h'
+        });
+        // Ctrl+H mirrors Notepad++'s Replace dialog tab. Monaco natively binds
+        // Ctrl+H to startFindReplaceAction (inline widget); registering `replace`
+        // here lets the Theia keybinding supersede Monaco's native binding so
+        // the inline widget can never appear.
+        keybindings.registerKeybinding({
+            command: CommonCommands.REPLACE.id,
+            keybinding: 'ctrlcmd+h'
+        });
+        // Ctrl+Shift+F mirrors Notepad++'s Find in Files tab of the dialog.
+        keybindings.registerKeybinding({
+            command: NotepadiaFindCommands.OPEN_FILES.id,
+            keybinding: 'ctrlcmd+shift+f'
+        });
+        // Ctrl+M mirrors Notepad++'s Mark dialog tab.
+        keybindings.registerKeybinding({
+            command: NotepadiaFindCommands.OPEN_MARK.id,
+            keybinding: 'ctrlcmd+m'
         });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.GO_TO_LINE.id,

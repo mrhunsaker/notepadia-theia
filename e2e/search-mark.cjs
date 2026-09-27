@@ -1,96 +1,70 @@
-const { assert, finish, sleep, launchPage, goto, openFile, waitFor,
-    openMenuBar, hoverByLabel, clickByLabel, subLabels, closeMenus } = require('./lib.js');
-
-const FIND_INPUT = '.monaco-editor .find-widget textarea[aria-label="Find"]';
-
-async function focusEditor(page) {
-    await page.evaluate(() => {
-        const el = document.querySelector('.monaco-editor');
-        el && el.focus();
-    });
-    await sleep(300);
-}
-
-async function setSearchTerm(page, text) {
-    await focusEditor(page);
-    await page.keyboard.down('Control');
-    await page.keyboard.press('KeyF');
-    await page.keyboard.up('Control');
-    await waitFor(page, FIND_INPUT, 10000, 'find input');
-    await sleep(500);
-    await page.click(FIND_INPUT);
-    await sleep(200);
-    await page.keyboard.down('Control');
-    await page.keyboard.press('KeyA');
-    await page.keyboard.up('Control');
-    await page.keyboard.press('Backspace');
-    await sleep(200);
-    await page.keyboard.type(text, { delay: 40 });
-    await sleep(700);
-}
-
-async function runMarkOp(page, label, escape = true) {
-    await openMenuBar(page, 'Search');
-    await hoverByLabel(page, 'Mark');
-    await sleep(1000);
-    await clickByLabel(page, label);
-    await sleep(1200);
-    if (escape) {
-        await closeMenus(page);
-    }
-}
-
-const markCount = page => page.evaluate(() =>
-    Array.from(document.querySelectorAll('.monaco-editor'))
-        .reduce((n, w) => n + w.querySelectorAll('.notepadia-mark-0, .notepadia-mark-1, .notepadia-mark-2, .notepadia-mark-3, .notepadia-mark-4').length, 0));
-
-const selCount = page => page.evaluate(() =>
-    document.querySelectorAll('.monaco-editor .selected-text').length);
+const { assert, finish, sleep, launchPage, goto, openFile } = require('./lib.js');
+const { openFindDialog, setFindText, clickDialogButton, clickDialogTab,
+    setStyleRadio, markCount, markCountStyle, setMode,
+    closeDialog } = require('./dialog-helpers.cjs');
 
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     await goto(page);
     await openFile(page, 'search.txt');
 
-    // Search > Mark submenu exists with all four entries
-    await openMenuBar(page, 'Search');
-    await hoverByLabel(page, 'Mark');
-    await sleep(1000);
-    const markItems = await subLabels(page);
-    assert('Mark submenu lists Mark, Mark All, Clear Marks and Select and Find Next',
-        ['Mark', 'Mark All', 'Clear Marks', 'Select and Find Next'].every(l => markItems.includes(l)),
-        JSON.stringify(markItems));
-    await closeMenus(page);
+    // The Mark tab offers everything the old submenu did, consolidated into the
+    // dialog (B2): Mark All, Clear All Marks, Select and Find Next, extended
+    // mode radio, purge, and the five-style selector.
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Mark');
+    const markControls = await page.evaluate(() => Array.from(
+        document.querySelectorAll('.notepadia-find-buttons button')).map(b => (b.textContent || '').trim()));
+    assert('Mark tab lists the Mark controls',
+        ['Mark All', 'Clear All Marks', 'Select and Find Next'].every(l => markControls.includes(l)),
+        JSON.stringify(markControls));
+    assert('Mark tab offers all five styles', await page.evaluate(() =>
+        document.querySelectorAll('input[name="notepadia-find-mark-style"]').length === 5));
+    assert('Mark tab has a purge checkbox', await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.notepadia-find-check'))
+            .some(el => (el.textContent || '').trim() === 'Purge for each search')));
 
-    // Mark All colors every occurrence of the search term
-    await setSearchTerm(page, 'foo');
-    const findWidgetOpen = await page.evaluate(sel => !!document.querySelector(sel), FIND_INPUT);
-    assert('find widget opened', findWidgetOpen, 'no find input');
-    await page.keyboard.press('Escape');
-    await sleep(400);
-    await runMarkOp(page, 'Mark All');
+    // Mark All colors every occurrence of the search term.
+    await setFindText(page, 'foo');
+    await clickDialogButton(page, 'Mark All');
     assert('Mark All colors all four occurrences', await markCount(page) === 4,
         'marks=' + await markCount(page));
 
-    // Clear Marks removes them
-    await runMarkOp(page, 'Clear Marks');
-    assert('Clear Marks removes all marks', await markCount(page) === 0,
+    // The selected style slot is the one that gets inked; others stay empty.
+    await clickDialogButton(page, 'Clear All Marks');
+    await setStyleRadio(page, 2);
+    await clickDialogButton(page, 'Mark All');
+    assert('Mark All uses the selected style', (await markCountStyle(page, 2)) === 4
+        && (await markCountStyle(page, 0)) === 0,
+        'style2=' + await markCountStyle(page, 2) + ' style0=' + await markCountStyle(page, 0));
+    await clickDialogButton(page, 'Clear All Marks');
+    assert('Clear All Marks removes all marks', await markCount(page) === 0,
         'marks=' + await markCount(page));
 
-    // Select and Find Next selects the next occurrence and extends the selection
-    await setSearchTerm(page, 'foo');
-    await page.keyboard.press('Escape');
-    await sleep(400);
-    await runMarkOp(page, 'Select and Find Next', false);
-    const first = await selCount(page);
-    assert('Select and Find Next selects an occurrence', first >= 1,
-        'selections=' + first);
-    await runMarkOp(page, 'Select and Find Next', false);
-    const second = await selCount(page);
-    assert('Select and Find Next selects a further occurrence', second >= 2,
-        'selections=' + second);
-    await page.keyboard.press('Escape');
-    await sleep(400);
+    // Select and Find Next selects the next occurrence and extends the selection.
+    const selCount = () => page.evaluate(() =>
+        document.querySelectorAll('.monaco-editor .selected-text').length);
+    await setFindText(page, 'foo');
+    await clickDialogButton(page, 'Select and Find Next');
+    const first = await selCount();
+    assert('Select and Find Next selects an occurrence', first >= 1, 'selections=' + first);
+    await clickDialogButton(page, 'Select and Find Next');
+    const second = await selCount();
+    assert('Select and Find Next selects a further occurrence', second >= 2, 'selections=' + second);
+
+    // Extended mode radio belongs to every tab's Search Mode group; confirm
+    // it is live from the Mark tab (a \t literal marks the two real tabs).
+    // openFile ends with an Escape, which closes the dialog, so it is closed
+    // first and reopened on the Mark tab.
+    await closeDialog(page, false);
+    await openFile(page, 'escape.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Mark');
+    await setFindText(page, '\\t');
+    await setMode(page, 'extended');
+    await clickDialogButton(page, 'Mark All');
+    assert('Mark All honors the Extended radio', await markCount(page) === 2,
+        'marks=' + await markCount(page));
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

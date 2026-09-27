@@ -10,6 +10,7 @@ import { StandaloneServices, StandaloneKeybindingService } from '@theia/monaco-e
 import { IKeybindingService } from '@theia/monaco-editor-core/esm/vs/platform/keybinding/common/keybinding';
 import * as monaco from '@theia/monaco-editor-core';
 import { NotepadiaCommands } from './notepadia-contribution';
+import { NotepadiaFindCommands } from './notepadia-find-contribution';
 
 /**
  * Bridges Notepad-style keybindings into the Monaco editor itself.
@@ -67,6 +68,19 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
                     undefined
                 );
             };
+            // An alias command id routes the chord to an existing Theia command.
+            // `core.find` / `core.replace` are already registered in the Monaco
+            // CommandsRegistry (with handlers that open the inline find widget),
+            // and `CommandsRegistry.registerCommand` silently keeps the first
+            // registration, so the dynamic rule must target a fresh id instead.
+            const alias = (aliasId: string, command: string, keybinding: number) => {
+                keybindingService.addDynamicKeybinding(
+                    aliasId,
+                    keybinding,
+                    (_accessor: unknown, ...args: unknown[]) => this.commandRegistry.executeCommand(command, ...args),
+                    undefined
+                );
+            };
 
             add(NotepadiaCommands.DUPLICATE_LINE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD);
             add(NotepadiaCommands.DELETE_LINE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL);
@@ -80,6 +94,35 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             add(NotepadiaCommands.NEW_DOCUMENT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyN);
             add(NotepadiaCommands.GO_TO_LINE.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyG);
             add(NotepadiaCommands.MATCHING_BRACKET.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyE);
+            // Steal the find chords from Monaco's own inline find widget so they
+            // drive the Notepad++ tabbed dialog instead. The widget grabs
+            // Ctrl+F / Ctrl+H at its own DOM listener with a precedence no
+            // keybinding rule can beat (it swallows the event before Theia's
+            // layer ever sees it), so intercept the two chords in the document
+            // capture phase - which runs before that listener - and re-dispatch
+            // them as the core find / replace commands, whose handlers are
+            // overridden to open the dialog. Both chords are intercepted
+            // globally (Notepad++ semantics): from an editor, from one of the
+            // dialog's own inputs, or from anywhere else in the workbench.
+            // Ctrl+Shift+F and Ctrl+M have no competing native binding, so a
+            // plain dynamic rule suffices there.
+            document.addEventListener('keydown', (event) => {
+                if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+                    return;
+                }
+                const key = event.key.toLowerCase();
+                if (key === 'f' && !event.shiftKey) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    this.commandRegistry.executeCommand(CommonCommands.FIND.id);
+                } else if (key === 'h' && !event.shiftKey) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    this.commandRegistry.executeCommand(CommonCommands.REPLACE.id);
+                }
+            }, true);
+            alias('notepadia.keybinding.findInFiles', NotepadiaFindCommands.OPEN_FILES.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF);
+            alias('notepadia.keybinding.mark', NotepadiaFindCommands.OPEN_MARK.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM);
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal);
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Equal);
             add(NotepadiaCommands.ZOOM_OUT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus);

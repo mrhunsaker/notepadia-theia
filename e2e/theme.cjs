@@ -1,5 +1,4 @@
-const { assert, finish, sleep, launchPage, goto, openFile, waitFor,
-    openMenuBar, hoverByLabel, clickByLabel, closeMenus } = require('./lib.js');
+const { assert, finish, sleep, launchPage, goto, openFile, waitFor } = require('./lib.js');
 
 const bodyUiClass = page => page.evaluate(() => document.body.className);
 const statusbarBg = page => page.evaluate(() =>
@@ -99,9 +98,9 @@ async function readMarkColor(page) {
     await page.keyboard.down('Control');
     await page.keyboard.press('KeyF');
     await page.keyboard.up('Control');
-    await waitFor(page, '.monaco-editor .find-widget textarea[aria-label="Find"]', 10000, 'find input');
+    await waitFor(page, '#notepadia-find-term', 10000, 'find dialog term');
     await sleep(400);
-    await page.click('.monaco-editor .find-widget textarea[aria-label="Find"]');
+    await page.click('#notepadia-find-term');
     await sleep(200);
     await page.keyboard.down('Control');
     await page.keyboard.press('KeyA');
@@ -110,13 +109,23 @@ async function readMarkColor(page) {
     await sleep(200);
     await page.keyboard.type('alpha', { delay: 40 });
     await sleep(700);
+    await page.evaluate(() => {
+        const tab = Array.from(document.querySelectorAll('.notepadia-find-tab'))
+            .find(el => (el.textContent || '').trim() === 'Mark');
+        tab && tab.click();
+    });
+    await sleep(400);
+    const btn = await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('.notepadia-find-buttons button'))
+            .find(el => (el.textContent || '').trim() === 'Mark All');
+        if (!b) return null;
+        const r = b.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    await page.mouse.click(btn.x, btn.y);
+    await sleep(500);
     await page.keyboard.press('Escape');
     await sleep(400);
-    await openMenuBar(page, 'Search');
-    await hoverByLabel(page, 'Mark');
-    await clickByLabel(page, 'Mark All');
-    await closeMenus(page);
-    await sleep(500);
     return page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.monaco-editor [class*="notepadia-mark"]'));
         const el = all[0];

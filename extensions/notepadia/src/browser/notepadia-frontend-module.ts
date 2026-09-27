@@ -30,6 +30,9 @@ import { NotepadiaUpdaterContribution } from './notepadia-updater-contribution';
 import { NotepadiaColumnEditorContribution } from './notepadia-column-editor';
 import { NotepadiaBlankAndLineOperationsContribution } from './notepadia-blank-and-line-operations';
 import { NotepadiaSearchMarkContribution } from './notepadia-search-mark';
+import { NotepadiaFindState } from './notepadia-find-state';
+import { NotepadiaFindDialog } from './notepadia-find-dialog';
+import { NotepadiaFindContribution } from './notepadia-find-contribution';
 import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
 import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
@@ -132,8 +135,16 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(NotepadiaSearchMarkContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaSearchMarkContribution);
-    bind(MenuContribution).toService(NotepadiaSearchMarkContribution);
     bind(FrontendApplicationContribution).toService(NotepadiaSearchMarkContribution);
+
+    // B2 - Notepad++ tabbed Find dialog. The dialog itself is a modeless
+    // floating panel (not a Shell widget), so it is bound as a singleton and
+    // injected straight into its contribution rather than created by a
+    // WidgetFactory.
+    bind(NotepadiaFindState).toSelf().inSingletonScope();
+    bind(NotepadiaFindDialog).toSelf().inSingletonScope();
+    bind(NotepadiaFindContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaFindContribution);
 
     bind(NotepadiaMacroContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaMacroContribution);

@@ -6,6 +6,8 @@ import {
 import { CommonCommands, CommonMenus } from '@theia/core/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaShellCommands } from './notepadia-shell-contribution';
+import { NotepadiaFindCommands } from './notepadia-find-contribution';
+import { NotepadiaSearchMarkCommands } from './notepadia-search-mark';
 
 @injectable()
 export class NotepadiaMenuContribution implements MenuContribution {
@@ -229,14 +231,39 @@ export class NotepadiaMenuContribution implements MenuContribution {
             order: 'f'
         });
         menus.registerMenuAction(search, {
+            commandId: NotepadiaFindCommands.OPEN_MARK.id,
+            label: 'Mark...',
+            order: 'g'
+        });
+        menus.registerMenuAction(search, {
             commandId: NotepadiaCommands.GO_TO_LINE.id,
             label: 'Go To Line...',
-            order: 'g'
+            order: 'h'
         });
         menus.registerMenuAction(search, {
             commandId: NotepadiaCommands.MATCHING_BRACKET.id,
             label: 'Matching Bracket',
-            order: 'h'
+            order: 'i'
+        });
+        // Notepad++ keeps a Mark submenu next to Bookmark at the foot of the
+        // Search menu. Its entries open the Find dialog on the Mark tab and
+        // run the action there (see NotepadiaFindContribution).
+        const searchMark = [...search, 'notepadia-mark'];
+        menus.registerSubmenu(searchMark, 'Mark');
+        menus.registerMenuAction(searchMark, {
+            commandId: NotepadiaSearchMarkCommands.MARK_ALL.id,
+            label: 'Mark All',
+            order: 'a'
+        });
+        menus.registerMenuAction(searchMark, {
+            commandId: NotepadiaSearchMarkCommands.CLEAR.id,
+            label: 'Clear All Marks',
+            order: 'b'
+        });
+        menus.registerMenuAction(searchMark, {
+            commandId: NotepadiaSearchMarkCommands.SELECT_FIND_NEXT.id,
+            label: 'Select and Find Next',
+            order: 'c'
         });
 
         // View

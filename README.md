@@ -119,8 +119,9 @@ The Notepad++-style feature layer is implemented as the shared
 - Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
   Settings) and Ctrl/Cmd shortcuts
 - search/replace in the active document (find next/previous, replace all,
-  regex, match case, whole word)
-- find in files / replace in files via Theia's search-in-workspace
+  regex, match case, whole word) through the tabbed Find dialog
+- find in files / replace in files via Theia's search-in-workspace, driven
+  from the Find in Files tab of that same dialog
 - encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI) with re-save
 - EOL conversion (LF, CRLF, CR) with re-save
 - bookmarks (toggle, next/previous, clear) and line operations
@@ -142,6 +143,10 @@ The Notepad++-style feature layer is implemented as the shared
 - Blank Operations (Edit > Blank Operations): TAB Space toggling, trims,
   EOL-to-space and "remove unnecessary EOL"; Line Operations also has
   Split Lines and Remove Consecutive Duplicate Lines
+- one modeless, Notepad++-style tabbed Find dialog (Ctrl+F / Ctrl+H /
+  Ctrl+Shift+F / Ctrl+M) with Find, Replace, Find in Files and Mark tabs,
+  which replaces Monaco's inline find widget; the Mark controls also stay
+  reachable from a Search > Mark submenu
 - Search > Mark: Mark/Mark All/Clear Marks color the search term in one of
   five styles; Select and Find Next adds each next occurrence to the
   selection
@@ -224,7 +229,7 @@ yarn lint
 yarn build
 ```
 
-Run the 24 end-to-end suites (headless Chromium via Puppeteer):
+Run the 25 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -244,17 +249,14 @@ defaults, untitled naming), the persistent Document Map, and status-bar
 parity with a real INS/OVR overtype mode — is complete.
 Remaining work, in execution order:
 
-1. The tabbed Find dialog: `Ctrl+F` opens one Notepad++-style tabbed Find
-   dialog (Find / Replace / Mark / Find-in-Files tabs) instead of Monaco's
-   inline widget
-2. Browser-target correctness: opening and saving files from the user's own
+1. Browser-target correctness: opening and saving files from the user's own
    computer, resolving browser-reserved keybinding conflicts, and
    unsaved-work protection and crash recovery
-3. Remaining menu and panel debt: menu completeness including the Window
+2. Remaining menu and panel debt: menu completeness including the Window
    menu, the Function List panel and Folder-as-Workspace presentation, an
    incremental search bar, a browser-appropriate Run menu, and the Search
    Results window
-4. Accessibility and release verification: keyboard/screen-reader/contrast
+3. Accessibility and release verification: keyboard/screen-reader/contrast
    verification, test growth with a visual baseline, a documentation truth
    pass, macOS release-workflow verification, Electron parity for everything
    added, and the first published `vYYYY.M.D` release to prove the updater

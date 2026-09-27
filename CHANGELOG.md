@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026.9.27 (Notepad++ tabbed Find dialog)
+
+- **One modeless Find dialog, four Notepad++ tabs**: `Ctrl+F`, `Ctrl+H`,
+  `Ctrl+Shift+F` and `Ctrl+M` all open a single floating dialog with **Find**,
+  **Replace**, **Find in Files** and **Mark** tabs, replacing Monaco's inline
+  find widget and Theia's separate search-in-workspace entry points. The
+  dialog is not modal, so the document stays editable underneath, and `Escape`
+  closes it from the editor, the menu bar or anywhere else in the workbench.
+- **Find and Replace**: `Find Next`, `Count`, `Find All in Current Document`
+  (which selects every hit, as Notepad++ does) and `Find All in All Opened
+  Documents`; `Replace`, `Replace All` and `Replace All in All Opened
+  Documents`, all of which are ordinary undoable edits. `Replace All` targets
+  the *current* document rather than whichever editor happens to be first in
+  the list. The Find tab prefills the word under the caret and reports
+  `2 of 4` / `4 results on current document` in its status line.
+- **Find in Files**: `Filters` and `Directory` narrow the workspace search
+  (the directory is resolved against the workspace root and searched including
+  its sub-folders), `In hidden folders` includes dot-folders, and
+  `Find All` / `Replace All` drive the existing search-in-workspace backend —
+  `Replace All` runs the search and then replaces across its results. The
+  search mode is translated onto the backend's own flags, so Regular
+  expression and Match case work here too.
+- **Mark**: the tab carries `Mark All`, `Clear All Marks`,
+  `Select and Find Next`, the five Notepad++ mark styles and a
+  `Purge for each search` option that now controls purging on its own (Mark All
+  used to purge unconditionally). The same three actions stay available under
+  a restored `Search ▸ Mark` submenu, which opens the dialog on its Mark tab
+  and runs the action.
+- **Honest controls**: `. matches newline` is shown disabled with a tooltip
+  explaining that the editor's search engine matches within a single line,
+  and `In all sub-folders` is shown checked-and-disabled because a Directory
+  search always includes sub-folders — neither is a checkbox that silently
+  does nothing.
+- New `NotepadiaFindState` shares the find options (mode, case, whole word,
+  backward, wrap, in-selection) between the dialog and the search-mark engine,
+  and `src/common/find-options.ts` holds the pure search-mode translation with
+  unit tests. A new `find-dialog` e2e suite (25 suites total) covers the tabs,
+  counting, wrap-around, in-selection stepping, regex mode, Replace All, undo,
+  persistence, the mark styles, Escape, and F3/Shift+F3 continuation.
+
 ## 2026.9.25 (Notepad++ status bar parity + real INS/OVR overtype mode)
 
 - **Live Notepad++ status bar fields**: the status bar now shows the
