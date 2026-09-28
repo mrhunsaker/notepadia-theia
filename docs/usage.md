@@ -37,8 +37,9 @@ profile above.
 
 ## New documents
 
-`File ▸ New` (Ctrl+N) opens a new untitled document named `new 1`, `new 2`,
-... like Notepad++, in plain text (no extension, no language detection).
+`File ▸ New` (Ctrl+N, or **Ctrl+Alt+N** where the browser claims Ctrl+N) opens a
+new untitled document named `new 1`, `new 2`, ... like Notepad++, in plain text
+(no extension, no language detection).
 Save As... (Ctrl+Shift+S) prompts for a real file name.
 
 ## Menus and commands
@@ -146,12 +147,65 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+Shift+F | Open the tabbed Find dialog (Find in Files tab) |
 | Ctrl+M | Open the tabbed Find dialog (Mark tab) |
 | Insert | Toggle INS/OVR (overtype) mode |
+| Ctrl+Alt+N | New document (browser-safe) |
+| Ctrl+F4 | Close document (browser-safe) |
+| Ctrl+Alt+Shift+W | Close all documents (browser-safe) |
+| Ctrl+Alt+O | Open From This Computer... (browser-safe) |
+| Ctrl+= / Ctrl+- / Ctrl+0 | Zoom in / zoom out / reset the editor text |
 
 !!! note
     The editor is forced onto the classic textarea input path
     (`editContext: false`) so Theia's own keybinding layer stays
     deterministic. The Ctrl+D / Ctrl+L chords are mirrored into Monaco's
     keybinding service as a fallback.
+
+`Settings ▸ Shortcut Mapper` opens Theia's own shortcut editor, which lists
+every registered chord and rebinds it. Nothing in this app is reachable only by
+keyboard: each command is also a menu entry.
+
+### Shortcuts the browser claims
+
+In a browser tab some of the chords a text editor is expected to own never
+reach the page, because the browser acts on them first. A web app cannot
+intercept them, and cannot unbind them either, so each one that Notepad++ uses
+for something has an alternate chord that the browser leaves alone:
+
+| Chord | What the browser does with it | What it is in Notepad++ | Use |
+| --- | --- | --- | --- |
+| Ctrl+N | new browser window (Chromium) / new tab (Firefox) | New document | **Ctrl+Alt+N** |
+| Ctrl+W | close the browser tab | Close document | **Ctrl+F4** |
+| Ctrl+Shift+W | close the browser window | Close All | **Ctrl+Alt+Shift+W** |
+| Ctrl+O | Open File... (the browser's own file dialog) | Open From This Computer... | **Ctrl+Alt+O** |
+| Ctrl+Shift+O | bookmark all tabs (Chromium) | - | nothing is bound to it |
+| Ctrl+T | new browser tab | - | nothing is bound to it |
+| Ctrl+Shift+N | incognito window | - | nothing is bound to it |
+| Ctrl+Shift+T | reopen the last closed tab | - | nothing is bound to it |
+| Ctrl+= / Ctrl+- / Ctrl+0 | page zoom | editor zoom | same chord, editor focused |
+
+Nothing was taken away: `Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W` and `Ctrl+O` are still
+bound and still work in the desktop app, where no browser claims them. The
+alternates are added alongside them.
+
+The zoom chords are the one place where both meanings are wanted, so the
+division is by focus rather than by chord:
+
+- **Editor has focus** - `Ctrl+=` grows the editor text, `Ctrl+-` shrinks it and
+  `Ctrl+0` resets it, and the page does not zoom.
+- **Anything else has focus** - the menubar, the tab bar, the folder panel -
+  the browser keeps its own page zoom.
+
+`Alt` is left alone throughout, because `Ctrl+Alt` is `AltGr` on Windows
+keyboard layouts and those chords belong to the layout, not to the app.
+
+!!! note "How this list was checked"
+    The automated browser tests cannot confirm which chords a browser reserves:
+    Puppeteer injects key events over the DevTools protocol, which delivers them
+    straight to the page and bypasses the browser's accelerator handling
+    entirely. The table therefore records standard Chromium and Firefox
+    behaviour, and the automated tests cover the parts that *are* reachable -
+    that each alternate opens the right thing, and that the editor zoom wins
+    while the editor has focus. Re-check the table by hand after a major
+    browser upgrade.
 
 ## Encoding
 
@@ -272,12 +326,13 @@ The File System Access API needs a **secure context**, so `https://` or
 `http://localhost`. On plain `http://` the app automatically falls back to the
 upload/download route.
 
-!!! note "No keyboard shortcut for Open From This Computer..."
+!!! note "Ctrl+Alt+O, not Ctrl+O"
     Notepad++ opens local files with Ctrl+O, but the browser claims Ctrl+O (and
     Ctrl+Shift+O, which is bookmark-all-tabs in Chromium) before the page ever
-    sees the key, and a web app cannot intercept either. Rather than invent a
-    different chord and create a new browser conflict, these three commands are
-    menu-only.
+    sees the key, and a web app cannot intercept either. `Ctrl+Alt+O` is bound
+    instead - see [Shortcuts the browser
+    claims](#shortcuts-the-browser-claims) - and the command is in the File menu
+    as always.
 
 ## Recent Files
 

@@ -25,6 +25,12 @@ The product is organized as a monorepo:
   Mark tab providing the five Notepad++ mark styles.
 - Notepad++-style shortcuts: Ctrl+D (duplicate line), Ctrl+L (delete line),
   Ctrl+F2 bookmarks, and more.
+- Browser-proof shortcuts: the chords a browser claims (`Ctrl+N`, `Ctrl+W`,
+  `Ctrl+Shift+W`, `Ctrl+O`) keep working in the desktop app and gain
+  alternates on the web (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`,
+  `Ctrl+Alt+O`); editor zoom keeps `Ctrl+=` / `Ctrl+-` / `Ctrl+0` to the text
+  while the editor has focus and leaves page zoom to the browser elsewhere;
+  `Settings ▸ Shortcut Mapper` lists and rebinds every chord.
 - Encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI, ISO-8859 family).
 - EOL conversion (LF / CRLF) with live status-bar display.
 - A Notepad++ default behavior profile: on a cold profile the editor starts

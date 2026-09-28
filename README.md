@@ -118,6 +118,14 @@ The Notepad++-style feature layer is implemented as the shared
 - file navigator/filesystem, editor tabs, session restore and recent files
 - Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
   Settings) and Ctrl/Cmd shortcuts
+- chords a browser claims (`Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`) stay
+  bound for the desktop app and gain browser-safe alternates on the web
+  (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`) — see
+  [shortcuts the browser
+  claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims).
+  `Ctrl+=` / `Ctrl+-` / `Ctrl+0` zoom the editor text while the editor has
+  focus and leave page zoom alone everywhere else, and `Settings ▸ Shortcut
+  Mapper` lists and rebinds every registered chord
 - both storages, explicitly named in the File menu: `Open...` / `Save As...`
   work in the server workspace, while `Open From This Computer...`,
   `Save To This Computer...` and `Upload to Workspace...` reach the disk of the

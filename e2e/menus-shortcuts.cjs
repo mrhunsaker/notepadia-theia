@@ -1,4 +1,4 @@
-const { assert, finish, sleep, launchPage, goto, openFile,
+const { assert, finish, sleep, launchPage, goto, openFile, save,
     openMenuBar, subLabels, closeMenus, modelText } = require('./lib.js');
 
 async function press(page, mods, key) {
@@ -6,6 +6,24 @@ async function press(page, mods, key) {
     await page.keyboard.press(key);
     for (const m of mods) await page.keyboard.up(m);
     await sleep(700);
+}
+
+/** Editor tabs only - the left/right panels keep tabs of their own. */
+async function editorTabs(page) {
+    return page.$$eval('#theia-main-content-panel .lm-TabBar-tab',
+        els => els.map(e => (e.textContent || '').trim()));
+}
+
+async function focusEditor(page) {
+    await page.evaluate(() => {
+        const el = document.querySelector('.monaco-editor .inputarea, .monaco-editor textarea');
+        if (el) {
+            el.focus();
+            return true;
+        }
+        return false;
+    });
+    await sleep(250);
 }
 
 (async () => {
@@ -52,11 +70,7 @@ async function press(page, mods, key) {
 
     // Ctrl+Shift+U uppercases the selection, Ctrl+U lowercases it
     const base = await modelText(page);
-    await page.evaluate(() => {
-        const el = document.querySelector('.monaco-editor .inputarea, .monaco-editor textarea');
-        el && el.focus();
-    });
-    await sleep(300);
+    await focusEditor(page);
     await press(page, ['Control'], 'KeyA');
     await press(page, ['Control', 'Shift'], 'KeyU');
     const upper = await modelText(page);
@@ -66,6 +80,92 @@ async function press(page, mods, key) {
     const lower = await modelText(page);
     assert('Ctrl+U lowercases the document (overrides Monaco cursor undo)', lower === base,
         'base=' + JSON.stringify(base) + ' lower=' + JSON.stringify(lower));
+    // ...which leaves the buffer dirty, and a dirty document makes Close All ask
+    // before it closes anything. Save so the shortcuts below are only measuring
+    // the shortcuts.
+    await save(page);
+
+    // D2 - Settings exposes the shortcut editor, which is the only way a user
+    // can rebind a chord the browser took away.
+    await openMenuBar(page, 'Settings');
+    const settingsItems = await subLabels(page);
+    await closeMenus(page);
+    assert('Settings has a Shortcut Mapper', settingsItems.includes('Shortcut Mapper'),
+        JSON.stringify(settingsItems));
+
+    // D2 - every chord the browser reserves has a working alternate. Puppeteer
+    // can deliver the alternates precisely because the browser does not
+    // reserve them, which is also why they are the ones a real user can press.
+    const oneTab = await editorTabs(page);
+    await focusEditor(page);
+    await press(page, ['Control', 'Alt'], 'KeyN');
+    const twoTabs = await editorTabs(page);
+    assert('Ctrl+Alt+N opens a new document (alternate for browser-reserved Ctrl+N)',
+        twoTabs.length === oneTab.length + 1,
+        'before=' + JSON.stringify(oneTab) + ' after=' + JSON.stringify(twoTabs));
+
+    await press(page, ['Control'], 'F4');
+    const afterClose = await editorTabs(page);
+    assert('Ctrl+F4 closes the current document (Notepad++\'s own alternate for Ctrl+W)',
+        afterClose.length === twoTabs.length - 1,
+        'before=' + JSON.stringify(twoTabs) + ' after=' + JSON.stringify(afterClose));
+
+    await openFile(page, 'app.js');
+    await openFile(page, 'config.json');
+    const threeTabs = await editorTabs(page);
+    assert('three documents are open before Close All', threeTabs.length === 3,
+        JSON.stringify(threeTabs));
+    await press(page, ['Control', 'Alt', 'Shift'], 'KeyW');
+    const afterCloseAll = await editorTabs(page);
+    assert('Ctrl+Alt+Shift+W closes every document (alternate for browser-reserved Ctrl+Shift+W)',
+        afterCloseAll.length === 0, JSON.stringify(afterCloseAll));
+
+    // D2 - Ctrl+Alt+O reaches Open From This Computer..., whose Notepad++
+    // chord (Ctrl+O) the browser claims. The chooser is cancelled: e2e cannot
+    // drive a native file dialog, only prove the command runs.
+    const chooser = page.waitForFileChooser({ timeout: 8000 }).catch(() => null);
+    await press(page, ['Control', 'Alt'], 'KeyO');
+    const opened = await chooser;
+    assert('Ctrl+Alt+O opens the local file picker (alternate for browser-reserved Ctrl+O)',
+        opened !== null);
+    if (opened) {
+        await opened.cancel().catch(() => { });
+        await sleep(600);
+    }
+
+    // D2 - the editor's zoom chords stay on the editor while it has focus:
+    // the text grows and the page does not.
+    await openFile(page, 'sample.txt');
+    // Which keys count as a zoom chord, and which of them the guard claims, is
+    // covered by test/zoom-chords.test.cjs against the pure helper. It cannot
+    // be observed from here: Theia calls preventDefault() on the same node in
+    // the same phase for every chord it handles, and stops propagation before
+    // any listener a test could add gets to look, so `defaultPrevented` would
+    // report Theia either way. What is observable - and what the user cares
+    // about - is the outcome.
+    await focusEditor(page);
+    const fontBefore = await page.evaluate(() => {
+        const el = document.querySelector('.monaco-editor .view-lines');
+        return el ? parseFloat(getComputedStyle(el).fontSize) : null;
+    });
+    const ratioBefore = await page.evaluate(() => window.devicePixelRatio);
+    await press(page, ['Control'], 'Equal');
+    const fontAfter = await page.evaluate(() => {
+        const el = document.querySelector('.monaco-editor .view-lines');
+        return el ? parseFloat(getComputedStyle(el).fontSize) : null;
+    });
+    const ratioAfter = await page.evaluate(() => window.devicePixelRatio);
+    assert('Ctrl+= grows the editor text', fontBefore !== null && fontAfter !== null && fontAfter > fontBefore,
+        `${fontBefore} -> ${fontAfter}`);
+    assert('Ctrl+= with the editor focused does not zoom the page', ratioAfter === ratioBefore,
+        `${ratioBefore} -> ${ratioAfter}`);
+    await press(page, ['Control'], '0');
+    const fontReset = await page.evaluate(() => {
+        const el = document.querySelector('.monaco-editor .view-lines');
+        return el ? parseFloat(getComputedStyle(el).fontSize) : null;
+    });
+    assert('Ctrl+0 puts the editor text back', fontReset === fontBefore,
+        `${fontAfter} -> ${fontReset}`);
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

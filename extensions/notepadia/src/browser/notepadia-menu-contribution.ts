@@ -351,5 +351,14 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: 'Preferences',
             order: 'a'
         });
+        // D2: The shortcut editor is the user's escape hatch for every chord
+        // this app or the browser has taken. Hiding it would leave a Notepad++
+        // user who arrives on Ctrl+N and finds the browser answered with no way
+        // to fix it.
+        menus.registerMenuAction(settings, {
+            commandId: 'keymaps:open',
+            label: 'Shortcut Mapper',
+            order: 'b'
+        });
     }
 }

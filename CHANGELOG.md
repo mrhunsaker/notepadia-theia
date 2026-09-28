@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026.9.28 (Shortcuts that survive a browser)
+
+- **The chords a browser claims no longer cost you the feature.** `Ctrl+N`,
+  `Ctrl+W`, `Ctrl+Shift+W` and `Ctrl+O` are intercepted by the browser before
+  the page ever sees them, so a web Notepad++ was quietly missing New, Close,
+  Close All and Open From This Computer on the keyboard. Each now has an
+  alternate the browser leaves alone: **`Ctrl+Alt+N`**, **`Ctrl+F4`** (the same
+  chord Notepad++ itself uses for Close), **`Ctrl+Alt+Shift+W`** and
+  **`Ctrl+Alt+O`**. Nothing was taken away — the original four chords stay bound
+  and keep working in the desktop app, where no browser is in the way, and every
+  command is in a menu whether or not any chord reaches it.
+- **`Ctrl+=` / `Ctrl+-` / `Ctrl+0` zoom the text, not the window.** These are
+  Zoom In / Zoom Out / Reset Zoom in Notepad++ and page zoom in every browser,
+  and pressing them with a document open used to grow the whole page. The
+  division is by focus: with the editor focused the text grows and the page
+  does not; with the menubar, tab bar or file tree focused the browser keeps
+  its own page zoom, because that is what was asked for. `Alt` is never treated
+  as a zoom chord, since `Ctrl+Alt` is `AltGr` on Windows layouts.
+- **`Settings ▸ Shortcut Mapper` is now in the menu**, so every registered
+  chord can be listed and rebound from the UI rather than only discovered by
+  trying them.
+- **Documented what is actually reserved, and what was verified.** The user
+  guide gains a table of the browser-claimed chords, the Notepad++ meaning, and
+  the alternate to use. It also states the limit honestly: Puppeteer injects
+  keys over the DevTools protocol, which bypasses browser accelerator handling,
+  so the automated tests cover the alternates and the editor/page zoom split
+  rather than pretending to measure the browser's accelerator table.
+- New `src/common/zoom-chords.ts` decides which keys are editor zoom chords as
+  a pure function, with unit tests covering both spellings of Zoom In, Meta on
+  macOS, the `AltGr` exclusion and the chords it must leave alone. The keydown
+  listener could not be unit tested: Theia `preventDefault`s on the same node
+  in the same phase for every chord it handles, so a listener under test could
+  only ever observe Theia's answer.
+- The `menus-shortcuts` e2e suite covers `Ctrl+Alt+N`, `Ctrl+F4`,
+  `Ctrl+Alt+Shift+W` (including the dirty-document prompt), the `Ctrl+Alt+O`
+  file picker, the Shortcut Mapper entry, and editor text growing and resetting
+  while `devicePixelRatio` stays put.
+
 ## 2026.9.27 (Files on your own computer)
 
 - **Open and save files on the disk you are sitting at.** A Notepad++ user

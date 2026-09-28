@@ -7,6 +7,7 @@ import { CommonMenus } from '@theia/core/lib/browser/common-menus';
 import { StatusBar } from '@theia/core/lib/browser/status-bar/status-bar';
 import { PreferenceService } from '@theia/core/lib/common/preferences';
 import { NOTEPADIA_TAB_ID_PREFIX } from './notepadia-tab-decorator';
+import { editorZoomAction } from '../common/zoom-chords';
 
 export const NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE = 'notepadia.toolbar.visible';
 /** Draw a close button on every tab (A4); when disabled it only shows on the active tab. */
@@ -78,6 +79,9 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
         // a child of the tab handles the click.
         document.addEventListener('auxclick', this.handleAuxClick, true);
 
+        // D2 - keep Ctrl+= / Ctrl+- / Ctrl+0 on the editor's zoom.
+        document.addEventListener('keydown', this.handleZoomChord, true);
+
         // A4 - View > Tab Bar > Draw Close Button.
         this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
         this.preferenceService.onPreferenceChanged(event => {
@@ -85,6 +89,35 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
                 this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
             }
         });
+    }
+
+    /**
+     * D2 - the editor's zoom chords, Notepad++ style.
+     *
+     * Ctrl+= / Ctrl+- / Ctrl+0 are Zoom In / Zoom Out / Reset Zoom in Notepad++
+     * and page zoom in every browser, so the two meanings fight over the same
+     * chord. Calling `preventDefault()` here stops the browser's own default
+     * while leaving propagation alone, so the keybinding registry still
+     * receives the event and runs the editor's zoom command.
+     *
+     * Scoped to "the editor has focus" on purpose: with focus anywhere else -
+     * the menubar, the tab bar, the folder panel - the browser keeps its page
+     * zoom, which is what the user asked for. Which keys count as a zoom chord
+     * is decided by `editorZoomAction` so the rules are unit tested.
+     */
+    protected readonly handleZoomChord = (event: KeyboardEvent): void => {
+        if (!editorZoomAction(event)) {
+            return;
+        }
+        if (!NotepadiaShellContribution.editorHasFocus()) {
+            return;
+        }
+        event.preventDefault();
+    };
+
+    protected static editorHasFocus(): boolean {
+        const active = document.activeElement;
+        return !!active && typeof active.closest === 'function' && !!active.closest('.monaco-editor');
     }
 
     /** Middle click anywhere on a tab closes that tab (Notepad++ behavior). */
