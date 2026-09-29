@@ -57,6 +57,11 @@ The product is organized as a monorepo:
   always clear which disk a command touches. On Chromium, a file opened from
   your disk keeps its handle and Ctrl+S writes back to that same file.
 - Automatic updates over GitHub Releases (desktop app).
+- Unsaved work survives a crash: a copy of every document with unsaved changes
+  is kept in the browser's own storage a few seconds after you stop typing, and
+  restored the next time you open Notepadia. Saving or discarding clears the
+  copy, a file that changed on disk in the meantime is never overwritten, and
+  `notepadia.backup.enabled` / `notepadia.backup.intervalSeconds` control it.
 
 ## Project status
 

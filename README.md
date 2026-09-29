@@ -132,6 +132,15 @@ The Notepad++-style feature layer is implemented as the shared
   machine you are sitting at. On Chromium, a file opened with Open From This
   Computer keeps its file handle, so Ctrl+S on that tab writes back to the same
   local file; Firefox and Safari fall back to an upload/download round trip
+- crash recovery for unsaved work: a copy of every document with unsaved
+  changes is written to the browser's own IndexedDB a few seconds after typing
+  stops, and restored on the next launch, left dirty so `Ctrl+S` is what keeps
+  it. Saving or discarding clears the copy, a file that changed on disk after
+  the copy was taken is never overwritten, oversized documents are skipped
+  rather than stored, and `notepadia.backup.enabled` /
+  `notepadia.backup.intervalSeconds` (5s) control it. IndexedDB rather than
+  Theia's `StorageService` because in 1.75 that is localStorage, a small
+  synchronous string store
 - search/replace in the active document (find next/previous, replace all,
   regex, match case, whole word) through the tabbed Find dialog
 - find in files / replace in files via Theia's search-in-workspace, driven
@@ -263,9 +272,12 @@ defaults, untitled naming), the persistent Document Map, and status-bar
 parity with a real INS/OVR overtype mode — is complete.
 Remaining work, in execution order:
 
-1. Browser-target correctness: resolving browser-reserved keybinding
-   conflicts, and unsaved-work protection and crash recovery (opening and
-   saving files from the user's own computer is done)
+1. Browser-target correctness: opening and saving files from the user's own
+   computer, browser-reserved keybinding conflicts, and unsaved-work
+   protection and crash recovery are done; what remains here is the
+   browser-level accelerator check that cannot be driven from Puppeteer (see
+   [shortcuts the browser
+   claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims))
 2. Remaining menu and panel debt: menu completeness including the Window
    menu, the Function List panel and Folder-as-Workspace presentation, an
    incremental search bar, a browser-appropriate Run menu, and the Search

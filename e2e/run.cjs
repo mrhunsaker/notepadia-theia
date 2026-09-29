@@ -38,7 +38,8 @@ const SUITES = [
     'character-panel',
     'print',
     'tab-bar',
-    'local-files'
+    'local-files',
+    'backup'
 ];
 
 function seedWorkspace() {

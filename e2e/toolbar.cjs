@@ -7,7 +7,7 @@
  * survives a reload.
  */
 const { assert, finish, sleep, launchPage, goto, openFile, waitFor,
-    clickMenuItem, editorLines, closeMenus } = require('./lib.js');
+    clickMenuItem, editorLines, closeMenus, acceptUnloadPrompts } = require('./lib.js');
 
 const TOOLBAR = '.notepadia-toolbar [role="toolbar"]';
 
@@ -44,6 +44,10 @@ const focusedToolbarId = page => page.evaluate(() =>
 
 async function main() {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1280, height: 900 } });
+    // These reloads are about the toolbar, but a buffer with unsaved work makes
+    // Theia ask before unloading, and that prompt has to be answered for the
+    // navigation to happen at all.
+    acceptUnloadPrompts(page);
     try {
         await goto(page);
         await waitFor(page, '.notepadia-toolbar', 30000, 'toolbar widget');

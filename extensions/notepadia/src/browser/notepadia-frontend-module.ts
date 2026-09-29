@@ -41,6 +41,10 @@ import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaShellContribution } from './notepadia-shell-contribution';
+import {
+    NotepadiaBackupContribution,
+    NotepadiaBackupPreferences
+} from './notepadia-backup-contribution';
 import { NotepadiaPreferenceContribution } from './notepadia-preference-contribution';
 import { NotepadiaTabDecorator } from './notepadia-tab-decorator';
 import { NotepadiaTabContextMenuContribution } from './notepadia-tab-context-menu';
@@ -203,6 +207,15 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(NotepadiaToolbarContribution);
 
     bind(PreferenceContribution).toConstantValue(NotepadiaPreferenceContribution);
+
+    // D3 - crash recovery for unsaved buffers. Theia already warns before
+    // closing a dirty tab; this keeps the text so a crash, a killed browser or
+    // a closed tab can be recovered on the next launch. Bound after the
+    // editors it observes so its first restore pass runs against a populated
+    // shell.
+    bind(NotepadiaBackupContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaBackupContribution);
+    bind(PreferenceContribution).toConstantValue(NotepadiaBackupPreferences);
 
     // The `ElectronMainConnectionProvider` (and therefore `window.electronTheiaCore`)
     // only exists in the packaged/desktop app, so the updater service proxy is only

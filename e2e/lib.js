@@ -79,6 +79,19 @@ async function goto(page) {
     await sleep(2500);
 }
 
+// A reload of a document with unsaved work raises Theia's beforeunload prompt,
+// and puppeteer does not answer it on its own, so the navigation just hangs
+// until it times out. Suites that reload for some other reason should say so
+// rather than inherit a mysterious timeout.
+function acceptUnloadPrompts(page) {
+    const seen = [];
+    page.on('dialog', async dialog => {
+        seen.push(dialog.type());
+        await dialog.accept().catch(() => { });
+    });
+    return seen;
+}
+
 async function openFile(page, fragment) {
     await page.keyboard.down('Control');
     await page.keyboard.press('KeyP');
@@ -255,7 +268,7 @@ async function statusBar(page) {
 }
 
 module.exports = {
-    URL, WS, assert, finish, sleep, waitFor, launchPage, goto,
+    URL, WS, assert, finish, sleep, waitFor, launchPage, goto, acceptUnloadPrompts,
     openFile, save, openTopMenu, findItemIndex, clickMenuItem, clickSubMenuItem,
     clickByLabel, hoverByLabel, openMenuBar, subLabels, closeMenus,
     editorLines, clickEditorLine, currentLine, modelText, statusLang, statusBar

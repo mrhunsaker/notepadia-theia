@@ -1,5 +1,56 @@
 # Changelog
 
+## 2026.9.29 (Nothing unsaved is lost to a crash)
+
+- **A crash, a killed browser tab, or an accidental close no longer takes your
+  text with it.** Measured first, not assumed: Theia already asks before a tab
+  with unsaved changes is closed, but the text lived only in memory — reloading
+  a dirty `new 1` left no tab and no content at all. A copy of every document
+  with unsaved changes is now written to the browser's own IndexedDB a few
+  seconds after you stop typing, and the next launch brings those documents
+  back, marked dirty so `Ctrl+S` is what keeps them.
+- **Saving or discarding clears the copy.** What you deliberately threw away
+  does not reappear the next morning, and what you saved does not come back as a
+  duplicate.
+- **Recovery never overwrites a file that moved on.** A file whose disk mtime is
+  newer than the copy is left alone and the copy is dropped; a document with no
+  file behind it, like an untitled buffer, is always recoverable, because there
+  is no disk version that could supersede it.
+- **Bounded by design.** A document over 2 MB is skipped rather than stored, the
+  total across all documents is capped at 8 MB with the oldest copy evicted
+  first, and a copy of a document that has since grown past the limit is
+  dropped rather than left behind stale.
+- **Two settings, both documented:** `notepadia.backup.enabled` (on by default)
+  and `notepadia.backup.intervalSeconds` (5). Turning the feature off stops new
+  copies without deleting the ones already taken.
+- **The storage is the page's own.** IndexedDB in the browser rather than
+  Theia 1.75's `StorageService`, which is localStorage: a small synchronous
+  string store, the wrong shape for document text, and writing a large buffer
+  synchronously on the main thread is exactly the jank a backup feature must
+  not add. Nothing leaves the browser, and no other user can read it.
+- New `src/common/backup.ts` holds the policy as pure functions — record
+  validation, UTF-8 size limits, what to do on capture, whether a backup is
+  worth restoring, and which copies to evict — with 54 unit tests over it. Two
+  of those rules were wrong in the first draft and are worth naming: untitled
+  buffers were being discarded because the comparison used the snapshot time
+  instead of the file's mtime, and "this widget is clean" was treated as "this
+  text is saved", which let an empty tab restored for the same URI delete
+  another session's unsaved work. Clearing a backup now needs evidence — the
+  text on screen is the text that was stored, or it is what is on disk.
+- Recovery runs from Theia's `onDidInitializeLayout` hook, not `onStart`. A tab
+  opened before the tab bar is initialized is one the layout then overwrites, so
+  the second launch after a recovery would restore the buffer and immediately
+  lose the tab again.
+- The `backup` e2e suite covers the whole loop in a real browser: nothing is
+  written while typing, a copy appears once typing pauses, the text and the
+  dirty mark come back after a reload, a recovered buffer stays protected
+  against a second crash, saving clears the copy while a saved file is never
+  offered back, and Theia's own beforeunload prompt still guards the reload.
+- `e2e/toolbar.cjs` now answers the beforeunload prompt before reloading. It
+  never had to: nothing was dirty at that point. Now that recovery leaves a
+  recovered buffer dirty on purpose, puppeteer's unanswered prompt hung the
+  navigation until it timed out.
+
 ## 2026.9.28 (Shortcuts that survive a browser)
 
 - **The chords a browser claims no longer cost you the feature.** `Ctrl+N`,

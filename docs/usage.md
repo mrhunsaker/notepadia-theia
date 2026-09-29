@@ -347,6 +347,40 @@ survives reloads via localStorage.
 - Dropping files onto the browser app window offers the built-in "Upload
   Files..." flow to copy them into the workspace.
 
+## Recovering unsaved work
+
+Asking before you close a tab only helps if the tab is still there. A crash, a
+killed browser tab, or closing a document by accident left nothing behind: the
+text existed only in memory. Notepadia now keeps a copy.
+
+- **Every few seconds of typing, a copy of what is unsaved is written to this
+  browser's own storage** (IndexedDB, in the page — nothing is sent to the
+  server and no other user can see it). The copy is taken after you pause, so
+  it is a whole document rather than a fragment, and only for documents with
+  unsaved changes.
+- **The next time you open Notepadia, those documents come back.** A recovered
+  tab is marked dirty on purpose: the text is in the editor but not yet on
+  disk, so `Ctrl+S` is how you keep it, and nothing is written for you.
+- **Saving clears the copy**, and so does discarding the changes on purpose
+  (`Don't Save`, or reverting the document). What you threw away does not come
+  back the next morning.
+- **A file that changed on disk since the copy was taken is not restored over.**
+  If the file is newer than the copy, the newer version wins and the copy is
+  dropped, so a recovery can never overwrite a file that moved on.
+- **Two settings control it**, in `Settings ▸ notepadia.backup`:
+  `notepadia.backup.enabled` (on by default) turns the whole feature off, and
+  `notepadia.backup.intervalSeconds` (5 by default) is how many seconds to wait
+  after the last keystroke before taking the copy. Turning the feature off does
+  not delete copies that already exist; it just stops taking new ones.
+- **Large documents are skipped rather than stored.** A document over 2 MB is
+  not backed up, and the total kept across all documents is capped at 8 MB,
+  oldest copy first. A copy of a document that has since grown past the limit is
+  dropped rather than left behind stale.
+
+The copies are per-browser: they live in the profile of the browser you are
+using, they are not synchronized, and clearing that browser's site data removes
+them. Use `Save` for anything you cannot afford to lose.
+
 ## Automatic updates (desktop)
 
 Installed desktop builds check GitHub Releases for updates on startup and on
