@@ -39,7 +39,8 @@ const SUITES = [
     'print',
     'tab-bar',
     'local-files',
-    'backup'
+    'backup',
+    'file-menu'
 ];
 
 function seedWorkspace() {

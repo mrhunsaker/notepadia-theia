@@ -47,10 +47,12 @@ Save As... (Ctrl+Shift+S) prompts for a real file name.
 Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 `Settings`, while the `File` and `Edit` menus gain Notepad++-style sections:
 
-- **File**: New / Open / Save / Save As / Save All / Close / Close All /
-  Close All But Active, plus **Open From This Computer...** /
-  **Upload to Workspace...** / **Save To This Computer...** for the user's own
-  disk (see [Files on your own computer](#files-on-your-own-computer)), plus
+- **File**: New / Open / **Open Folder as Workspace...** / Save / Save As /
+  **Save a Copy As...** / Save All / **Reload from Disk** / **Rename...** /
+  **Delete from Disk** / Close / Close All / Close All But Active, plus
+  **Open From This Computer...** / **Upload to Workspace...** /
+  **Save To This Computer...** for the user's own disk (see
+  [Files on your own computer](#files-on-your-own-computer)), plus
   **Recent Files**.
 - **Edit**: Indent / Unindent / Duplicate Current Line / Delete Current Line /
   Move Current Line Up + Down / Join Lines / comment line, a **Line
@@ -62,6 +64,32 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.
+
+## Working on a file
+
+Four File-menu entries act on the file behind the current tab. Each one goes
+through Theia's `FileService`, so the tab, the Files tree and the bytes on disk
+agree afterwards:
+
+- **Reload from Disk** throws away what is on screen and re-reads the file. It
+  asks first, and only when the tab has unsaved changes.
+- **Save a Copy As...** writes the current buffer to a file you name and leaves
+  the tab on the file it already had, so the next `Ctrl+S` still goes to the
+  original. This is the way to get an untitled buffer out of the browser: a copy
+  of `new 1` is offered as `new 1.txt`.
+- **Rename...** moves the file and moves the tab with it, carrying unsaved text
+  across, so a save after the rename writes to the new name. A relative path is
+  allowed (`sub/notes.txt` moves the file into a subfolder) but `..` and
+  absolute paths are refused: a command called "Rename" should not also be a way
+  to move a file out of the folder you are looking at. Renaming onto an existing
+  file asks before replacing it.
+- **Delete from Disk** removes the file and closes the tab, always after a
+  confirmation that names the file, and says so when unsaved changes will go
+  with it.
+
+**Open Folder as Workspace...** picks a directory as the workspace root. It is
+Theia's own folder chooser, kept in the menu under a name that says what it
+does.
 
 ## The Find dialog
 

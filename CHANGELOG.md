@@ -1,5 +1,47 @@
 # Changelog
 
+## 2026.9.30 (The File menu finishes its job)
+
+- **The four file commands a Notepad++ user reaches for without thinking are
+  here.** `Reload from Disk`, `Save a Copy As...`, `Rename...` and `Delete from
+  Disk` are in the File menu, and each one goes through Theia's `FileService`,
+  so the tab, the file tree and the bytes on disk agree afterwards rather than
+  the file being changed behind Theia's back.
+- **`Save a Copy As...` copies without moving.** The buffer is written to the
+  chosen name and the tab stays on the original file, so the next `Ctrl+S` goes
+  where it always did. It works on an untitled document too, which gets a `.txt`
+  so the copy is a file the user's own tools can open.
+- **`Rename...` keeps the tab on the file.** Renaming moves the file and puts
+  the open tab on the new path — a tab left pointing at the old path would
+  quietly recreate it on the next save. Unsaved text is carried across, and the
+  box refuses `..` and absolute paths: a command named "Rename" should not also
+  be a way to move a file out of the folder the user is looking at.
+- **`Reload from Disk` asks only when there is something to lose**, and
+  `Delete from Disk` always asks, naming the file it is about to remove and
+  saying when unsaved changes will go with it. Deleting closes the tab instead
+  of leaving a dirty editor open on a file that no longer exists.
+- **`Open Folder as Workspace...` is back in the File menu.** Theia's
+  `workspace:open` command was being unregistered to keep duplicate folder
+  entries out; it is now registered once, under its own label, at the position
+  Notepad++ puts it.
+- New `src/common/file-operations.ts` holds the decisions as pure functions —
+  where a rename should resolve to, the copy's default name, and the wording of
+  the two destructive prompts — with 27 unit tests over it.
+- Three Theia 1.75 details were wrong in the first draft and are worth naming.
+  `Path.name` is the file name *without* its extension, so the rename box opened
+  on `notes` for `notes.txt` and an `app.js` copy would have been offered as
+  `app.txt`; the right field is `Path.base`. `SingleTextInputDialog`'s validator treats a
+  `DialogError` **string as the error message**, so an accepted name returns the
+  empty string, not the name. And `tab-replace` cannot be used to re-point an
+  editor after a move — by then the old widget is not a usable reference in the
+  shell layout and the shell throws "Reference widget is not in the layout" — so
+  the new resource is opened and the stale tab dropped instead.
+- The `file-menu` e2e suite drives all four against the disk in a real browser:
+  the menu shape and order, a copy that leaves the tab and the original file
+  alone, a reload that brings the file back without writing to it, a rename that
+  moves the file and follows it, a save after the rename landing on the new
+  file, and a delete that removes the file and closes the tab.
+
 ## 2026.9.29 (Nothing unsaved is lost to a crash)
 
 - **A crash, a killed browser tab, or an accidental close no longer takes your

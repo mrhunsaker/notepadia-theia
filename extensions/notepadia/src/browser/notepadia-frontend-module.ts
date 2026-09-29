@@ -41,6 +41,7 @@ import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaShellContribution } from './notepadia-shell-contribution';
+import { NotepadiaFileOperationsContribution } from './notepadia-file-operations-contribution';
 import {
     NotepadiaBackupContribution,
     NotepadiaBackupPreferences
@@ -70,6 +71,11 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     // so rebinding the resolver here also replaces the resource resolver.
     bind(NotepadiaUntitledResourceResolver).toSelf().inSingletonScope();
     rebind(UntitledResourceResolver).to(NotepadiaUntitledResourceResolver).inSingletonScope();
+
+    // C1: Reload from Disk, Save a Copy As..., Rename... and Delete from Disk.
+    bind(NotepadiaFileOperationsContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaFileOperationsContribution);
+    bind(MenuContribution).toService(NotepadiaFileOperationsContribution);
 
     bind(NotepadiaEncodingContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaEncodingContribution);

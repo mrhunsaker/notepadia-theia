@@ -39,11 +39,16 @@ async function focusEditor(page) {
             ['New', 'Open...',
                 // D1: the user's own disk, grouped next to the workspace Open...
                 'Open From This Computer...', 'Upload to Workspace...',
+                // C1: the only route to choosing a folder as the workspace root,
+                // named and placed the way Notepad++ puts it.
+                'Open Folder as Workspace...',
                 'Recent Files',
-                'Save', 'Save As...', 'Save To This Computer...', 'Save All',
+                'Save', 'Save As...', 'Save To This Computer...', 'Save a Copy As...', 'Save All',
                 'Close', 'Close All', 'Close All But Active',
                 'Save Session...', 'Load Session...',
-                'Print', 'Print Preview...']),
+                'Print', 'Print Preview...',
+                // C1: the four file commands, after the session and print groups.
+                'Reload from Disk', 'Rename...', 'Delete from Disk']),
         JSON.stringify(fileItems));
     await closeMenus(page);
 

@@ -51,6 +51,11 @@ The product is organized as a monorepo:
   for read-only tabs, the Notepad++ right-click tab menu, and middle-click to
   close.
 - Recent files with session persistence.
+- The four file commands Notepad++ users expect: `Reload from Disk`,
+  `Save a Copy As...` (a copy that leaves the tab on the original file),
+  `Rename...` (moves the file and keeps the tab on it, carrying unsaved text
+  across) and `Delete from Disk` (always confirmed, closes the tab), plus
+  `Open Folder as Workspace...` in the `File` menu.
 - Files on your own computer, as a first-class concept: `Open From This
   Computer...`, `Save To This Computer...` and `Upload to Workspace...` sit
   next to Theia's own workspace-only `Open...` and `Save As...`, so it is

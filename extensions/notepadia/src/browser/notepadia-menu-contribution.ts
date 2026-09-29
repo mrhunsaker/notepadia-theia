@@ -52,8 +52,13 @@ export class NotepadiaMenuContribution implements MenuContribution {
         unregister(CommonCommands.PICK_NEW_FILE.id, fileNewText);
         unregister('file.newFolder', fileNewText);
         unregister('workbench.action.newWindow', fileNewText);
-        unregister('workspace:open', fileOpen);
-        unregister('workspace:openWorkspace', fileOpen);
+        // C1: `workspace:open` is the only menu route to choosing a folder as
+        // the workspace root, and a browser user has no other way to point the
+        // app at a directory, so it must stay. Theia's own "Open..." entry for
+        // it is unregistered here and re-added below as "Open Folder as
+        // Workspace..." in the Notepad++ position, so the command keeps its
+        // route without a second, ambiguously named entry.
+        unregister('workspace:open', fileOpen);        unregister('workspace:openWorkspace', fileOpen);
         unregister('workspace:openRecent', fileOpen);
         unregister('workspace:addFolder', fileWorkspace);
         unregister('workspace:saveAs', fileWorkspace);
@@ -91,6 +96,14 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: CommonCommands.OPEN.id,
             label: 'Open...',
             order: '0b'
+        });
+        // Notepad++ order: New, Open..., Open Folder as Workspace..., then the
+        // recent-file list. D1 nests "Open From This Computer..." and "Upload
+        // to Workspace..." at 0b.1/0b.2, directly under Open....
+        menus.registerMenuAction(file, {
+            commandId: 'workspace:open',
+            label: 'Open Folder as Workspace...',
+            order: '0c'
         });
         menus.registerMenuAction(file, {
             commandId: CommonCommands.SAVE.id,

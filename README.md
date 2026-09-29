@@ -132,6 +132,13 @@ The Notepad++-style feature layer is implemented as the shared
   machine you are sitting at. On Chromium, a file opened with Open From This
   Computer keeps its file handle, so Ctrl+S on that tab writes back to the same
   local file; Firefox and Safari fall back to an upload/download round trip
+- the four file commands Notepad++ puts alongside Save As: `Reload from
+  Disk` (asks only when the buffer is dirty), `Save a Copy As...` (writes a
+  copy without moving the tab off the original file, and works on an untitled
+  document), `Rename...` (moves the file through `FileService`, keeps the tab
+  on the new path and carries unsaved text across) and `Delete from Disk`
+  (always confirmed, closes the tab). `Open Folder as Workspace...` is in the
+  File menu; the rename box refuses `..` and absolute paths
 - crash recovery for unsaved work: a copy of every document with unsaved
   changes is written to the browser's own IndexedDB a few seconds after typing
   stops, and restored on the next launch, left dirty so `Ctrl+S` is what keeps
