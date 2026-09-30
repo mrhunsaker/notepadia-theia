@@ -8,6 +8,9 @@ import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaShellCommands } from './notepadia-shell-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
 import { NotepadiaSearchMarkCommands } from './notepadia-search-mark';
+import { NotepadiaEditExtrasCommands, NOTEPADIA_EDIT_MENU_PATHS } from './notepadia-edit-extras-contribution';
+import { NotepadiaClipboardHistoryCommands } from './notepadia-clipboard-history-contribution';
+import { NotepadiaCharacterPanelCommands } from './notepadia-character-panel-contribution';
 
 @injectable()
 export class NotepadiaMenuContribution implements MenuContribution {
@@ -30,11 +33,30 @@ export class NotepadiaMenuContribution implements MenuContribution {
         const editLineOperations = [...CommonMenus.EDIT, '4_notepadia-line-operations'];
         const editConvertCase = [...CommonMenus.EDIT, '5_notepadia-convert-case'];
 
+        // C2. The Edit menu in Notepad++ reads: clipboard (with the two
+        // submenus), line operations, selection, line conversions, insert, the
+        // rest of the line commands, then the two panels at the foot. These
+        // group names sort lexicographically against Theia's, so they are named
+        // to land in that order rather than relying on registration order.
+        const editCopyToClipboard = NOTEPADIA_EDIT_MENU_PATHS.copyToClipboard;
+        const editPasteSpecial = NOTEPADIA_EDIT_MENU_PATHS.pasteSpecial;
+        const editSelect = NOTEPADIA_EDIT_MENU_PATHS.select;
+        const editInsert = NOTEPADIA_EDIT_MENU_PATHS.insert;
+        const editMultiSelect = [...editSelect, 'multiselect'];
+        const editClipboardHistory = NOTEPADIA_EDIT_MENU_PATHS.clipboardHistory;
+        const editCharacterPanel = NOTEPADIA_EDIT_MENU_PATHS.characterPanel;
+
         const search = [...menubar, '3_search'];
         const settings = [...menubar, '7_settings'];
 
         menus.registerSubmenu(editLineOperations, 'Line Operations');
         menus.registerSubmenu(editConvertCase, 'Convert Case');
+        menus.registerSubmenu(editCopyToClipboard, 'Copy to Clipboard');
+        menus.registerSubmenu(editPasteSpecial, 'Paste Special');
+        menus.registerSubmenu(editSelect, 'Select');
+        menus.registerSubmenu(editMultiSelect, 'Multi-Select All');
+        menus.registerSubmenu(editInsert, 'Insert');
+        menus.registerSubmenu([...editInsert, 'datetime'], 'Date & Time');
 
         menus.registerSubmenu(search, 'Search');
         menus.registerSubmenu(settings, 'Settings');
@@ -86,6 +108,17 @@ export class NotepadiaMenuContribution implements MenuContribution {
         unregister('search-in-workspace.open', editFind);
         unregister('search-in-workspace.replace', editFind);
 
+        // Edit - Theia's workspace clipboard clutter does not live here in
+        // Notepad++. `core.copy.path` ("Copy Path") and the workspace
+        // contribution's "Copy Download Link" are file-navigator notions that
+        // leak into the clipboard group and read as dead weight next to the
+        // Copy to Clipboard submenu; both are still reachable from the file
+        // context menus where they mean something.
+        const editClipboard = [...CommonMenus.EDIT, '2_clipboard'];
+        unregister(CommonCommands.COPY_PATH.id, editClipboard);
+        unregister('file.copyDownloadLink', editClipboard);
+        unregister('navigator.copyRelativeFilePath', editClipboard);
+
         // File (Notepad++ order)
         menus.registerMenuAction(file, {
             commandId: NotepadiaCommands.NEW_DOCUMENT.id,
@@ -134,6 +167,20 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: CommonCommands.CLOSE_OTHER_TABS.id,
             label: 'Close All But Active',
             order: '0i'
+        });
+        // C2: Notepad++ keeps the read-only flag in the File menu, not the Edit
+        // menu - it is a property of the document rather than of an edit. It
+        // follows the recent-file list and precedes Save, which is Notepad++'s
+        // position. Theia's File submenus sort as a child of the File menu
+        // rather than as a command, and Recent Files registers as
+        // `0c_notepadia-recent`, so an order of `0cz` is what lands directly
+        // behind it: the flag sorts after that group and before `0d` (Save).
+        // With no recent files the group is absent and the flag simply follows
+        // Open Folder as Workspace..., which is the same place in the list.
+        menus.registerMenuAction(file, {
+            commandId: NotepadiaEditExtrasCommands.SET_READ_ONLY.id,
+            label: 'Set/Clear Read-Only',
+            order: '0cz'
         });
 
         // Edit - line and block operations
@@ -215,6 +262,108 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: NotepadiaCommands.LOWER_CASE.id,
             label: 'lower case',
             order: 'b'
+        });
+
+        // Edit > Copy to Clipboard. Notepad++'s entries are about where the
+        // document lives, not about its contents - the text itself is already
+        // on the clipboard after any ordinary Copy.
+        menus.registerMenuAction(editCopyToClipboard, {
+            commandId: NotepadiaEditExtrasCommands.COPY_FULL_FILE_PATH.id,
+            label: 'Current Full File Path',
+            order: 'a'
+        });
+        menus.registerMenuAction(editCopyToClipboard, {
+            commandId: NotepadiaEditExtrasCommands.COPY_FILE_NAME.id,
+            label: 'Current Filename',
+            order: 'b'
+        });
+        menus.registerMenuAction(editCopyToClipboard, {
+            commandId: NotepadiaEditExtrasCommands.COPY_DIRECTORY_PATH.id,
+            label: 'Current Directory Path',
+            order: 'c'
+        });
+
+        // Edit > Paste Special
+        menus.registerMenuAction(editPasteSpecial, {
+            commandId: NotepadiaEditExtrasCommands.PASTE_AND_INDENT.id,
+            label: 'Paste and Indent',
+            order: 'a'
+        });
+        menus.registerMenuAction(editPasteSpecial, {
+            commandId: NotepadiaEditExtrasCommands.PASTE_AND_UNINDENT.id,
+            label: 'Paste and Unindent',
+            order: 'b'
+        });
+        menus.registerMenuAction(editPasteSpecial, {
+            commandId: NotepadiaEditExtrasCommands.PASTE_UNFORMATTED.id,
+            label: 'Paste Unformatted',
+            order: 'c'
+        });
+
+        // Edit > Select. Notepad++'s Ctrl+A stays Ctrl+A; the menu entry is
+        // here so the shortcut is discoverable and so the submenu reads as the
+        // selection group it is.
+        menus.registerMenuAction(editSelect, {
+            commandId: CommonCommands.SELECT_ALL.id,
+            label: 'Select All',
+            order: 'a'
+        });
+        menus.registerMenuAction(editSelect, {
+            commandId: NotepadiaEditExtrasCommands.BEGIN_END_SELECT.id,
+            label: 'Begin/End Select',
+            order: 'b'
+        });
+        // Notepad++'s Column Mode sits next to the existing Column Editor in
+        // Line Operations, so it is registered there too (at `z`, behind the
+        // editor's `y`) rather than under Select.
+        menus.registerMenuAction(editLineOperations, {
+            commandId: NotepadiaEditExtrasCommands.COLUMN_MODE.id,
+            label: 'Column Mode',
+            order: 'z'
+        });
+        menus.registerMenuAction(editMultiSelect, {
+            commandId: NotepadiaEditExtrasCommands.MULTI_SELECT_ALL.id,
+            label: 'Multi-Select All',
+            order: 'a'
+        });
+        menus.registerMenuAction(editMultiSelect, {
+            commandId: NotepadiaEditExtrasCommands.MULTI_SELECT_ALL_MATCH_CASE.id,
+            label: 'Match case',
+            order: 'b'
+        });
+        menus.registerMenuAction(editMultiSelect, {
+            commandId: NotepadiaEditExtrasCommands.MULTI_SELECT_ALL_WHOLE_WORD.id,
+            label: 'Whole word',
+            order: 'c'
+        });
+
+        // Edit > Insert > Date & Time
+        menus.registerMenuAction([...editInsert, 'datetime'], {
+            commandId: NotepadiaEditExtrasCommands.DATE_TIME_SHORT.id,
+            label: 'Date & Time (short)',
+            order: 'a'
+        });
+        menus.registerMenuAction([...editInsert, 'datetime'], {
+            commandId: NotepadiaEditExtrasCommands.DATE_TIME_LONG.id,
+            label: 'Date & Time (long)',
+            order: 'b'
+        });
+        menus.registerMenuAction([...editInsert, 'datetime'], {
+            commandId: NotepadiaEditExtrasCommands.DATE_TIME_CUSTOM.id,
+            label: 'Date & Time (customized)...',
+            order: 'c'
+        });
+
+        // The two panels Notepad++ keeps at the foot of the Edit menu.
+        menus.registerMenuAction(editClipboardHistory, {
+            commandId: NotepadiaClipboardHistoryCommands.TOGGLE.id,
+            label: 'Clipboard History',
+            order: 'a'
+        });
+        menus.registerMenuAction(editCharacterPanel, {
+            commandId: NotepadiaCharacterPanelCommands.TOGGLE.id,
+            label: 'Character Panel',
+            order: 'a'
         });
 
         // Search

@@ -165,7 +165,7 @@ export class NotepadiaColumnEditorContribution implements CommandContribution, M
         menus.registerMenuAction(editLineOperations, {
             commandId: NotepadiaColumnEditorCommands.COLUMN_EDITOR.id,
             label: 'Column Editor...',
-            order: 'z'
+            order: 'y'
         });
     }
 

@@ -1,0 +1,42 @@
+## Objective
+- Ship task **B2 "Notepad++ tabbed Find dialog"** from `pair_programming_prompt.json` v8 (WS-B, P0): `Ctrl+F` opens one Notepad++-style **modeless tabbed dialog** (Find / Replace / Find in Files / Mark), replacing Monaco's inline find widget and Theia's search panel as the entry points. Commit `feat(search): Notepad++ tabbed Find/Replace/Find in Files/Mark dialog` and push. B1 (extended search mode engine) is already done (440fc53); B2 builds Find/Replace on the active Monaco model directly, Find-in-Files as a front end over search-in-workspace, and Mark on the existing notepadia-search-mark engine.
+
+## Important Details
+- Repo: `/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0` (root). Branch `main`, remote `https://github.com/mrhunsaker/notepadia-theia`. Last pushed commit: `854eee1 feat(editor): full Notepad++ status bar fields and INS/OVR overtype mode`.
+- WS-A (A1 themes, A2 shell, A3 toolbar, A4 tab-bar, A5 status-bar/overtype, A6 defaults) is **fully complete**. Remaining roadmap: B2 (next), B3 Search Results window, B4 incremental search, C-series menus, D-series. README "Next milestones" list was already renumbered with the Find dialog at #1.
+- Docs rule (v8): README.md, docs/usage.md, docs/index.md, CHANGELOG.md updated in the SAME commit as the task. Commit each task before starting the next. v8 rules: new UI must be keyboard-usable with accessible names; styling in `src/browser/style/*.css` imported from the frontend module using `var(--theia-*)` tokens; browser-hostile keybindings need documented non-reserved alternates; "done" = command + menu in Notepad++ position + keybinding + visual affordance + e2e.
+- Commands: `yarn --cwd extensions/notepadia lint` / `build`; `yarn --cwd extensions/notepadia test` (= build + `node --test "test/**/*.test.cjs"`); extension build includes `scripts/copy-static.mjs` (copies css alongside lib). `yarn build:browser` at repo root (compiles app + esbuild-bundles the extension css). `python3 -m mkdocs build --strict`. Full e2e: `node e2e/run.cjs` (self-seeds WS + fresh THEIA_CONFIG_DIR; SUITES in e2e/run.cjs; PORT 3100; URL http://127.0.0.1:3100/).
+- The bash tool kills backgrounded jobs at its 120s timeout: run long runs with `setsid bash -c '...' </dev/null >/dev/null 2>&1 & disown` and poll a log file. Target-specific runner: `/tmp/opencode/run-one.cjs <suite...>` (takes args; sets NODE_PATH to repo node_modules; seeds full workspace; kills its own server) — '/tmp/opencode/run-one.cjs' is current (full fixture list).
+- e2e helpers (`e2e/lib.js`): `launchPage`, `goto`, `openFile`, `save`, `openMenuBar`, `hoverByLabel`, `clickByLabel`, `subLabels`, `closeMenus`, `clickEditorLine`, `editorLines`, `modelText`, `currentLine`, `statusBar`, `statusLang`, `waitFor`. Quick-open via Ctrl+P in openFile.
+- Flakes seen (all transient, pass in isolation): search "Session closed / Input.dispatchKeyEvent", blank-ops "detached Frame" (caused by partial fixture seeds in ad-hoc runners — `run-one.cjs` now seeds ALL files), escape-search page-closed. Re-run in isolation before suspecting a product bug.
+- B2 spec (authoritative, lines 348-392 of pair_programming_prompt.json): filesToCreate `src/browser/notepadia-find-dialog.tsx`, `src/browser/notepadia-find-contribution.ts`, `src/browser/style/notepadia-find.css`, `src/common/find-options.ts`, `test/find-options.test.cjs`; filesToEdit `notepadia-menu-contribution.ts`, `notepadia-keybinding-contribution.ts`, `notepadia-search-mark.ts`, `notepadia-frontend-module.ts`. Steps: model state as pure `find-options.ts` (FindOptions + buildMonacoFindArgs + describeMatchCount) with unit tests; ReactWidget (modeless floating panel) NOT AbstractDialog; four tabs exactly like Notepad++ (Find: what combo + history, Backward/Match whole word/Match case/Wrap around checkboxes, Search Mode radios Normal/Extended/Regular + '. matches newline', buttons Find Next/Count/Find All in Current Doc/Find All in All Opened Docs/Close; Replace adds 'Replace with' + Replace/Replace All/Replace All in All Opened Docs; Find in Files adds Filters/Directory/In all sub-folders/In hidden folders; Mark adds Mark All/Clear all marks/Purge for each search + 5-style selector); wire Find/Replace to the active Monaco model directly (model.findMatches + control.executeEdits) reusing the notepadia-search-mark engine (factor shared match logic into one helper); Find in Files via existing search-in-workspace commands; Mark tab via NotepadiaSearchMarkCommands with explicit style selection (currently implicit via generation) + Purge; mode radios feed from B1 extendedToLiteral; history persisted via StorageService (last 20); keybindings Ctrl+F (Find), Ctrl+H (Replace), Ctrl+Shift+F (Find in Files), Ctrl+M (Mark), Escape closes + returns focus, F3/Shift+F3 continue last search — must override CommonCommands.FIND/REPLACE so Monaco's inline widget never appears; accessibility role=dialog/aria-label/tablist/focus management, modeless (editor stays editable); transparency slider on blur is optional last 5%.
+- Acceptance: Ctrl+F opens one dialog with 4 tabs, every Npp control present+functional; Backward/Wrap around/In selection give Npp results on a seeded fixture; Count == Find All count; Monaco inline find widget never appears; full keyboard operability + editor editable while open.
+- Tests: unit find-options.test.cjs; **rewrite e2e/search.cjs** against the new dialog (it currently drives Monaco's inline widget and will break); new e2e/find-dialog.cjs (Ctrl+F opens; Count on search.txt = known count; Backward+Wrap around reaches last match from top; Replace All changes expected occurrences; Mark tab marks with selected style; Escape closes + focus returns to editor); add 'find-dialog' to SUITES.
+- B2 commit message: `feat(search): Notepad++ tabbed Find/Replace/Find in Files/Mark dialog`.
+
+## Work State
+### Completed
+- All of WS-A (A1..A6). Summary recap: A5 shipped at `854eee1`, pushed; verification all green (extension lint/build/112 unit tests, browser build, mkdocs strict, full e2e 24 suites).
+
+### Active
+- B2 not started. (This summary refreshed at start of B2.)
+
+### Blocked
+- (none)
+
+## Next Move
+1. Explore current search infrastructure: `notepadia-search-mark.ts` (mark/selectFindNext engine, STYLES, extendedSearch usage, how commands registered), `notepadia-menu-contribution.ts` (Search menu entries + Find/Replace override points), `notepadia-keybinding-contribution.ts`, `e2e/search.cjs`, and how CommonCommands.FIND/REPLACE / Monaco find widget is currently reachable (KeybindingRegistry + Monaco command override approach).
+2. Create `src/common/find-options.ts` + unit tests (buildMonacoFindArgs, describeMatchCount, applySearchMode using B1's extendedToLiteral).
+3. Create `src/browser/notepadia-find-dialog.tsx` (ReactWidget, 4 tabs, modeless), `src/browser/notepadia-find-contribution.ts` (open on tab, keybindings, override CommonCommands.FIND/REPLACE, search-in-workspace wiring, StorageService history), `src/browser/style/notepadia-find.css`.
+4. Edit menu/keybinding/search-mark/frontend-module; rewrite e2e/search.cjs + new e2e/find-dialog.cjs; add to SUITES.
+5. lint/build/test, build:browser, run e2e, mkdocs, docs in same commit, commit + push.
+
+## Relevant Files
+- `extensions/notepadia/src/browser/notepadia-search-mark.ts`: existing Mark engine + extended mode (B1) — factor shared match helper per B2 step 4.
+- `extensions/notepadia/src/common/extended-search.ts`: `extendedToLiteral`/`escapeForRegex` (B1).
+- `extensions/notepadia/src/browser/notepadia-menu-contribution.ts`: Search menu entries + unregister() calls; B2 adds Find/Replace menu targets + Find-in-Files + Mark positions.
+- `extensions/notepadia/src/browser/notepadia-keybinding-contribution.ts`: place for Ctrl+F/H/Shift+F/M overrides; also has Insert binding from A5.
+- `extensions/notepadia/src/browser/notepadia-frontend-module.ts`: bind the new dialog/contribution; import notepadia-find.css.
+- `e2e/search.cjs` + `e2e/lib.js`: rewrite search suite against the dialog; helpers for the new find-dialog suite.
+- `extensions/notepadia/src/browser/notepadia-search-results...` : not yet — B3 later.
+- `pair_programming_prompt.json`: B2 spec at lines 348-392 (also B1 311-346, B3 393-427).

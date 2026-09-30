@@ -47,6 +47,10 @@ import {
     NotepadiaBackupPreferences
 } from './notepadia-backup-contribution';
 import { NotepadiaPreferenceContribution } from './notepadia-preference-contribution';
+import { NotepadiaEditExtrasContribution } from './notepadia-edit-extras-contribution';
+import { NotepadiaClipboardHistoryState } from './notepadia-clipboard-history-state';
+import { NotepadiaClipboardHistoryWidget } from './notepadia-clipboard-history-widget';
+import { NotepadiaClipboardHistoryContribution } from './notepadia-clipboard-history-contribution';
 import { NotepadiaTabDecorator } from './notepadia-tab-decorator';
 import { NotepadiaTabContextMenuContribution } from './notepadia-tab-context-menu';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
@@ -111,6 +115,8 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaEditorKeybindingContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaEditorKeybindingContribution);
 
+    // Bound after NotepadiaEditExtrasContribution (C2), which it injects for the
+    // Read-Only status item.
     bind(NotepadiaStatusBarContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaStatusBarContribution);
 
@@ -174,6 +180,26 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaCharacterPanelContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaCharacterPanelContribution);
     bind(MenuContribution).toService(NotepadiaCharacterPanelContribution);
+
+    // C2 - Copy to Clipboard, Paste Special, Insert Date & Time, the read-only
+    // flag, Begin/End Select, Multi-Select All, Column Mode and the Clipboard
+    // History panel. The history is a singleton in its own right because the
+    // contribution that records copies and the panel that lists them are
+    // separate bindings; the state is what they share.
+    //
+    // Bound before the status bar so the status bar can inject
+    // NotepadiaEditExtrasContribution for its Read-Only label.
+    bind(NotepadiaClipboardHistoryState).toSelf().inSingletonScope();
+    bind(NotepadiaClipboardHistoryWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaClipboardHistoryWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaClipboardHistoryWidget)
+    }));
+    bind(NotepadiaClipboardHistoryContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaClipboardHistoryContribution);
+    bind(NotepadiaEditExtrasContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaEditExtrasContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaEditExtrasContribution);
 
     bind(NotepadiaPrintContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaPrintContribution);

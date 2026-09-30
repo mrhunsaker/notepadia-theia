@@ -118,9 +118,10 @@ The Notepad++-style feature layer is implemented as the shared
 - file navigator/filesystem, editor tabs, session restore and recent files
 - Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
   Settings) and Ctrl/Cmd shortcuts
-- chords a browser claims (`Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`) stay
-  bound for the desktop app and gain browser-safe alternates on the web
-  (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`) — see
+- chords a browser claims (`Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`, `F5`,
+  `Ctrl+F5`) stay bound for the desktop app and gain browser-safe alternates on
+  the web (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`,
+  `Ctrl+Alt+D`, `Ctrl+Alt+Shift+D`) — see
   [shortcuts the browser
   claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims).
   `Ctrl+=` / `Ctrl+-` / `Ctrl+0` zoom the editor text while the editor has
@@ -185,6 +186,24 @@ The Notepad++-style feature layer is implemented as the shared
   literals before searching
 - Edit > Character Panel: a keyboard-accessible ASCII/symbol grid that inserts
   the picked character at the caret
+- Edit > Copy to Clipboard: current full file path, current filename and
+  current directory path, on the system clipboard with a real fallback where
+  the async clipboard API is unavailable
+- Edit > Paste Special: Paste and Indent, Paste and Unindent and Paste
+  Unformatted, each judged against the line above the caret
+- Edit > Insert > Date & Time: Notepad++'s short (`F5`) and long (`Ctrl+F5`)
+  formats plus a token-based customized box that refuses a format with no token
+  in it
+- Edit > Select: Begin/End Select (`Ctrl+Alt+B`) and Multi-Select All with
+  Match case and Whole word variants, which put a cursor on every occurrence of
+  the word under the caret
+- Edit > Line Operations > Column Mode (`Alt+C`): the current selection becomes
+  a rectangular block, for the people who do not know Monaco's Alt+drag
+- Edit > Clipboard History: the session's last 20 copies, newest first, one
+  click to put one back at every caret
+- File > Set/Clear Read-Only (`Ctrl+Alt+R`): the document refuses edits, the
+  tab shows the padlock and the status bar reads `Read-Only`, remembered per
+  document for the session
 - File > Save Session... / Load Session...: named session files persist the
   open tab set, order, active tab, caret positions and bookmarks
 - File > Print (Ctrl+P): prints the active document through an iframe with

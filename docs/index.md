@@ -26,11 +26,19 @@ The product is organized as a monorepo:
 - Notepad++-style shortcuts: Ctrl+D (duplicate line), Ctrl+L (delete line),
   Ctrl+F2 bookmarks, and more.
 - Browser-proof shortcuts: the chords a browser claims (`Ctrl+N`, `Ctrl+W`,
-  `Ctrl+Shift+W`, `Ctrl+O`) keep working in the desktop app and gain
-  alternates on the web (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`,
-  `Ctrl+Alt+O`); editor zoom keeps `Ctrl+=` / `Ctrl+-` / `Ctrl+0` to the text
-  while the editor has focus and leaves page zoom to the browser elsewhere;
-  `Settings ▸ Shortcut Mapper` lists and rebinds every chord.
+  `Ctrl+Shift+W`, `Ctrl+O`, `F5`, `Ctrl+F5`) keep working in the desktop app
+  and gain alternates on the web (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`,
+  `Ctrl+Alt+O`, `Ctrl+Alt+D`, `Ctrl+Alt+Shift+D`); editor zoom keeps `Ctrl+=` /
+  `Ctrl+-` / `Ctrl+0` to the text while the editor has focus and leaves page
+  zoom to the browser elsewhere; `Settings ▸ Shortcut Mapper` lists and
+  rebinds every chord.
+- The clipboard and selection half of the Edit menu: Copy to Clipboard (path,
+  filename, folder), Paste Special (indent, unindent, unformatted), Insert ▸
+  Date & Time with a token-based customized box, Select ▸ Begin/End Select and
+  Multi-Select All, Line Operations ▸ Column Mode, and a Clipboard History
+  panel of the session's last 20 copies.
+- `File ▸ Set/Clear Read-Only`: the document refuses edits, the tab shows the
+  padlock and the status bar reads `Read-Only` instead of `INS` / `OVR`.
 - Encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI, ISO-8859 family).
 - EOL conversion (LF / CRLF) with live status-bar display.
 - A Notepad++ default behavior profile: on a cold profile the editor starts

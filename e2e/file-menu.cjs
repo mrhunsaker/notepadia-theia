@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { assert, finish, sleep, launchPage, goto, waitFor, openFile, openMenuBar,
-    clickMenuItem, closeMenus, modelText, save, clickEditorLine, WS } = require('./lib.js');
+    clickMenuItem, closeMenus, modelText, save, clickEditorLine, WS,
+    dialogPrimaryLabel, clickDialogButton, setDialogInput } = require('./lib.js');
 
 // C1 - the File menu entries that act on a real file: Open Folder as
 // Workspace..., Save a Copy As..., Reload from Disk, Rename... and Delete from
@@ -36,48 +37,6 @@ async function fileMenuEntries(page) {
         els => els.map(e => (e.textContent || '').trim()).filter(Boolean));
     await closeMenus(page);
     return entries;
-}
-
-/** The label of the primary button of the dialog on screen, if any. */
-async function dialogPrimaryLabel(page) {
-    return page.evaluate(() => {
-        const el = document.querySelector('.dialogControl button.main');
-        return el ? el.textContent.trim() : null;
-    });
-}
-
-/** Click a dialog button by its visible label; returns whether it was found. */
-async function clickDialogButton(page, label) {
-    const rect = await page.evaluate(text => {
-        const el = Array.from(document.querySelectorAll('.dialogControl button'))
-            .find(b => (b.textContent || '').trim() === text);
-        if (!el) {
-            return null;
-        }
-        const r = el.getBoundingClientRect();
-        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-    }, label);
-    if (!rect) {
-        return false;
-    }
-    await page.mouse.click(rect.x, rect.y);
-    await sleep(1400);
-    return true;
-}
-
-async function setDialogInput(page, value) {
-    const ok = await page.evaluate(text => {
-        const el = document.querySelector('.dialogContent input[type="text"]');
-        if (!el) {
-            return false;
-        }
-        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        setter.call(el, text);
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-        return true;
-    }, value);
-    await sleep(400);
-    return ok;
 }
 
 (async () => {

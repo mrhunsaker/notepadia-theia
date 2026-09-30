@@ -40,7 +40,8 @@ const SUITES = [
     'tab-bar',
     'local-files',
     'backup',
-    'file-menu'
+    'file-menu',
+    'edit-extras'
 ];
 
 function seedWorkspace() {
@@ -144,6 +145,9 @@ async function main() {
     let runFailures = 0;
     const results = [];
     for (const suite of SUITES) {
+        if (process.env.E2E_SUITES && !process.env.E2E_SUITES.split(',').includes(suite)) {
+            continue;
+        }
         const file = path.join(__dirname, suite + '.cjs');
         if (!fs.existsSync(file)) {
             console.error(`SKIP ${suite}: not implemented`);

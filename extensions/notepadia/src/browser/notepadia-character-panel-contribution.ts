@@ -3,6 +3,7 @@ import { ApplicationShell, WidgetManager } from '@theia/core/lib/browser';
 import { Command, CommandContribution, CommandRegistry, MenuContribution, MenuModelRegistry } from '@theia/core/lib/common';
 import { CommonMenus } from '@theia/core/lib/browser';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
+import { togglePanelWidget } from './notepadia-panel-toggle';
 
 export namespace NotepadiaCharacterPanelCommands {
     export const TOGGLE: Command = {
@@ -45,32 +46,6 @@ export class NotepadiaCharacterPanelContribution implements CommandContribution,
     }
 
     protected async toggle(): Promise<void> {
-        const widget = await this.widgetManager.getOrCreateWidget(NotepadiaCharacterPanelWidget.ID);
-        const tabBar = this.shell.getTabBarFor(widget);
-        const area = this.shell.getAreaFor(widget);
-        if (!tabBar) {
-            await this.shell.addWidget(widget, { area: 'right', rank: 1001 });
-        } else if (area && this.shell.isExpanded(area) && tabBar.currentTitle === widget.title) {
-            switch (area) {
-                case 'left':
-                case 'right':
-                    await this.shell.collapsePanel(area);
-                    return;
-                case 'bottom':
-                    if (this.shell.bottomAreaTabBars.length === 1) {
-                        await this.shell.collapsePanel('bottom');
-                        return;
-                    }
-                    break;
-                default:
-                    await this.shell.closeWidget(widget.id);
-                    return;
-            }
-        }
-        if (widget.isAttached) {
-            await this.shell.activateWidget(widget.id);
-        } else {
-            await this.shell.revealWidget(widget.id);
-        }
+        await togglePanelWidget(this.widgetManager, this.shell, NotepadiaCharacterPanelWidget.ID);
     }
 }

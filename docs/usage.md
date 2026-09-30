@@ -53,11 +53,18 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
   **Open From This Computer...** / **Upload to Workspace...** /
   **Save To This Computer...** for the user's own disk (see
   [Files on your own computer](#files-on-your-own-computer)), plus
-  **Recent Files**.
+  **Recent Files** and **Set/Clear Read-Only**
+  (see [Read-only documents](#read-only-documents)).
 - **Edit**: Indent / Unindent / Duplicate Current Line / Delete Current Line /
   Move Current Line Up + Down / Join Lines / comment line, a **Line
-  Operations** submenu, and a **Convert Case** submenu. **Bookmarks** are
-  also under Edit.
+  Operations** submenu, a **Convert Case** submenu, and the clipboard and
+  selection groups: **Copy to Clipboard** (current full file path, current
+  filename, current directory path), **Paste Special** (Paste and Indent, Paste
+  and Unindent, Paste Unformatted), **Select** (Select All, Begin/End Select,
+  Multi-Select All, with Match case and Whole word variants), **Insert ▸ Date &
+  Time** (short, long, customized), and the two panels at the foot,
+  **Clipboard History** and **Character Panel**. **Bookmarks** are also under
+  Edit.
 - **Search**: Find / Find Next / Find Previous / Replace / Find in Files /
   Replace in Files / Mark, plus a **Mark** submenu (Mark All, Clear All Marks,
   Select and Find Next).
@@ -180,6 +187,12 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+Alt+Shift+W | Close all documents (browser-safe) |
 | Ctrl+Alt+O | Open From This Computer... (browser-safe) |
 | Ctrl+= / Ctrl+- / Ctrl+0 | Zoom in / zoom out / reset the editor text |
+| Ctrl+Alt+B | Begin/End Select |
+| Alt+C | Column Mode |
+| F5 / Ctrl+F5 | Insert Date & Time (short / long) |
+| Ctrl+Alt+D | Insert Date & Time (browser-safe short) |
+| Ctrl+Alt+Shift+D | Insert Date & Time (browser-safe long) |
+| Ctrl+Alt+R | Set/Clear Read-Only |
 
 !!! note
     The editor is forced onto the classic textarea input path
@@ -208,11 +221,14 @@ for something has an alternate chord that the browser leaves alone:
 | Ctrl+T | new browser tab | - | nothing is bound to it |
 | Ctrl+Shift+N | incognito window | - | nothing is bound to it |
 | Ctrl+Shift+T | reopen the last closed tab | - | nothing is bound to it |
+| F5 | reload the page (Chromium) | Insert Date & Time (short) | **Ctrl+Alt+D** |
+| Ctrl+F5 | hard reload, skipping the cache (Chromium) | Insert Date & Time (long) | **Ctrl+Alt+Shift+D** |
+| Ctrl+Shift+R | hard reload in Firefox | - | nothing is bound to it |
 | Ctrl+= / Ctrl+- / Ctrl+0 | page zoom | editor zoom | same chord, editor focused |
 
-Nothing was taken away: `Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W` and `Ctrl+O` are still
-bound and still work in the desktop app, where no browser claims them. The
-alternates are added alongside them.
+Nothing was taken away: `Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`, `F5` and
+`Ctrl+F5` are still bound and still work in the desktop app, where no browser
+claims them. The alternates are added alongside them.
 
 The zoom chords are the one place where both meanings are wanted, so the
 division is by focus rather than by chord:
@@ -300,7 +316,9 @@ The status bar shows the Notepad++ fields, live, left to right:
   line endings)
 - the encoding (clickable) and the EOL (clickable)
 - the indent mode (`Spaces: 4` / `Tabs: 4`)
-- the mode indicator `INS` / `OVR`
+- the mode indicator `INS` / `OVR`, which reads `Read-Only` instead while a
+  document is flagged read-only (see
+  [Read-only documents](#read-only-documents))
 
 Pressing `Insert` (or clicking the mode indicator) toggles overtype mode.
 In OVR the caret becomes a block and each character you type replaces the
@@ -308,6 +326,123 @@ character under the cursor instead of inserting, exactly like Notepad++ —
 typing at the end of a line just inserts normally. Toggling back to INS
 restores insert behavior. The status bar is throttled to render once per
 animation frame, so it stays responsive even in very large files.
+
+## Clipboard, paste and selection
+
+Notepad++'s clipboard and selection commands are all here, and all of them
+work on the buffer rather than on a string the app keeps beside it.
+
+**Edit ▸ Copy to Clipboard** copies *where the document is*, because the text
+itself is already on the clipboard after any ordinary Copy:
+
+| Entry | What lands on the clipboard |
+| --- | --- |
+| Current Full File Path | the whole path, e.g. `/home/you/notes/todo.txt` |
+| Current Filename | just the name, e.g. `todo.txt` |
+| Current Directory Path | the folder, with no trailing separator |
+
+The three are disabled while an untitled document is active, because it has no
+path to report.
+
+**Edit ▸ Paste Special** pastes at the caret and then fixes the indentation,
+comparing against the line above:
+
+- **Paste and Indent** lines the first pasted line up with the line above the
+  caret, which is what puts a copied block into an indented file at the right
+  column. A line above with no indentation leaves the clipboard alone:
+  "not indented here" is not a request to strip what was copied.
+- **Paste and Unindent** is the mirror image - it removes that same run of
+  spaces or tabs from the start of the pasted text, so copying an indented
+  block and pasting it next to indented code does not double the indent.
+- **Paste Unformatted** inserts the `text/plain` flavour of the clipboard as it
+  stands. In a plain-text editor there is no formatting to strip, so this is
+  the same as an ordinary Paste; it is here for the muscle memory.
+
+`Paste Special` needs to *read* the clipboard, which a browser only allows
+from a secure context and only after the user has granted permission. Served
+over `https` or from `localhost` it works; opened as a plain `http://` page
+from another machine it cannot, and the app says so in a message instead of
+silently pasting nothing. `Ctrl+V` is unaffected and always works.
+
+**Edit ▸ Select** holds the selection commands:
+
+- **Select All** is `Ctrl+A`, unchanged.
+- **Begin/End Select** (`Ctrl+Alt+B`) works the way Notepad++'s does: the first
+  press drops an anchor where the caret is, every move from then on extends the
+  selection from that anchor rather than from the caret, and a second press
+  leaves the selection on screen and forgets the anchor. The anchor belongs to
+  the document, so switching tabs and back keeps it.
+- **Multi-Select All** puts a cursor on every occurrence of the word under the
+  caret - no selection needed, which is what makes it useful. **Match case**
+  only finds the same casing, and **Whole word** skips occurrences inside a
+  longer word. At most 1000 matches are selected, and saying so is better than
+  freezing the editor on a file with a million of them.
+
+**Edit ▸ Line Operations ▸ Column Mode** (`Alt+C`) turns the current selection
+into a rectangular block: the selection's columns are applied to every line it
+covers, and typing then edits every cell at once. Monaco already does this with
+`Alt` + drag, so this is for the people who do not know about the modifier.
+Unlike Notepad++, no dialog opens - the command is the conversion, and a
+`...` on a menu entry should mean "you are about to be asked something".
+
+**Edit ▸ Insert ▸ Date & Time** puts a timestamp at every caret:
+
+- **Date & Time (short)** (`F5`) inserts `HH:mm:ss dd/MM/yyyy`.
+- **Date & Time (long)** (`Ctrl+F5`) inserts `ddd, MMM d, yyyy h:mm tt`, which
+  comes out as `Mon, Sep 30, 2026 2:35 PM`.
+- **Date & Time (customized)...** asks for a format string. The tokens are
+  `yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dddd`, `ddd`, `dd`, `d`, `HH`, `H`,
+  `hh`, `h`, `mm`, `m`, `ss`, `s` and `tt` (`AM` / `PM`). `MM` is always the
+  month and `mm` is always the minutes - Windows' own `strftime` has to guess
+  from the token before it, and nobody remembers that rule. Text in single
+  quotes is literal, so `yyyy'-'MM'-'dd` gives `2026-09-30`, and `''` is a
+  literal apostrophe. A format with no token in it is refused with a reason,
+  rather than inserting the same constant string every time you use it.
+
+## Clipboard History
+
+`Edit ▸ Clipboard History` opens a panel listing what you have copied in this
+session, newest first, up to 20 entries. Click one to put it back at the caret,
+as a single undoable edit applied at every cursor.
+
+The list is filled by the editor's own `copy` and `cut` events, so it records
+what actually went to the clipboard — including copies made with `Ctrl+C` from
+anywhere in the app, not only from a Notepadia command. Copies made outside the
+app's window cannot be observed by a web page and are not recorded, and the
+list is per session: it is not written to disk.
+
+`Clear` empties it, and the panel closes the same way it opened, from the same
+menu entry.
+
+## Read-only documents
+
+`File ▸ Set/Clear Read-Only` (`Ctrl+Alt+R`) flags the current document
+read-only, and clears the flag when it is already set. This is the one
+Notepad++ read-only entry that is a toggle, so it is labelled as one; the tab
+context menu and a future "Clear Read-Only Flag" split are not duplicated
+here.
+
+While a document is flagged:
+
+- typing, pasting and every editing command are rejected by the editor itself,
+  not by the app deciding to ignore them - so nothing slips through a shortcut
+  the app did not know about
+- the tab shows the padlock icon
+- the status bar mode indicator reads `Read-Only` instead of `INS` / `OVR`
+
+The flag belongs to the document path, not to the tab, and lasts for the
+session. Reopening the same file keeps it flagged; opening a different file
+does not inherit it. An untitled document can be flagged too, and is tracked
+separately.
+
+## Character Panel
+
+`Edit ▸ Character Panel` opens the Notepad++ panel that holds the special
+characters Notepad++ ships - arrows, boxes, blocks, currency and mathematical
+signs - grouped by category. Clicking one puts that character into the document
+at the caret, so a character that has no key on this keyboard can still be
+typed. The panel is also under `View`, which is where Notepad++ keeps it; both
+entries run the same command and only one of them can be showing at a time.
 
 ## Files on your own computer
 

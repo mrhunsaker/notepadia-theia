@@ -8,6 +8,7 @@ import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaOvertypeCommands } from './notepadia-overtype-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
 import { NotepadiaLocalFileCommands } from './notepadia-local-files-contribution';
+import { NotepadiaEditExtrasCommands } from './notepadia-edit-extras-contribution';
 
 @injectable()
 export class NotepadiaKeybindingContribution implements KeybindingContribution {
@@ -156,6 +157,59 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
         keybindings.registerKeybinding({
             command: NotepadiaLocalFileCommands.OPEN_LOCAL.id,
             keybinding: 'ctrlcmd+alt+o'
+        });
+
+        // -------------------------------------------------------------- C2
+        // C2 chords are the ones Notepad++ users already have in their fingers
+        // for these features, and each one needed a second binding for the same
+        // reason as above: the browser claims the original.
+        //
+        // Ctrl+Alt+B is Begin/End Select. The browser does not claim it, so the
+        // native chord is the only binding and it is always available.
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.BEGIN_END_SELECT.id,
+            keybinding: 'ctrlcmd+alt+b',
+            when: 'editorTextFocus'
+        });
+        // Alt+C opens Column Mode. Scoped to editorTextFocus because bare Alt is
+        // a browser and OS accelerator in several places, and Column Mode with
+        // no editor to apply it to has nothing to do.
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.COLUMN_MODE.id,
+            keybinding: 'alt+c',
+            when: 'editorTextFocus'
+        });
+        // F5 is Notepad++'s Date & Time (short) chord, and it is also the
+        // browser's reload chord - and a reload loses unsaved work. Same rule
+        // as the chords above: the native binding stays for the packaged app
+        // and an installed PWA, and a browser-safe alternate is offered so a
+        // Notepad++ user is never left with a shortcut that reloads the page.
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.DATE_TIME_SHORT.id,
+            keybinding: 'f5',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.DATE_TIME_SHORT.id,
+            keybinding: 'ctrlcmd+f5',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.DATE_TIME_SHORT.id,
+            keybinding: 'ctrlcmd+alt+d',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.DATE_TIME_LONG.id,
+            keybinding: 'ctrlcmd+alt+shift+d',
+            when: 'editorTextFocus'
+        });
+        // Ctrl+Alt+R toggles the read-only flag, exactly as in Notepad++. The
+        // browser does not claim it.
+        keybindings.registerKeybinding({
+            command: NotepadiaEditExtrasCommands.SET_READ_ONLY.id,
+            keybinding: 'ctrlcmd+alt+r',
+            when: 'editorTextFocus'
         });
     }
 }

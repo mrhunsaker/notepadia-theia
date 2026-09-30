@@ -1,5 +1,5 @@
 const { assert, finish, sleep, launchPage, goto, openFile, save,
-    openMenuBar, subLabels, closeMenus, modelText } = require('./lib.js');
+    openMenuBar, subLabels, closeMenus, modelText, findItemIndex } = require('./lib.js');
 
 async function press(page, mods, key) {
     for (const m of mods) await page.keyboard.down(m);
@@ -43,6 +43,8 @@ async function focusEditor(page) {
                 // named and placed the way Notepad++ puts it.
                 'Open Folder as Workspace...',
                 'Recent Files',
+                // C2: the read-only flag, after the recent list as in Notepad++.
+                'Set/Clear Read-Only',
                 'Save', 'Save As...', 'Save To This Computer...', 'Save a Copy As...', 'Save All',
                 'Close', 'Close All', 'Close All But Active',
                 'Save Session...', 'Load Session...',
@@ -62,7 +64,32 @@ async function focusEditor(page) {
         editItems.includes('Duplicate Current Line') && editItems.includes('Delete Current Line') &&
         editItems.includes('Line Operations') && editItems.includes('Convert Case'),
         JSON.stringify(editItems));
+    // C2: the new submenus in Notepad++'s order, with the two panels at the foot
+    // and Column Mode tucked inside Line Operations rather than under Select.
+    assert('Edit menu has the C2 submenus and panels in Notepad++ order',
+        JSON.stringify(editItems) === JSON.stringify([
+            'Undo', 'Redo', 'Cut', 'Copy', 'Paste',
+            'Copy to Clipboard', 'Paste Special',
+            'Indent', 'Unindent', 'Duplicate Current Line', 'Delete Current Line',
+            'Move Current Line Up', 'Move Current Line Down', 'Join Lines', 'Toggle Comment',
+            'Select', 'Line Operations', 'Convert Case', 'Insert',
+            'Blank Operations', 'EOL Conversion', 'Bookmarks',
+            'Clipboard History', 'Character Panel'
+        ]), JSON.stringify(editItems));
     await closeMenus(page);
+
+    // Column Mode lives beside the existing Column Editor, as in Notepad++.
+    await openMenuBar(page, 'Edit');
+    await sleep(200);
+    const opsIdx = await findItemIndex(page, 'Line Operations');
+    const opsHandle = await page.$$('.lm-Menu-item');
+    await opsHandle[opsIdx].hover();
+    await sleep(1200);
+    const lineOps = await subLabels(page);
+    await closeMenus(page);
+    assert('Line Operations ends with Column Editor then Column Mode',
+        lineOps[lineOps.length - 2] === 'Column Editor...' && lineOps[lineOps.length - 1] === 'Column Mode',
+        JSON.stringify(lineOps));
 
     // Search menu still owns Find/Replace/Find in Files
     await openMenuBar(page, 'Search');

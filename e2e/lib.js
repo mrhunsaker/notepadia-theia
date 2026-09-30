@@ -173,6 +173,61 @@ async function clickSubMenuItem(page, menu, sub, label) {
     await sleep(1200);
 }
 
+/**
+ * Walk a menu path of any depth and click the leaf, e.g.
+ * `['Edit', 'Insert', 'Date & Time', 'Date & Time (short)']`.
+ *
+ * `clickMenuItem`/`clickSubMenuItem` only cover one and two levels; the C2
+ * menus nest three deep, so the walk is written once here rather than
+ * unrolled per nesting depth in the suites.
+ */
+async function clickMenuPath(page, path) {
+    if (path.length < 2) {
+        throw new Error('clickMenuPath needs at least a menu and an item');
+    }
+    await openTopMenu(page, path[0]);
+    for (let depth = 1; depth < path.length; depth++) {
+        const idx = await findItemIndex(page, path[depth]);
+        if (idx < 0) {
+            throw new Error('menu item not found: ' + path.slice(0, depth + 1).join(' > '));
+        }
+        const items = await page.$$('.lm-Menu-item');
+        if (depth === path.length - 1) {
+            // A leaf can share its label with one of its own ancestors
+            // ('Multi-Select All'), and while the nested menus are open both
+            // copies match `findItemIndex`. Scope the click to the deepest
+            // menu, which is the one whose entries are leaves.
+            const leaf = await page.evaluate(label => {
+                const menus = Array.from(document.querySelectorAll('.lm-Menu'));
+                const menu = menus[menus.length - 1];
+                const leafItems = Array.from(menu.querySelectorAll('.lm-Menu-item'));
+                const found = leafItems.findIndex(it =>
+                    (it.querySelector('.lm-Menu-itemLabel') || { textContent: '' }).textContent.trim() === label);
+                if (found < 0) {
+                    return null;
+                }
+                const r = leafItems[found].getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + r.height / 2,
+                    labels: Array.from(menu.querySelectorAll('.lm-Menu-itemLabel')).map(l => l.textContent.trim()) };
+            }, path[depth]);
+            if (process.env.E2E_DEBUG_MENUS) {
+                console.error('[clickMenuPath] leaf state', JSON.stringify(leaf));
+            }
+            if (!leaf) {
+                throw new Error('menu item not found: ' + path.join(' > '));
+            }
+            // A synthetic element.click() does not execute a Lumino menu item,
+            // which is bound to real mouse events; replay a pointer click at the
+            // leaf's position, the way the one-level helpers do.
+            await page.mouse.click(leaf.x, leaf.y);
+            await sleep(100);
+        } else {
+            await items[idx].hover();
+        }
+        await sleep(depth === path.length - 1 ? 700 : 1200);
+    }
+}
+
 async function clickByLabel(page, text) {
     const box = await page.evaluate(t => {
         const el = Array.from(document.querySelectorAll('.lm-Menu-item .lm-Menu-itemLabel'))
@@ -259,6 +314,71 @@ async function modelText(page) {
     });
 }
 
+/**
+ * Helpers for Theia's own `AbstractDialog`, which every app dialog is built on
+ * and which renders the same markup whichever dialog it is: a title, a content
+ * block, and a control panel whose primary button is `.main`. Selectors are
+ * therefore shared here rather than copied per suite.
+ */
+
+/** The label on the dialog's primary button, or null when no dialog is open. */
+async function dialogPrimaryLabel(page) {
+    return page.evaluate(() => {
+        const el = document.querySelector('.dialogControl button.main');
+        return el ? el.textContent.trim() : null;
+    });
+}
+
+/** Click a dialog button by its visible label; returns whether it was found. */
+async function clickDialogButton(page, label) {
+    const rect = await page.evaluate(text => {
+        const el = Array.from(document.querySelectorAll('.dialogControl button'))
+            .find(b => (b.textContent || '').trim() === text);
+        if (!el) {
+            return null;
+        }
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }, label);
+    if (!rect) {
+        return false;
+    }
+    await page.mouse.click(rect.x, rect.y);
+    await sleep(1400);
+    return true;
+}
+
+/**
+ * Type into a dialog's single text input, replacing what is there.
+ *
+ * The value is set through the native setter and followed by an `input` event,
+ * because a plain `el.value = ...` does not notify the framework the keystroke
+ * happened, and a dialog that validates on every keystroke would then never
+ * clear its error message.
+ */
+async function setDialogInput(page, value) {
+    const ok = await page.evaluate(text => {
+        const el = document.querySelector('.dialogContent input[type="text"]');
+        if (!el) {
+            return false;
+        }
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        setter.call(el, text);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+    }, value);
+    await sleep(400);
+    return ok;
+}
+
+/** The error text an `AbstractDialog` is currently showing, if any. */
+async function dialogError(page) {
+    return page.evaluate(() => {
+        const el = document.querySelector('.dialogControl .error');
+        return el ? el.textContent.trim() : '';
+    });
+}
+
 async function statusLang(page) {
     return page.evaluate(() => document.querySelector('[id="status-bar-notepadia.language"]')?.textContent.trim() || null);
 }
@@ -269,7 +389,8 @@ async function statusBar(page) {
 
 module.exports = {
     URL, WS, assert, finish, sleep, waitFor, launchPage, goto, acceptUnloadPrompts,
-    openFile, save, openTopMenu, findItemIndex, clickMenuItem, clickSubMenuItem,
+    openFile, save, openTopMenu, findItemIndex, clickMenuItem, clickSubMenuItem, clickMenuPath,
     clickByLabel, hoverByLabel, openMenuBar, subLabels, closeMenus,
-    editorLines, clickEditorLine, currentLine, modelText, statusLang, statusBar
+    editorLines, clickEditorLine, currentLine, modelText, statusLang, statusBar,
+    dialogPrimaryLabel, clickDialogButton, setDialogInput, dialogError
 };

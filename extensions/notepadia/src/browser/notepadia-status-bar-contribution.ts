@@ -18,6 +18,10 @@ import {
     NotepadiaOvertypeCommands,
     NotepadiaOvertypeContribution
 } from './notepadia-overtype-contribution';
+import {
+    NotepadiaEditExtrasCommands,
+    NotepadiaEditExtrasContribution
+} from './notepadia-edit-extras-contribution';
 
 const ENCODING_LABELS: Record<string, string> = {
     utf8: 'UTF-8',
@@ -44,7 +48,8 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         @inject(StatusBar) protected readonly statusBar: StatusBar,
         @inject(EditorManager) protected readonly editorManager: EditorManager,
         @inject(PreferenceService) protected readonly preferences: PreferenceService,
-        @inject(NotepadiaOvertypeContribution) protected readonly overtype: NotepadiaOvertypeContribution
+        @inject(NotepadiaOvertypeContribution) protected readonly overtype: NotepadiaOvertypeContribution,
+        @inject(NotepadiaEditExtrasContribution) protected readonly editExtras: NotepadiaEditExtrasContribution
     ) {}
 
     onStart(): void {
@@ -59,6 +64,7 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
         });
 
         this.overtype.onDidChange(() => this.update());
+        this.editExtras.onDidChangeReadOnly(() => this.update());
 
         this.editorManager.onCurrentEditorChanged(() => {
             this.toDispose.dispose();
@@ -160,10 +166,18 @@ export class NotepadiaStatusBarContribution implements FrontendApplicationContri
             priority: 75
         });
 
+        // Notepad++ replaces INS/OVR with Read-Only rather than showing both:
+        // overtyping a protected document is not a mode the document has, and
+        // the indicator is how a user finds out their edits are being ignored.
+        const readOnly = this.editExtras.isReadOnly();
         this.statusBar.setElement('notepadia.mode', {
-            text: this.overtype.isOvertypeEnabled() ? 'OVR' : 'INS',
-            tooltip: 'Toggle Overtype Mode (Insert)',
-            command: NotepadiaOvertypeCommands.TOGGLE_OVERTYPE.id,
+            text: readOnly ? 'Read-Only' : (this.overtype.isOvertypeEnabled() ? 'OVR' : 'INS'),
+            tooltip: readOnly
+                ? 'Clear the read-only flag (Ctrl+Alt+R)'
+                : 'Toggle Overtype Mode (Insert)',
+            command: readOnly
+                ? NotepadiaEditExtrasCommands.SET_READ_ONLY.id
+                : NotepadiaOvertypeCommands.TOGGLE_OVERTYPE.id,
             alignment: StatusBarAlignment.RIGHT,
             priority: 70
         });

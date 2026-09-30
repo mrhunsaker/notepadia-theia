@@ -1,5 +1,82 @@
 # Changelog
 
+## 2026.10.01 (The Edit menu is complete)
+
+- **The Edit menu now has the clipboard, insertion, selection and protection
+  entries Notepad++ has.** Copy to Clipboard, Paste Special, Insert ▸ Date &
+  Time, Set/Clear Read-Only, Begin/End Select, Multi-Select All, Column Mode,
+  Clipboard History and the Character Panel entry are all there, in
+  Notepad++'s positions, and every one of them acts on the buffer rather than on
+  a string the app keeps beside it.
+- **Copy to Clipboard answers "where am I", not "what is this".** The text is
+  already on the clipboard after any ordinary Copy, so the submenu offers the
+  current full file path, the current filename and the current directory path,
+  and is disabled on an untitled document that has no path to report. The write
+  goes through `navigator.clipboard` with a real `execCommand` fallback,
+  because a page served over plain `http` on a LAN is not a secure context and
+  there the async API is simply absent.
+- **Paste Special judges the clipboard against the line above the caret.** Paste
+  and Indent lines the pasted block up with the code around it, Paste and
+  Unindent takes the duplicate indent back off, and Paste Unformatted is the
+  plain `text/plain` flavour unchanged. Reading the clipboard needs a secure
+  context and a permission, so where the browser refuses, the app says so in a
+  message rather than silently pasting nothing; `Ctrl+V` never needs either.
+- **Date & Time comes in Notepad++'s two defaults and a box that checks its
+  input.** `F5` inserts `HH:mm:ss dd/MM/yyyy`, `Ctrl+F5` inserts
+  `ddd, MMM d, yyyy h:mm tt`, and the customized dialog takes a token string
+  where quoted text is literal. A format with no token in it is refused with a
+  reason instead of inserting the same constant string every time. `MM` is
+  always the month and `mm` always the minutes, where Windows' `strftime` has
+  to guess from the token in front of it and nobody remembers that rule.
+- **Read-only is a property of the document, enforced by the editor.**
+  `File ▸ Set/Clear Read-Only` (`Ctrl+Alt+R`) sets Monaco's own `readOnly`
+  option, so typing, pasting and shortcuts the app does not know about are all
+  rejected in the same place; the tab shows the padlock the tab decorator
+  already painted and the status bar mode field reads `Read-Only` instead of
+  `INS` / `OVR`. The flag is keyed by document path, so it survives a tab
+  switch and a close-and-reopen in the same session without leaking onto
+  untitled buffers.
+- **Begin/End Select and Multi-Select All do what Notepad++'s do.** The first
+  `Ctrl+Alt+B` drops an anchor, every later caret move extends the selection
+  from it, and the second press leaves the selection on screen and forgets the
+  anchor — per document, so switching tabs and back keeps it. Multi-Select All
+  puts a cursor on every occurrence of the word under the caret with no
+  selection required, with Match case and Whole word variants, and stops at
+  1000 cursors *saying* it stopped.
+- **Column Mode is a command, not a dialog.** `Alt+C` turns the current
+  selection into a rectangular block — the selection's columns applied to every
+  line it covers — for the people who do not know Monaco's `Alt` + drag. It sits
+  beside the existing Column Editor in Line Operations, and is labelled without
+  a `...`, because a menu entry that promises a dialog and opens none is worse
+  than one that says what it does.
+- **Clipboard History records what actually went to the clipboard.** The list is
+  filled from the editor's own `copy` and `cut` events, so it catches `Ctrl+C`
+  from anywhere in the app, not only from a Notepadia command; one click puts an
+  entry back at every caret as a single undoable edit. It holds the session's
+  last 20, is not written to disk, and copies made outside the app's window are
+  not observable by a web page at all.
+- New pure modules with 70 unit tests over them:
+  `src/common/date-time-formats.ts` (the whole token table),
+  `src/common/paste-special.ts` (the indent decisions),
+  `src/common/column-block.ts`, `src/common/multi-select.ts` and
+  `src/common/clipboard-history.ts`.
+- The new `edit-extras` e2e suite drives all of it in a real browser: a path,
+  a name and a folder read back off the system clipboard; each of the two
+  default date formats and a custom one in the model, with a token-free format
+  refused; a read-only document that ignores typing and clears again on
+  `Ctrl+Alt+R`; a selection that grows from an anchor; four cursors from
+  `search.txt`; a four-cell block edited in one keystroke; a copy landing in the
+  history and back in the buffer; and all three Paste Special results compared
+  against the exact expected text.
+- A Theia 1.75 detail that bit the first draft and is worth recording: the
+  per-editor cursor listener and the document-level `copy` listener were pushed
+  into one `DisposableCollection`, and the editor listener was disposed on
+  every tab switch — which silently took the clipboard listener with it. The
+  app-lifetime and per-editor disposables are now separate collections.
+- `F5` and `Ctrl+F5` are bound as Notepad++ binds them, and the browser claims
+  both, so `Ctrl+Alt+D` and `Ctrl+Alt+Shift+D` are added alongside them for the
+  web — the same treatment `Ctrl+N` and `Ctrl+O` already had.
+
 ## 2026.9.30 (The File menu finishes its job)
 
 - **The four file commands a Notepad++ user reaches for without thinking are
