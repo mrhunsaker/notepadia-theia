@@ -542,7 +542,7 @@
           ],
           "commitMessage": "feat(menus): Notepad++ Edit menu extras (clipboard, insert, read-only, multi-select)",
           "status": "completed",
-          "completedRef": "pending",
+          "completedRef": "99b97c3 (2026-10-03)",
           "followUp": "Begin/End Select extended the selection on every caret move, but Monaco collapses a live selection to the range's start on a plain arrow key, so a single ArrowRight could move the caret several columns to the anchor. Fixed by recording the caret the extension installed so Monaco's echo of our own write is ignored, and by flagging plain navigation keys in a window capture listener so the move is re-extended from the anchor. The e2e now also disarms Begin/End Select before Multi-Select All, since the anchor is armed until the second press by design."
         },
         {
