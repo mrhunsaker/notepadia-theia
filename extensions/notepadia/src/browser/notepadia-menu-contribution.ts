@@ -125,14 +125,20 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: 'New',
             order: '0a'
         });
+        // Notepad++ order: New, Open..., Open Folder as Workspace..., then the
+        // recent-file list. D7 moved the Open slot to the local-disk picker
+        // ("Open from Computer", registered by notepadia-local-files-contribution
+        // at 0b) and gave Theia's server-workspace browse a name that says
+        // which filesystem it reaches - a Notepad++ user pressing Ctrl+O means
+        // their own disk, never a workspace tree.
         menus.registerMenuAction(file, {
             commandId: CommonCommands.OPEN.id,
-            label: 'Open...',
-            order: '0b'
+            label: 'Open from Workspace...',
+            order: '0b.1'
         });
-        // Notepad++ order: New, Open..., Open Folder as Workspace..., then the
-        // recent-file list. D1 nests "Open From This Computer..." and "Upload
-        // to Workspace..." at 0b.1/0b.2, directly under Open....
+        // C1: the only route to choosing a directory as the workspace root. It
+        // stays at 0c, immediately behind the two Open entries and their
+        // Upload bridge, and ahead of the recent-file list.
         menus.registerMenuAction(file, {
             commandId: 'workspace:open',
             label: 'Open Folder as Workspace...',

@@ -64,11 +64,13 @@ The product is organized as a monorepo:
   `Rename...` (moves the file and keeps the tab on it, carrying unsaved text
   across) and `Delete from Disk` (always confirmed, closes the tab), plus
   `Open Folder as Workspace...` in the `File` menu.
-- Files on your own computer, as a first-class concept: `Open From This
-  Computer...`, `Save To This Computer...` and `Upload to Workspace...` sit
-  next to Theia's own workspace-only `Open...` and `Save As...`, so it is
-  always clear which disk a command touches. On Chromium, a file opened from
-  your disk keeps its handle and Ctrl+S writes back to that same file.
+- `Open` means your own disk, everywhere: the `File` menu entry, the toolbar's
+  Open button and `Ctrl+O` are one command labeled `Open from Computer`, and
+  the server workspace keeps its own differently named entry,
+  `Open from Workspace...`. `Save To This Computer...` and
+  `Upload to Workspace...` are the bridges between the two, so it is always
+  clear which disk a command touches. On Chromium, a file opened from your
+  disk keeps its handle and Ctrl+S writes back to that same file.
 - Automatic updates over GitHub Releases (desktop app).
 - Unsaved work survives a crash: a copy of every document with unsaved changes
   is kept in the browser's own storage a few seconds after you stop typing, and

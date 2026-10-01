@@ -34,10 +34,18 @@ import {
 } from '../common/local-files';
 
 export namespace NotepadiaLocalFileCommands {
-    /** Reads a file from the user's own disk into a new tab. */
+    /**
+     * Reads a file from the user's own disk into a new tab.
+     *
+     * D7: this is the one and only 'Open' in the application. Notepad++'s
+     * File > Open... and the toolbar's Open button both mean "my own disk", so
+     * this command takes the File menu's Open slot and the toolbar button. The
+     * label says which filesystem it reaches, because the server workspace is
+     * a real and different place that keeps its own, differently named entry.
+     */
     export const OPEN_LOCAL: Command = {
         id: 'notepadia.file.openLocal',
-        label: 'Open From This Computer...'
+        label: 'Open from Computer'
     };
     /** Writes the current tab to the user's own disk, leaving the tab alone. */
     export const SAVE_LOCAL: Command = {
@@ -80,9 +88,15 @@ const LOCAL_FILE_INPUT_ID = 'notepadia-local-file-input';
  * their laptop nor get one back. This contribution adds the missing bridge
  * with three commands whose labels say which storage they touch:
  *
- *   Open From This Computer...  user's disk  -> editor tab
- *   Save To This Computer...    editor tab   -> user's disk
- *   Upload to Workspace...      user's disk  -> server workspace
+ *   Open from Computer        user's disk  -> editor tab
+ *   Save To This Computer...  editor tab   -> user's disk
+ *   Upload to Workspace...    user's disk  -> server workspace
+ *
+ * D7: the first of those is also the application's only "Open". It holds the
+ * File menu's Open slot, the toolbar's Open button and Ctrl+O, because a
+ * Notepad++ user pressing Ctrl+O means their own disk and nothing else. The
+ * server workspace keeps its own entry, "Open from Workspace...", which says
+ * which filesystem it browses.
  *
  * On Chromium the round trip is lossless: the picked `FileSystemFileHandle` is
  * kept per tab, so the ordinary Ctrl+S on a tab opened this way writes straight
@@ -139,13 +153,15 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
 
     registerMenus(menus: MenuModelRegistry): void {
         const file = [...CommonMenus.FILE];
-        // "Open..." (Theia's) is the SERVER workspace; these two are the
-        // user's own disk and the bridge between them. Grouping them right
-        // under Open... is what makes the File menu self-explanatory.
+        // D7: "Open from Computer" occupies the 0b slot Notepad++ gives Open...
+        // and opens the user's own disk through a file picker. The two entries
+        // under it are the other two places a file can come from or go to, and
+        // each one names the filesystem it touches, because "Open" alone is
+        // spent and must never mean two different things.
         menus.registerMenuAction(file, {
             commandId: NotepadiaLocalFileCommands.OPEN_LOCAL.id,
-            label: 'Open From This Computer...',
-            order: '0b.1'
+            label: 'Open from Computer',
+            order: '0b'
         });
         menus.registerMenuAction(file, {
             commandId: NotepadiaLocalFileCommands.UPLOAD_TO_WORKSPACE.id,

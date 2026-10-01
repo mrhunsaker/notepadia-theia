@@ -71,6 +71,13 @@ export function isToolbarButton(item: NotepadiaToolbarItem): item is NotepadiaTo
  * Notepad++ toolbar order: file, print, clipboard, history, search, zoom, view
  * toggles, macros. Every entry maps to a command that is registered today.
  *
+ * The Open button is the D1 local-disk picker (notepadia.file.openLocal), not
+ * Theia's core.open, because a Notepad++ user clicking the toolbar's Open
+ * expects a file picker on their own machine and nothing else. core.open
+ * browses the server workspace and is reachable from the File menu as
+ * "Open from Workspace..."; the button deliberately does not offer it, so the
+ * server browser is never one stray click away from looking like the local one.
+ *
  * Deliberately absent, because the underlying feature does not exist in this
  * application yet and a button that throws or no-ops is worse than no button:
  * Sync Vertical Scroll, Sync Horizontal Scroll (no split view), Function List
@@ -79,7 +86,7 @@ export function isToolbarButton(item: NotepadiaToolbarItem): item is NotepadiaTo
  */
 export const NOTEPADIA_TOOLBAR_ITEMS: readonly NotepadiaToolbarItem[] = [
     { kind: 'button', id: 'new', commandId: 'notepadia.newDocument', label: 'New', icon: 'new' },
-    { kind: 'button', id: 'open', commandId: 'core.open', label: 'Open...', icon: 'open' },
+    { kind: 'button', id: 'open', commandId: 'notepadia.file.openLocal', label: 'Open from Computer', icon: 'open' },
     { kind: 'button', id: 'save', commandId: 'core.save', label: 'Save', icon: 'save' },
     { kind: 'button', id: 'save-all', commandId: 'core.saveAll', label: 'Save All', icon: 'save-all' },
     { kind: 'button', id: 'close', commandId: 'notepadia.close', label: 'Close', icon: 'close' },

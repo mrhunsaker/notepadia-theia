@@ -102,6 +102,25 @@ async function main() {
             b.pressed !== null && !['word-wrap', 'whitespace', 'document-map', 'folder-as-workspace', 'macro-record'].includes(b.id));
         assert('aria-pressed only on real toggles', strayPressed.length === 0, JSON.stringify(strayPressed));
 
+        // --- D7: Open is the user's own disk, here as everywhere ----------
+        const open = await buttonById(page, 'open');
+        assert('the Open button is named Open from Computer',
+            !!open && open.label === 'Open from Computer', JSON.stringify(open));
+        assert('the Open button runs the local file picker, not the server workspace',
+            !!open && open.commandId === 'notepadia.file.openLocal', JSON.stringify(open));
+        // Puppeteer auto-dismisses a file chooser nothing is listening for, so
+        // the chooser has to be awaited or the click would prove nothing. The
+        // chooser is then cancelled: e2e cannot drive a native dialog, only
+        // prove that the button opens one.
+        const openChooser = page.waitForFileChooser({ timeout: 8000 }).catch(() => null);
+        await page.click('[data-toolbar-id="open"]');
+        const openedChooser = await openChooser;
+        assert('clicking the Open button opens a file picker', openedChooser !== null);
+        if (openedChooser) {
+            await openedChooser.cancel().catch(() => { });
+            await sleep(400);
+        }
+
         // --- tooltips carry the keybinding ------------------------------
         const save = await buttonById(page, 'save');
         assert('save tooltip shows its shortcut', !!save && /Ctrl\+S/i.test(save.title || ''), JSON.stringify(save));

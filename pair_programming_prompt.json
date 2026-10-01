@@ -1,7 +1,7 @@
 {
   "name": "notepadia-pair-programming-prompt",
-  "version": "8.0.0",
-  "date": "2026-09-23",
+  "version": "8.1.0",
+  "date": "2026-09-30",
   "supersedes": "notepadia_prompt_20260919.json (v6.0.0) and pair_programming_prompt.json v7.0.0",
   "repository": "https://github.com/mrhunsaker/notepadia-theia",
   "auditedRef": "main @ f7f3d0e (\"test: add 44 unit tests for extracted pure logic and wire into yarn test (M24 prep)\")",
@@ -32,7 +32,8 @@
     "Any new UI must be usable with the keyboard alone and must expose an accessible name. The maintainer's domain is accessibility; a mouse-only toolbar or panel is a defect, not a nice-to-have.",
     "Any new visual styling goes into a single stylesheet layer owned by the extension (src/browser/style/*.css) imported from notepadia-frontend-module.ts, and uses Theia color tokens registered by the Notepadia theme rather than hard-coded hex values scattered in TypeScript. The one existing hard-coded style injection (notepadia-search-mark.ts, document.head <style>) is migrated into that layer.",
     "Browser-hostile keybindings (anything the browser reserves: Ctrl+N, Ctrl+W, Ctrl+T, Ctrl+Shift+N/T/W) must ship with a working non-reserved alternate and must be documented, not silently broken.",
-    "No feature is 'done' because a command exists. Done means: command + menu entry in the Notepad++ position + keybinding + visual affordance (toolbar/status bar/panel where Notepad++ has one) + e2e coverage."
+    "No feature is 'done' because a command exists. Done means: command + menu entry in the Notepad++ position + keybinding + visual affordance (toolbar/status bar/panel where Notepad++ has one) + e2e coverage.",
+    "One verb, one target. Any control the user reads as 'Open' opens a file picker on the USER'S OWN disk and is labeled 'Open from Computer' - in the File menu, on the toolbar, in the tooltip, in the shortcut table and in the docs. When a second, different target needs an Open affordance, it is named for that target ('Open from Workspace...'), never 'Open...'. Two entries with the same verb and different destinations is a defect, not a convenience."
   ],
   "auditFindings": {
     "verifiedCompleteInCode": [
@@ -55,6 +56,7 @@
       "The v6 'missingNotepadplusFeatures' list is missing the Notepad++ toolbar entirely. The toolbar is the most recognizable element of the Notepad++ window and is the first thing a user notices is absent.",
       "The v6 list treats Search > Mark as satisfying the Search menu. Notepad++'s Ctrl+F is a persistent tabbed dialog (Find / Replace / Find in Files / Mark) with Search Mode radio buttons, direction, wrap-around, in-selection, Count and Find All. Notepadia currently exposes Monaco's inline find widget plus a separate Mark submenu, which is a different interaction model, not a styling difference.",
       "notepadia-menu-contribution.ts unregisters 'workspace:open' and 'file.upload'/'file.download'. In the browser target that removes both the only menu route to open a folder AND the only route to move a file between the user's own computer and the server-side workspace. For a browser-deployed editor this is a functional regression, not menu tidying.",
+      "'Open' is overloaded in the shipped build and the overload is on the most recognizable control. File > 'Open...' and the toolbar's Open button both execute core.open, which browses the SERVER workspace, while the working local-disk picker from D1 sits below it as 'Open From This Computer...'. A Notepad++ user pressing Ctrl+O or clicking the toolbar's second button expects their own disk and gets a directory tree of a machine they cannot see. Retained here as D7.",
       "The status bar INS element is a hard-coded string. Notepad++'s Insert key toggles INS/OVR and the status bar reflects it. Notepadia has no overtype mode.",
       "View > Document Map calls control.updateOptions() on the current editor control only. The setting does not persist and is lost when the user switches or reopens a tab.",
       "M22 step 9 (a workflow_dispatch run of release.yml) and the first published vYYYY.M.D release remain genuinely unverified; they are retained here as G3/G4."
@@ -156,6 +158,7 @@
           "priority": "P0",
           "status": "completed",
           "completedRef": "7a318c2 (2026-09-21)",
+          "amendedBy": "D7 - the Open button in step 3 below is relabeled 'Open from Computer' and repointed from core.open to notepadia.file.openLocal so it opens the user's own disk.",
           "nppReference": "Notepad++ toolbar (the icon strip below the menubar)",
           "problem": "Completely absent. There is no top-area widget in the repository and no toolbar contribution. This is the single most recognizable missing element.",
           "filesToCreate": [
@@ -637,6 +640,7 @@
           "id": "D1",
           "title": "Local file open and save from the user's own computer",
           "priority": "P0",
+          "amendedBy": "D7 - the command's user-visible label becomes 'Open from Computer' and it takes over the File menu's Open slot and the toolbar button.",
           "nppReference": "Notepad++ File > Open / Save - which in Notepad++ always means the user's own disk",
           "problem": "notepadia-menu-contribution.ts unregisters 'file.upload' and 'file.download'. In the browser, File > Open... browses the SERVER's workspace, not the user's machine. As shipped, a remote user of this app has no way to open a file from their laptop or get one back. For an editor described as a Notepad++ replacement this is the most serious functional defect in the repository.",
           "filesToCreate": [
@@ -835,6 +839,56 @@
             "CI smoke: build the Docker image in a workflow job and curl the served index to confirm the image is not broken."
           ],
           "commitMessage": "docs: deployment guide, Dockerfile and TLS reverse-proxy example"
+        },
+        {
+          "id": "D7",
+          "title": "One verb, one target: 'Open' means the user's own computer everywhere",
+          "priority": "P0",
+          "status": "completed",
+          "completedRef": "pending (2026-09-30)",
+          "nppReference": "Notepad++ File > Open... and the toolbar's second button both read 'Open' and both open a file picker on the user's own disk; Notepad++ has no 'Open' entry that points anywhere else",
+          "problem": "The word 'Open' currently means two different things in this application. File > 'Open...' and the toolbar's Open button both execute CommonCommands.OPEN (core.open), which in the browser opens a server-workspace browser. The command that actually reaches the user's disk exists from D1 and sits one row below, labeled 'Open From This Computer...'. So the most recognizable button in the window, and the File menu's second entry, lead a remote user to a directory listing of a filesystem they cannot see, while the working feature is the one nobody clicks. In Notepad++ Open always means my own disk, and that muscle memory is the single most damaging thing this application currently teaches wrong. The fix is to make every control the user reads as 'Open' execute the D1 local picker, label it 'Open from Computer', and move the server-workspace browse to a name that says which filesystem it touches.",
+          "filesToEdit": [
+            "extensions/notepadia/src/browser/notepadia-local-files-contribution.ts",
+            "extensions/notepadia/src/browser/notepadia-menu-contribution.ts",
+            "extensions/notepadia/src/browser/notepadia-toolbar-items.ts",
+            "extensions/notepadia/src/browser/notepadia-keybinding-contribution.ts",
+            "extensions/notepadia/test/toolbar-items.test.cjs",
+            "e2e/menus-shortcuts.cjs",
+            "e2e/local-files.cjs",
+            "e2e/toolbar.cjs",
+            "README.md",
+            "docs/usage.md",
+            "docs/index.md",
+            "CHANGELOG.md"
+          ],
+          "steps": [
+            "1. Rename the D1 command's user-visible label from 'Open From This Computer...' to 'Open from Computer' in both places it is declared (the command label in NotepadiaLocalFileCommands.OPEN_LOCAL and the File menu registration), so the verb, the ellipsis convention and the capitalization match every other menu entry. Leave the command id notepadia.file.openLocal alone - renaming an id that keybindings, e2e suites and the local-files unit tests already reference is churn with no user-visible payoff.",
+            "2. In notepadia-menu-contribution.ts delete the File menu registration for CommonCommands.OPEN at order 0b. That entry is the one that says 'Open...' and does the wrong thing; the new Open from Computer takes its place at 0b.",
+            "3. Re-register the server-workspace browse under a name that names its filesystem: menus.registerMenuAction(file, { commandId: CommonCommands.OPEN.id, label: 'Open from Workspace...', order: '0c' }). Notepad++ has no such entry, which is exactly why it cannot be called 'Open...' - a Notepad++ user pressing Ctrl+O expects a disk, never a workspace tree. Keep it in the File menu: C1's Open Folder as Workspace... and D1's Upload to Workspace... already depend on the workspace being browsable, and removing the route would undo C1.",
+            "4. Reorder so the new entry group reads the way Notepad++ reads: New, Open from Computer..., Open from Workspace..., Upload to Workspace..., Open Folder as Workspace.... NotepadiaLocalFileCommands.OPEN_LOCAL moves to 0b, UPLOAD_TO_WORKSPACE stays at 0b.2, and the workspace browse lands at 0c just ahead of the existing Open Folder as Workspace... registration. Print the resulting subLabels array and adjust the orders until it is exactly that sequence with no duplicates.",
+            "5. In notepadia-toolbar-items.ts change the 'open' button to commandId 'notepadia.file.openLocal', label 'Open from Computer' and keep icon 'open'. notepadia-toolbar-items.ts is deliberately import-free so the Node-side unit tests can load it, so write the id as the string literal and let the existing cross-check in test/toolbar-items.test.cjs prove it is registered. The tooltip and the aria-label both derive from the label (notepadia-toolbar-widget.tsx tooltipFor/aria-label), so the button's accessible name becomes 'Open from Computer' with no extra work - verify that it does rather than assuming it.",
+            "6. Because the toolbar no longer borrows core.open, remove 'core.open' from EXTERNAL_COMMAND_IDS in test/toolbar-items.test.cjs. Leaving it would let a future edit point the toolbar back at the server browser without the unit test noticing, which is the exact regression this task exists to prevent. notepadia.file.openLocal is a notepadia.* id, so the existing 'must be registered in our own compiled output' assertion covers it.",
+            "7. Keybindings: ctrlcmd+o and ctrlcmd+alt+o already bind to notepadia.file.openLocal, so Ctrl+O is already correct and must stay that way. Update the comment in notepadia-keybinding-contribution.ts that says the command is called 'Open From This Computer...' so the source does not contradict the menu.",
+            "8. Leave Save and Save As exactly as they are. This task is about the Open verb; the save side already names its storage ('Save To This Computer...') and reworking it is D1's territory, not a drive-by.",
+            "9. Update the documentation in the same commit: README.md, docs/usage.md (the File menu list, the storage table, the browser-shortcut table and the Ctrl+O row that currently reads 'the browser's own file dialog') and docs/index.md. The docs must not keep describing an 'Open From This Computer...' that no longer exists under that name.",
+            "10. Check the paths that enumerate the File menu in assertions and accept the churn explicitly rather than loosening them: e2e/menus-shortcuts.cjs has the full expected label array, e2e/local-files.cjs clicks 'Open From This Computer...', and e2e/file-menu.cjs asserts on Open Folder as Workspace.... Update all three to the new names; do not replace an exact-array assertion with a contains() check to make a failure go away.",
+            "11. Build, run and click every Open: the File menu entry, the toolbar button, Ctrl+O and Ctrl+Alt+O must all open the same picker, and a cancelled picker must be a no-op in all four cases. Then confirm 'Open from Workspace...' still opens the server tree and that its picker is visually distinguishable from the local one."
+          ],
+          "acceptanceCriteria": [
+            "The File menu's Open entry, the toolbar Open button, Ctrl+O and Ctrl+Alt+O all execute notepadia.file.openLocal; none of them can reach the server-workspace browser.",
+            "Every one of those four surfaces reads 'Open from Computer' in its label, tooltip or aria-label.",
+            "The server workspace is still browsable, under a label that names it, and no menu entry anywhere in the application is labeled 'Open...'.",
+            "A cancelled file picker leaves the application untouched - no tab, no error dialog, no focus change.",
+            "test/toolbar-items.test.cjs fails if the toolbar Open button is pointed back at core.open."
+          ],
+          "tests": [
+            "e2e/menus-shortcuts.cjs: the exact expected File-menu array becomes ['New', 'Open from Computer', 'Open from Workspace...', 'Upload to Workspace...', 'Open Folder as Workspace...', 'Recent Files', 'Set/Clear Read-Only', ...] and gains an assertion that no entry is exactly 'Open...'.",
+            "e2e/toolbar.cjs: assert the toolbar Open button's aria-label is 'Open from Computer', click it, wait for page.waitForFileChooser() and cancel - proving the button opens a file picker rather than a workspace dialog. Puppeteer auto-dismisses an unlistened chooser, so the chooser must be awaited like e2e/local-files.cjs does.",
+            "e2e/local-files.cjs: rename the two 'Open From This Computer...' click targets to 'Open from Computer'; the uploadFile-driven assertions stay as they are.",
+            "Unit: no new module is needed here. The existing test/toolbar-items.test.cjs label check plus the updated EXTERNAL_COMMAND_IDS set is the coverage."
+          ],
+          "commitMessage": "feat(files): 'Open' means the user's own computer in the menu, the toolbar and the shortcut"
         }
       ]
     },
@@ -1112,7 +1166,7 @@
   "executionOrder": [
     "Phase 1 - recognizability (do not reorder; this is what makes the app look like Notepad++): A1, A2, A3, A6, A5, A4.",
     "Phase 2 - the other half of the identity: B1, B2, B3.",
-    "Phase 3 - fix the browser regressions before anyone else uses it: D1, D2, D3.",
+    "Phase 3 - fix the browser regressions before anyone else uses it: D1, D7, D2, D3.",
     "Phase 4 - menu completeness: C1, C2, C3, C4.",
     "Phase 5 - panels and remaining features: E1, D4, D5, E2, E3, B4, C5.",
     "Phase 6 - verification and debt: F1, G1, G2, D6, G3, G4, G5.",
@@ -1123,6 +1177,7 @@
     "Ctrl+F opens one tabbed Find dialog with Notepad++'s controls and semantics, not Monaco's inline widget.",
     "Every menu in the Notepad++ menubar is present with its entries in Notepad++'s order, or the omission is documented as a deliberate deviation.",
     "A remote browser user can open a file from their own computer, edit it, and save it back.",
+    "Every control labeled 'Open' opens the user's own computer. The File menu entry, the toolbar button, Ctrl+O and Ctrl+Alt+O are one command with one label, and the server workspace is reachable only under a label that names it.",
     "The whole application is operable by keyboard with no serious or critical axe violations.",
     "Every feature has an e2e suite; every pure module has unit tests; a styling regression fails CI.",
     "README, docs and CHANGELOG describe only what the code actually does.",

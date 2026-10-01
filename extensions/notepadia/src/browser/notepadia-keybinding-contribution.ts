@@ -146,10 +146,11 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             keybinding: 'insert',
             when: 'editorTextFocus'
         });
-        // D1: "Open From This Computer..." keeps Notepad++'s Ctrl+O, which
-        // the browser also claims, so it ships with Ctrl+Alt+O as a working
-        // alternate. Ctrl+Shift+O is deliberately NOT bound: it is Chromium's
-        // bookmark-all-tabs and no Notepad++ user arrives expecting it.
+        // D1/D7: "Open from Computer" is the application's only Open, so it
+        // keeps Notepad++'s Ctrl+O. The browser also claims Ctrl+O, so it
+        // ships with Ctrl+Alt+O as a working alternate. Ctrl+Shift+O is
+        // deliberately NOT bound: it is Chromium's bookmark-all-tabs and no
+        // Notepad++ user arrives expecting it.
         keybindings.registerKeybinding({
             command: NotepadiaLocalFileCommands.OPEN_LOCAL.id,
             keybinding: 'ctrlcmd+o'

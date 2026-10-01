@@ -18,7 +18,6 @@ const BROWSER_LIB = path.join(__dirname, '..', 'lib', 'browser');
  * registered in our own compiled output.
  */
 const EXTERNAL_COMMAND_IDS = new Set([
-    'core.open',
     'core.save',
     'core.saveAll',
     'core.cut',
@@ -71,6 +70,18 @@ describe('toolbar item model', () => {
             const doubled = items[i].kind === 'separator' && items[i - 1].kind === 'separator';
             assert.ok(!doubled, `two separators in a row at index ${i}`);
         }
+    });
+
+    it('gives the Open button the local file picker, not the server workspace', () => {
+        // D7. The toolbar's Open button used to be core.open, which browses
+        // the server workspace - so the most recognizable button in the window
+        // opened a filesystem a remote user cannot see. Theia's core.open is
+        // also absent from EXTERNAL_COMMAND_IDS now, so pointing the button at
+        // it again fails the assertion above; this states the intent.
+        const open = toolbarButtons(NOTEPADIA_TOOLBAR_ITEMS).find(b => b.id === 'open');
+        assert.ok(open, 'the toolbar has no open button');
+        assert.equal(open.commandId, 'notepadia.file.openLocal');
+        assert.equal(open.label, 'Open from Computer');
     });
 
     it('only marks buttons as toggles when they are genuinely stateful', () => {

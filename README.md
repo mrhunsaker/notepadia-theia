@@ -127,12 +127,15 @@ The Notepad++-style feature layer is implemented as the shared
   `Ctrl+=` / `Ctrl+-` / `Ctrl+0` zoom the editor text while the editor has
   focus and leave page zoom alone everywhere else, and `Settings ▸ Shortcut
   Mapper` lists and rebinds every registered chord
-- both storages, explicitly named in the File menu: `Open...` / `Save As...`
-  work in the server workspace, while `Open From This Computer...`,
-  `Save To This Computer...` and `Upload to Workspace...` reach the disk of the
-  machine you are sitting at. On Chromium, a file opened with Open From This
-  Computer keeps its file handle, so Ctrl+S on that tab writes back to the same
-  local file; Firefox and Safari fall back to an upload/download round trip
+- `Open` means your own disk, everywhere it appears: the `File` menu entry,
+  the toolbar's Open button and `Ctrl+O` all open a file picker on the machine
+  you are sitting at, and all three are labeled `Open from Computer`. The
+  server workspace is a separate place with its own name — `Open from
+  Workspace...` browses it, `Save As...` writes to it, and
+  `Save To This Computer...` and `Upload to Workspace...` are the bridges. On
+  Chromium, a file opened with Open from Computer keeps its file handle, so
+  Ctrl+S on that tab writes back to the same local file; Firefox and Safari
+  fall back to an upload/download round trip
 - the four file commands Notepad++ puts alongside Save As: `Reload from
   Disk` (asks only when the buffer is dirty), `Save a Copy As...` (writes a
   copy without moving the tab off the original file, and works on an untitled

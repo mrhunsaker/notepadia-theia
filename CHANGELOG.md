@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026.10.02 (`Open` means your own computer)
+
+- **`Open` now means one thing everywhere: a file picker on your own disk.**
+  The `File` menu entry, the toolbar's Open button and `Ctrl+O` are a single
+  command labeled `Open from Computer`, and all three open your machine's file
+  picker. Previously the menu entry and the toolbar button ran Theia's
+  workspace browser, so a Notepad++ user pressing `Ctrl+O` — which in
+  Notepad++ always means "my own disk" — got a directory listing of a server
+  they could not see, while the command that actually worked sat one row below
+  under a different name.
+- **The server workspace kept its route, under a name that says so.**
+  `Open from Workspace...` browses the workspace; `Save As...`, `Save` and
+  `Save All` still write to it. No control in the application is labeled
+  `Open...` any more, so the verb can no longer resolve to two different
+  filesystems. `Open Folder as Workspace...` and `Upload to Workspace...` are
+  unchanged.
+- **The toolbar button's tooltip and accessible name follow.** They derive from
+  the button's label, so the Open button now announces "Open from Computer"
+  rather than "Open". A unit test pins the button to `notepadia.file.openLocal`
+  and the test that catches dead toolbar commands no longer treats
+  `core.open` as a sanctioned target, so pointing the button back at the
+  workspace browser fails the build.
+
 ## 2026.10.01 (The Edit menu is complete)
 
 - **The Edit menu now has the clipboard, insertion, selection and protection

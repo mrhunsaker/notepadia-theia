@@ -47,11 +47,11 @@ Save As... (Ctrl+Shift+S) prompts for a real file name.
 Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 `Settings`, while the `File` and `Edit` menus gain Notepad++-style sections:
 
-- **File**: New / Open / **Open Folder as Workspace...** / Save / Save As /
-  **Save a Copy As...** / Save All / **Reload from Disk** / **Rename...** /
-  **Delete from Disk** / Close / Close All / Close All But Active, plus
-  **Open From This Computer...** / **Upload to Workspace...** /
-  **Save To This Computer...** for the user's own disk (see
+- **File**: New / **Open from Computer** / **Open from Workspace...** /
+  **Upload to Workspace...** / **Open Folder as Workspace...** / Save /
+  Save As / **Save a Copy As...** / Save All / **Reload from Disk** /
+  **Rename...** / **Delete from Disk** / Close / Close All / Close All But
+  Active, plus **Save To This Computer...** for the user's own disk (see
   [Files on your own computer](#files-on-your-own-computer)), plus
   **Recent Files** and **Set/Clear Read-Only**
   (see [Read-only documents](#read-only-documents)).
@@ -185,7 +185,7 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+Alt+N | New document (browser-safe) |
 | Ctrl+F4 | Close document (browser-safe) |
 | Ctrl+Alt+Shift+W | Close all documents (browser-safe) |
-| Ctrl+Alt+O | Open From This Computer... (browser-safe) |
+| Ctrl+Alt+O | Open from Computer (browser-safe) |
 | Ctrl+= / Ctrl+- / Ctrl+0 | Zoom in / zoom out / reset the editor text |
 | Ctrl+Alt+B | Begin/End Select |
 | Alt+C | Column Mode |
@@ -216,7 +216,7 @@ for something has an alternate chord that the browser leaves alone:
 | Ctrl+N | new browser window (Chromium) / new tab (Firefox) | New document | **Ctrl+Alt+N** |
 | Ctrl+W | close the browser tab | Close document | **Ctrl+F4** |
 | Ctrl+Shift+W | close the browser window | Close All | **Ctrl+Alt+Shift+W** |
-| Ctrl+O | Open File... (the browser's own file dialog) | Open From This Computer... | **Ctrl+Alt+O** |
+| Ctrl+O | Open File... (the browser's own file dialog) | Open from Computer (the app's own picker) | **Ctrl+Alt+O** |
 | Ctrl+Shift+O | bookmark all tabs (Chromium) | - | nothing is bound to it |
 | Ctrl+T | new browser tab | - | nothing is bound to it |
 | Ctrl+Shift+N | incognito window | - | nothing is bound to it |
@@ -451,14 +451,21 @@ machine you are sitting at**. Notepadia is a browser app served by another
 machine, so it has two entirely separate storages and the menu names them
 explicitly. Nothing else in the UI is ambiguous about this:
 
+**`Open` is the user's own disk, everywhere.** The `File` menu entry, the
+toolbar's Open button and `Ctrl+O` are one command with one label —
+`Open from Computer` — and all three open a file picker on your machine. The
+server workspace keeps its own entry, `Open from Workspace...`, which says which
+filesystem it browses. No control in the application is labeled `Open...`, so
+the verb can never resolve to two different places.
+
 | Command | Reads from | Creates / writes to | Changes the tab? |
 | --- | --- | --- | --- |
-| `Open...`, `Save`, `Save As...`, `Save All` | server workspace | server workspace | yes |
-| `Open From This Computer...` | **your disk** | a new in-browser tab (nothing is written to the server) | opens a new tab |
+| `Open from Computer` (File menu, toolbar button, `Ctrl+O`) | **your disk** | a new in-browser tab (nothing is written to the server) | opens a new tab |
+| `Open from Workspace...`, `Save`, `Save As...`, `Save All` | server workspace | server workspace | yes |
 | `Save To This Computer...` | the open tab | **a copy on your disk** | no |
 | `Upload to Workspace...` | **your disk** | server workspace | opens the uploaded file |
 
-On Chromium, `Open From This Computer...` keeps the handle to the file it
+On Chromium, `Open from Computer` keeps the handle to the file it
 picked, so **Ctrl+S on that tab writes straight back to the same file on your
 disk** instead of asking for a server-side name. The tab is titled with the
 real file name (`notes.txt`), not `new 1`, and a second copy of the same name
@@ -480,7 +487,7 @@ file that was not saved.
 
 ### Browser support
 
-| Browser | Reading (`Open From This Computer...`) | Writing (`Save To This Computer...`) | Ctrl+S write-back |
+| Browser | Reading (`Open from Computer`) | Writing (`Save To This Computer...`) | Ctrl+S write-back |
 | --- | --- | --- | --- |
 | Chromium 99+ (Chrome, Edge, Opera, Brave) | OS picker, file handle kept | OS picker, writes to the picked file | yes, to the original file |
 | Firefox, Safari | OS picker via `<input type="file">` | browser download | no - Ctrl+S offers Save As |

@@ -36,9 +36,13 @@ async function focusEditor(page) {
     const fileItems = await subLabels(page);
     assert('File menu is Notepad++ order',
         JSON.stringify(fileItems) === JSON.stringify(
-            ['New', 'Open...',
-                // D1: the user's own disk, grouped next to the workspace Open...
-                'Open From This Computer...', 'Upload to Workspace...',
+            ['New',
+                // D7: 'Open' is the user's own disk, in the File menu, on the
+                // toolbar and on Ctrl+O alike. The server workspace keeps an
+                // entry, but one that names the filesystem it browses.
+                'Open from Computer', 'Open from Workspace...',
+                // D1: the bridge from the user's disk into the workspace.
+                'Upload to Workspace...',
                 // C1: the only route to choosing a folder as the workspace root,
                 // named and placed the way Notepad++ puts it.
                 'Open Folder as Workspace...',
@@ -152,7 +156,7 @@ async function focusEditor(page) {
     assert('Ctrl+Alt+Shift+W closes every document (alternate for browser-reserved Ctrl+Shift+W)',
         afterCloseAll.length === 0, JSON.stringify(afterCloseAll));
 
-    // D2 - Ctrl+Alt+O reaches Open From This Computer..., whose Notepad++
+    // D2 - Ctrl+Alt+O reaches Open from Computer, whose Notepad++
     // chord (Ctrl+O) the browser claims. The chooser is cancelled: e2e cannot
     // drive a native file dialog, only prove the command runs.
     const chooser = page.waitForFileChooser({ timeout: 8000 }).catch(() => null);

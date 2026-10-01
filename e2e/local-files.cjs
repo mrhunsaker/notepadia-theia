@@ -100,22 +100,29 @@ async function pickViaHiddenInput(page, trigger, file) {
 
     // Acceptance criterion 3: the File menu must make the two storages legible.
     const entries = await fileMenuEntries(page);
-    assert('File menu offers Open From This Computer...', entries.includes('Open From This Computer...'),
+    // D7: no entry anywhere is labeled 'Open...' any more, so the verb cannot
+    // resolve to two different filesystems.
+    assert('no File menu entry is labeled Open...', !entries.includes('Open...'),
+        JSON.stringify(entries));
+    assert('File menu offers Open from Computer', entries.includes('Open from Computer'),
         JSON.stringify(entries));
     assert('File menu offers Upload to Workspace...', entries.includes('Upload to Workspace...'),
         JSON.stringify(entries));
     assert('File menu offers Save To This Computer...', entries.includes('Save To This Computer...'),
         JSON.stringify(entries));
-    assert("the File menu still offers Theia's server-workspace Open...", entries.includes('Open...'),
+    // D7: Theia's server-workspace browse is still reachable, but under a name
+    // that says which filesystem it opens. The plain 'Open...' label is gone
+    // for good, which is what stops the verb from meaning two places.
+    assert("the File menu still offers the server-workspace browse, named", entries.includes('Open from Workspace...'),
         JSON.stringify(entries));
     assert('the dead Theia file.upload entry stays out of the File menu',
         !entries.some(e => /upload files/i.test(e)), JSON.stringify(entries));
     assert('the dead Theia file.download entry stays out of the File menu',
         !entries.some(e => /^download$/i.test(e)), JSON.stringify(entries));
 
-    // --- Open From This Computer... via the hidden input ---------------------
+    // --- Open from Computer via the hidden input ---------------------
     await pickViaHiddenInput(page,
-        () => clickMenuItem(page, 'File', 'Open From This Computer...'),
+        () => clickMenuItem(page, 'File', 'Open from Computer'),
         LOCAL_FIXTURE);
     await waitFor(page, '.monaco-editor');
     await sleep(2500);
@@ -137,7 +144,7 @@ async function pickViaHiddenInput(page, trigger, file) {
 
     // --- A second copy of the same file must not collide with the first tab --
     await pickViaHiddenInput(page,
-        () => clickMenuItem(page, 'File', 'Open From This Computer...'),
+        () => clickMenuItem(page, 'File', 'Open from Computer'),
         LOCAL_FIXTURE);
     await sleep(3000);
     const afterSecond = await tabTitles(page);
