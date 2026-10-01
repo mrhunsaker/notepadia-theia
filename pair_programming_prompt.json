@@ -269,7 +269,9 @@
             "New e2e suite e2e/status-bar.cjs: open bookmarks.txt, assert length/lines text; click line 3 and assert Ln/Col/Pos; select two lines and assert Sel; press Insert, assert OVR appears, type a character and assert the model replaced rather than inserted.",
             "Add 'status-bar' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(editor): full Notepad++ status bar fields and INS/OVR overtype mode"
+          "commitMessage": "feat(editor): full Notepad++ status bar fields and INS/OVR overtype mode",
+          "status": "completed",
+          "completedRef": "854eee1"
         },
         {
           "id": "A6",
@@ -303,7 +305,9 @@
             "Extend e2e/spaces-tabs.cjs to assert the cold-profile default is tabs-4.",
             "New assertions in e2e/view-menu.cjs: toggle Document Map, open a second file, assert the minimap state carried over."
           ],
-          "commitMessage": "feat(prefs): Notepad++ default behavior profile and persistent Document Map"
+          "commitMessage": "feat(prefs): Notepad++ default behavior profile and persistent Document Map",
+          "status": "completed",
+          "completedRef": "1cb5d0c"
         }
       ]
     },
@@ -391,7 +395,9 @@
             "Rewrite e2e/search.cjs against the new dialog and add e2e/find-dialog.cjs covering: open via Ctrl+F, Count on search.txt returns the known occurrence count, Backward + Wrap around reaches the last match from the top, Replace All changes the expected number of occurrences, Mark tab marks with the selected style, Escape closes and focus returns to the editor.",
             "Add 'find-dialog' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(search): Notepad++ tabbed Find/Replace/Find in Files/Mark dialog"
+          "commitMessage": "feat(search): Notepad++ tabbed Find/Replace/Find in Files/Mark dialog",
+          "status": "completed",
+          "completedRef": "7e914e8"
         },
         {
           "id": "B3",
@@ -495,7 +501,9 @@
             "New e2e suite e2e/file-menu.cjs: rename a seeded file and assert the tab title and disk state; modify then Reload from Disk and assert the buffer reverted; Save a Copy As and assert the original tab's URI is unchanged.",
             "Add 'file-menu' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(menus): complete the Notepad++ File menu"
+          "commitMessage": "feat(menus): complete the Notepad++ File menu",
+          "status": "completed",
+          "completedRef": "f52d14c"
         },
         {
           "id": "C2",
@@ -532,7 +540,10 @@
             "New e2e suite e2e/edit-extras.cjs: insert a short date and assert the pattern in the model; set read-only and assert typing does not change the model; Multi-Select All on 'foo' in search.txt and assert the cursor count.",
             "Add 'edit-extras' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(menus): Notepad++ Edit menu extras (clipboard, insert, read-only, multi-select)"
+          "commitMessage": "feat(menus): Notepad++ Edit menu extras (clipboard, insert, read-only, multi-select)",
+          "status": "completed",
+          "completedRef": "pending",
+          "followUp": "Begin/End Select extended the selection on every caret move, but Monaco collapses a live selection to the range's start on a plain arrow key, so a single ArrowRight could move the caret several columns to the anchor. Fixed by recording the caret the extension installed so Monaco's echo of our own write is ignored, and by flagging plain navigation keys in a window capture listener so the move is re-extended from the anchor. The e2e now also disarms Begin/End Select before Multi-Select All, since the anchor is armed until the second press by design."
         },
         {
           "id": "C3",
@@ -671,7 +682,9 @@
             "e2e cannot drive the native picker; test the fallback path instead. New e2e suite e2e/local-files.cjs: use Puppeteer's page.$('input[type=file]').uploadFile() against the hidden input, assert a tab opens with the file's content and the correct title; trigger Save To This Computer and assert a download event fires (page.setDownloadBehavior / CDP Page.downloadWillBegin).",
             "Add 'local-files' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(browser): open and save files on the user's own computer"
+          "commitMessage": "feat(browser): open and save files on the user's own computer",
+          "status": "completed",
+          "completedRef": "b04b487"
         },
         {
           "id": "D2",
@@ -701,7 +714,9 @@
           "tests": [
             "Extend e2e/menus-shortcuts.cjs with the alternate bindings (Puppeteer can deliver Ctrl+Alt+N and Ctrl+F4 since the browser does not reserve them in headless mode)."
           ],
-          "commitMessage": "fix(browser): working alternates for browser-reserved shortcuts"
+          "commitMessage": "fix(browser): working alternates for browser-reserved shortcuts",
+          "status": "completed",
+          "completedRef": "bbbb569"
         },
         {
           "id": "D3",
@@ -733,7 +748,9 @@
             "New e2e suite e2e/backup.cjs: type into an untitled buffer, wait past the backup interval, reload the page, assert the buffer and its content came back dirty.",
             "Add 'backup' to SUITES in e2e/run.cjs."
           ],
-          "commitMessage": "feat(browser): periodic backup and crash recovery for unsaved buffers"
+          "commitMessage": "feat(browser): periodic backup and crash recovery for unsaved buffers",
+          "status": "completed",
+          "completedRef": "5e46c6f"
         },
         {
           "id": "D4",
@@ -845,7 +862,7 @@
           "title": "One verb, one target: 'Open' means the user's own computer everywhere",
           "priority": "P0",
           "status": "completed",
-          "completedRef": "pending (2026-09-30)",
+          "completedRef": "61b53c4 (2026-09-30)",
           "nppReference": "Notepad++ File > Open... and the toolbar's second button both read 'Open' and both open a file picker on the user's own disk; Notepad++ has no 'Open' entry that points anywhere else",
           "problem": "The word 'Open' currently means two different things in this application. File > 'Open...' and the toolbar's Open button both execute CommonCommands.OPEN (core.open), which in the browser opens a server-workspace browser. The command that actually reaches the user's disk exists from D1 and sits one row below, labeled 'Open From This Computer...'. So the most recognizable button in the window, and the File menu's second entry, lead a remote user to a directory listing of a filesystem they cannot see, while the working feature is the one nobody clicks. In Notepad++ Open always means my own disk, and that muscle memory is the single most damaging thing this application currently teaches wrong. The fix is to make every control the user reads as 'Open' execute the D1 local picker, label it 'Open from Computer', and move the server-workspace browse to a name that says which filesystem it touches.",
           "filesToEdit": [

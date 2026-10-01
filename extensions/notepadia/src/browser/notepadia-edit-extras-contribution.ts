@@ -27,6 +27,7 @@ import {
 import { pasteAndIndent, pasteAndUnindent, plainText } from '../common/paste-special';
 import { columnBlockSelections } from '../common/column-block';
 import { MULTI_SELECT_NO_TARGET_MESSAGE, multiSelectTerm } from '../common/multi-select';
+import { anchorSelection, isPlainNavigation, shouldExtend } from '../common/begin-end-select';
 
 export namespace NotepadiaEditExtrasCommands {
     export const COPY_FULL_FILE_PATH: Command = {
@@ -216,8 +217,33 @@ export class NotepadiaEditExtrasContribution implements CommandContribution, Fro
      * after startup silently ended Clipboard History capture for the session.
      */
     protected editorListeners: DisposableCollection = new DisposableCollection();
-    /** Guards the selection write triggered by our own anchor extension. */
+    /**
+     * Guards the selection write triggered by our own anchor extension, so a
+     * write cannot re-enter itself.
+     */
     protected extendingSelection = false;
+    /** The caret this extension last installed, echoed back by Monaco. */
+    protected lastExtendedCaret: monaco.Position | undefined;
+    /**
+     * Set when a plain navigation key was seen while an anchor was live, so the
+     * caret move it is about to cause is re-extended from the anchor.
+     */
+    protected pendingExtension = false;
+    /**
+     * Caret-moving keys that have to have the selection collapsed out of the
+     * way first. Kept here rather than in `src/common` so the pure module stays
+     * free of any Monaco import.
+     */
+    protected readonly NAVIGATION_KEY_CODES: ReadonlySet<number> = new Set([
+        monaco.KeyCode.LeftArrow,
+        monaco.KeyCode.RightArrow,
+        monaco.KeyCode.UpArrow,
+        monaco.KeyCode.DownArrow,
+        monaco.KeyCode.Home,
+        monaco.KeyCode.End,
+        monaco.KeyCode.PageUp,
+        monaco.KeyCode.PageDown
+    ]);
 
     constructor(
         @inject(EditorManager) protected readonly editorManager: EditorManager,
@@ -539,9 +565,13 @@ export class NotepadiaEditExtrasContribution implements CommandContribution, Fro
         if (this.anchors.has(editor.id)) {
             this.extendToCaret(editor, control);
             this.anchors.delete(editor.id);
+            this.lastExtendedCaret = undefined;
+            this.pendingExtension = false;
             return;
         }
         this.anchors.set(editor.id, position);
+        this.lastExtendedCaret = undefined;
+        this.pendingExtension = false;
         this.extendToCaret(editor, control);
     }
 
@@ -557,18 +587,62 @@ export class NotepadiaEditExtrasContribution implements CommandContribution, Fro
                 this.extendToCaret(editor, control);
             }
         }));
+        // Capture phase on the window, not `control.onKeyDown`. `onKeyDown` is
+        // raised by Monaco's keybinding service and does not fire for arrow
+        // keys, so a listener on it never saw them. A window capture listener
+        // sees the key first, before any editor handler, and is torn down with
+        // the rest of the per-editor listeners.
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (!editor || !this.anchors.has(editor.id) ||
+                !isPlainNavigation({
+                    keyCode: event.keyCode,
+                    domKeyCode: true,
+                    shiftKey: event.shiftKey,
+                    navigationKeyCodes: this.NAVIGATION_KEY_CODES
+                })) {
+                return;
+            }
+            // Let Monaco move the caret first, then re-extend from the anchor.
+            // Collapsing before the move is not enough on its own: Monaco's own
+            // handler collapses the selection to the range's start and adopts
+            // that as the caret, which is what sent the caret to the anchor
+            // instead of one column along. Handling it after the move means the
+            // caret is the position the user actually navigated to.
+            this.pendingExtension = true;
+        };
+        window.addEventListener('keydown', onKeyDown, true);
+        this.editorListeners.push(Disposable.create(() =>
+            window.removeEventListener('keydown', onKeyDown, true)));
     }
 
     protected extendToCaret(editor: EditorWidget, control: monaco.editor.IStandaloneCodeEditor): void {
         const anchor = this.anchors.get(editor.id);
         const caret = control.getPosition();
-        if (!anchor || !caret || this.extendingSelection) {
+        // `caret` is narrowed here rather than left to `shouldExtend`: that
+        // helper answers a question, it is not a type guard, so TypeScript
+        // cannot see past it.
+        if (!anchor || !caret) {
             return;
         }
+        // A pending navigation is a move the user made, so it extends even if
+        // the caret happens to match the position we last installed. The echo
+        // guard exists to swallow Monaco reporting our own write back at us;
+        // this is the opposite case and must not be swallowed.
+        if (!this.pendingExtension && !shouldExtend({
+            anchored: true,
+            extending: this.extendingSelection,
+            caret,
+            lastExtended: this.lastExtendedCaret
+        })) {
+            return;
+        }
+        this.pendingExtension = false;
         this.extendingSelection = true;
         try {
+            const [start, end] = anchorSelection(anchor, caret);
             control.setSelection(new monaco.Selection(
-                anchor.lineNumber, anchor.column, caret.lineNumber, caret.column));
+                start.lineNumber, start.column, end.lineNumber, end.column));
+            this.lastExtendedCaret = caret;
         } finally {
             this.extendingSelection = false;
         }

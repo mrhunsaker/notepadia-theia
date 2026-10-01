@@ -371,7 +371,9 @@ silently pasting nothing. `Ctrl+V` is unaffected and always works.
   press drops an anchor where the caret is, every move from then on extends the
   selection from that anchor rather than from the caret, and a second press
   leaves the selection on screen and forgets the anchor. The anchor belongs to
-  the document, so switching tabs and back keeps it.
+  the document, so switching tabs and back keeps it, and it stays armed until
+  that second press - so give it one before you go back to placing a plain
+  caret, or the next move you make will grow the selection again.
 - **Multi-Select All** puts a cursor on every occurrence of the word under the
   caret - no selection needed, which is what makes it useful. **Match case**
   only finds the same casing, and **Whole word** skips occurrences inside a

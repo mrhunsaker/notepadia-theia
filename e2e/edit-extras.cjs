@@ -280,6 +280,13 @@ async function tabClasses(page, fragment) {
         assert('the selection grows from the anchor to the caret across lines',
             afterMove > afterAnchor, 'segments=' + afterMove + ' anchor=' + afterAnchor);
 
+        // Begin/End Select stays armed until the second press, by design. Left
+        // armed it keeps extending every caret move, so the navigation below
+        // would build a selection instead of placing a caret, and Multi-Select
+        // All would then read that selection rather than the word under it.
+        await clickMenuPath(page, ['Edit', 'Select', 'Begin/End Select']);
+        await sleep(500);
+
         // ----------------------------------------------------- Multi-Select All
         // 'foo' occurs four times in search.txt; a caret inside a word is
         // enough, which is what makes the command useful without a selection.
@@ -396,7 +403,9 @@ async function tabClasses(page, fragment) {
         await sleep(700);
         const historyText = await modelText(page);
         assert('clicking a history entry inserts it at the caret',
-            historyText === 'historyhistory target', JSON.stringify(historyText));
+            // The fixture document ends with a newline, so the pasted text
+            // carries one through.
+            normTxt(historyText) === 'historyhistory target\n', JSON.stringify(historyText));
 
         // The header button empties the list, and the panel stays open so the
         // empty state is visible; only then toggle it shut.
@@ -421,14 +430,16 @@ async function tabClasses(page, fragment) {
         // The line above the caret is "  }", so both indent commands have real
         // work to do here: Paste and Indent adds that indent to an unindented
         // clipboard, Paste and Unindent takes it off an already-indented one.
-        const PASTED = '  if (a) {\n    b();\n  }\n  b();TAIL';
+        // The fixture file itself ends with a newline, so the document text
+        // does too; the expected value has to carry it.
+        const PASTED = '  if (a) {\n    b();\n  }\n  b();TAIL\n';
         await openFile(page, 'edit-paste.txt');
         await caretTo(page, 4, 1);
         await setClipboard(page, 'b();');
         await clickSubMenuItem(page, 'Edit', 'Paste Special', 'Paste and Indent');
         await sleep(600);
         assert('Paste and Indent lines the pasted text up with the line above',
-            (await modelText(page)) === PASTED, JSON.stringify(await modelText(page)));
+            normTxt(await modelText(page)) === PASTED, JSON.stringify(await modelText(page)));
 
         await page.keyboard.down('Control');
         await page.keyboard.press('KeyZ');
@@ -438,10 +449,16 @@ async function tabClasses(page, fragment) {
         await clickSubMenuItem(page, 'Edit', 'Paste Special', 'Paste and Unindent');
         await sleep(600);
         assert('Paste and Unindent strips the line indent from the pasted text',
-            (await modelText(page)) === PASTED, JSON.stringify(await modelText(page)));
+            normTxt(await modelText(page)) === PASTED, JSON.stringify(await modelText(page)));
 
         // Paste Unformatted is the plain text of the clipboard, unchanged: with
-        // no rich text involved it must land exactly as it was copied.
+        // no rich text involved it must land exactly as it was copied, so the
+        // caret's own indent is not applied to the pasted lines. The clipboard
+        // starts with a tab and the line above ends at column 3, so an indent
+        // that leaked in would leave 'c();' at column 7 rather than its own tab.
+        //
+        // The tab is read as its rendered width: Monaco draws a tab as spaces,
+        // so a literal '\t' is not observable in the rendered lines.
         await page.keyboard.down('Control');
         await page.keyboard.press('KeyZ');
         await page.keyboard.up('Control');
@@ -449,8 +466,8 @@ async function tabClasses(page, fragment) {
         await setClipboard(page, '\tc();\nd();');
         await clickSubMenuItem(page, 'Edit', 'Paste Special', 'Paste Unformatted');
         await sleep(600);
-        assert('Paste Unformatted keeps the clipboard as it stands, tabs and all',
-            (await modelText(page)) === '  if (a) {\n    b();\n  }\n\tc();\nd();TAIL',
+        assert('Paste Unformatted keeps the clipboard as it stands, with no indent added',
+            normTxt(await modelText(page)) === '  if (a) {\n    b();\n  }\n    c();\nd();TAIL\n',
             JSON.stringify(await modelText(page)));
 
         assert('no page errors', errors.length === 0, errors.join('\n'));

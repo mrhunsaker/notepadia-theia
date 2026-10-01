@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.10.03 (Begin/End Select keeps up with the arrow keys)
+
+- **Arrow keys no longer throw the caret across the selection.** With a
+  Begin/End Select anchor live, Monaco collapses a live selection to one of its
+  ends on a plain arrow press rather than extending it, so a single ArrowRight
+  could carry the caret from column 1 straight to the anchor at column 5 — and
+  the selection it had been building with it. Extending now records the caret it
+  installed so Monaco's echo of that write is not mistaken for a fresh move, and
+  a navigation key is flagged before the editor handles it so the move is
+  re-extended from the anchor instead. The result is what Notepad++ does: each
+  arrow press moves the caret one step and the selection follows.
+- **The anchor is armed until the second press, so the tests say so.** A test
+  that armed Begin/End Select and went on to use the caret was still under its
+  anchor, and the selection that followed swallowed the word Multi-Select All
+  was asked to find. The e2e now disarms it explicitly between the two.
+
 ## 2026.10.02 (`Open` means your own computer)
 
 - **`Open` now means one thing everywhere: a file picker on your own disk.**
