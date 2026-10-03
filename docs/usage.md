@@ -35,6 +35,68 @@ preference (mirrored into `editor.minimap.enabled`), so the choice:
 The "minimap hidden on a cold profile" default is part of the behavior
 profile above.
 
+## Show Symbol, folding and the split view
+
+`View ▸ Show Symbol` is where Notepad++ keeps the character markers, so all
+four that map to Monaco live there:
+
+- **Show Space and TAB** and **Show All Characters** write
+  `editor.renderWhitespace` (`all` / `none`). Show All Characters is the
+  umbrella: checking it turns on the space/tab *and* end-of-line markers, and
+  unchecking it clears both.
+- **Show End of Line** draws a `¶` after the last character of every line.
+  Monaco has no end-of-line glyph, so it is a decoration whose stylesheet
+  `::after` supplies the character.
+- **Show Indent Guide** writes `editor.guides.indentation`.
+
+These are written as editor **preferences**, not as options on the current
+widget. The product pins `editor.renderWhitespace: "none"`, and Theia re-applies
+that on every preference pass, so a `control.updateOptions()` call on one editor
+is overwritten almost immediately - which is why the markers used to light the
+check mark and draw nothing. A preference change also reaches every open editor
+at once and survives a page reload, which is what you want from a view setting.
+Monaco only draws the whitespace glyphs through its font renderer, so Show
+Symbol also pins `editor.experimentalWhitespaceRendering` to `font`; its
+default, `svg`, paints an overlay with no `.mwh` element to style.
+
+Notepad++'s **Show Wrap Symbol** is not offered, because Monaco 1.75 has no
+wrapping-indicator option to bind it to. Show All Characters is still available
+from the toolbar.
+
+### Folding
+
+`View ▸ Fold All` (`Alt+0`) collapses every fold and `View ▸ Unfold All`
+(`Alt+Shift+0`) opens them again. `View ▸ Fold Level` folds to a level:
+`Alt+1` through `Alt+7` fold, and `Alt+Shift+1` through `Alt+Shift+7` unfold
+back to it. Notepad++ lists eight levels, but Monaco registers folding actions
+only for levels 1-7, so level 8 is left off rather than bound to an action that
+does not exist.
+
+### Split view and synchronized scrolling
+
+`View ▸ Clone to Other View` shows the current file in a second pane, and
+`View ▸ Move to Other View` moves it there so it is only in the other pane.
+Notepad++'s constraint of exactly two panes is kept; closing the second pane
+returns the file to a single view. With a second pane open, `View ▸
+Synchronize Vertical Scrolling` and `View ▸ Synchronize Horizontal Scrolling`
+mirror the two positions as you scroll either one, through a re-entrancy guard
+so the pane that follows does not scroll the first one back.
+
+### Full Screen and Post-It
+
+`View ▸ Full Screen` (`F11`, or **Ctrl+Shift+F11** where the browser claims
+F11) puts the whole application in the Fullscreen API. `View ▸ Post-It`
+(`F12`) is Notepad++'s distraction-free mode: it hides the menu bar, toolbar,
+tab bar and status bar, leaving the editor alone on the page. It is a real view
+mode, not a one-off class, so it is remembered. Both restore cleanly.
+
+### Summary...
+
+`View ▸ Summary...` reports the document's characters, words, lines and
+selected characters. It uses the same counters as the status bar's
+`length : N lines : N` and `Sel` fields, so the dialog and the status bar
+cannot disagree.
+
 ## New documents
 
 `File ▸ New` (Ctrl+N, or **Ctrl+Alt+N** where the browser claims Ctrl+N) opens a
@@ -68,6 +130,13 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
 - **Search**: Find / Find Next / Find Previous / Replace / Find in Files /
   Replace in Files / Mark, plus a **Mark** submenu (Mark All, Clear All Marks,
   Select and Find Next).
+- **View**: Zoom, Tab Size, **Show Symbol** (Show Space and TAB, Show All
+  Characters, Show End of Line, Show Indent Guide), **Fold All** / **Unfold
+  All**, a **Fold Level** submenu, Document Map, Document List, **Clone to
+  Other View** / **Move to Other View**, **Synchronize Vertical Scrolling** /
+  **Synchronize Horizontal Scrolling**, **Summary...**, **Full Screen**,
+  **Post-It**, Word Wrap, Toolbar, Status Bar and a **Tab Bar** submenu (see
+  [Show Symbol, folding and the split view](#show-symbol-folding-and-the-split-view)).
 
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.
@@ -193,6 +262,12 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+Alt+D | Insert Date & Time (browser-safe short) |
 | Ctrl+Alt+Shift+D | Insert Date & Time (browser-safe long) |
 | Ctrl+Alt+R | Set/Clear Read-Only |
+| Alt+0 / Alt+Shift+0 | Fold all / unfold all |
+| Alt+1..7 / Alt+Shift+1..7 | Fold / unfold to level |
+| F11 / Ctrl+Shift+F11 | Full Screen |
+| F12 | Post-It (distraction-free) |
+| Ctrl+Alt+Shift+V | Synchronize vertical scrolling |
+| Ctrl+Alt+Shift+H | Synchronize horizontal scrolling |
 
 !!! note
     The editor is forced onto the classic textarea input path

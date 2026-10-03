@@ -486,11 +486,8 @@ export class NotepadiaMenuContribution implements MenuContribution {
             label: 'Use Tabs',
             order: 'e'
         });
-        menus.registerMenuAction([...CommonMenus.VIEW], {
-            commandId: NotepadiaCommands.TOGGLE_WHITESPACE.id,
-            label: 'Show All Characters',
-            order: 'b'
-        });
+        // "Show All Characters" moved into `View > Show Symbol` (C3), where
+        // Notepad++ keeps it; it is no longer duplicated at the top level.
         menus.registerMenuAction([...CommonMenus.VIEW], {
             commandId: NotepadiaCommands.TOGGLE_DOCUMENT_MAP.id,
             label: 'Document Map',
@@ -511,6 +508,14 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: NotepadiaShellCommands.TOGGLE_DRAW_CLOSE_BUTTON.id,
             label: 'Draw Close Button',
             order: 'a'
+        });
+        // C3 added Multi-line; Vertical and Lock still have no Theia backing
+        // (the tab bar's orientation is a layout decision, and there is no
+        // lock state to hang a preference on) so they stay off the menu.
+        menus.registerMenuAction(viewTabBar, {
+            commandId: NotepadiaShellCommands.TOGGLE_TAB_BAR_MULTI_LINE.id,
+            label: 'Multi-line',
+            order: 'b'
         });
 
         // Settings

@@ -9,6 +9,12 @@ import { NotepadiaOvertypeCommands } from './notepadia-overtype-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
 import { NotepadiaLocalFileCommands } from './notepadia-local-files-contribution';
 import { NotepadiaEditExtrasCommands } from './notepadia-edit-extras-contribution';
+import {
+    NotepadiaViewCommands,
+    foldLevelCommandId,
+    MAX_MONACO_FOLD_LEVEL
+} from './notepadia-view-contribution';
+import { NotepadiaSyncScrollCommands } from './notepadia-sync-scroll';
 
 @injectable()
 export class NotepadiaKeybindingContribution implements KeybindingContribution {
@@ -210,6 +216,76 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
         keybindings.registerKeybinding({
             command: NotepadiaEditExtrasCommands.SET_READ_ONLY.id,
             keybinding: 'ctrlcmd+alt+r',
+            when: 'editorTextFocus'
+        });
+
+        // C3 - Notepad++'s folding chords. Alt+0 folds everything, Alt+Shift+0
+        // unfolds it, and Alt+1..7 fold to a given level.
+        //
+        // Notepad++ goes to level 8; Monaco only has folding actions for 1-7,
+        // so 1-7 is what is bound and level 8 has no key (see
+        // MAX_MONACO_FOLD_LEVEL).
+        //
+        // These are Monaco's own editor shortcuts (Ctrl+K Ctrl+0..7), so each
+        // binding is scoped with `editorTextFocus` and registered here to win
+        // inside the editor while leaving the chords free elsewhere - the same
+        // arrangement the D2 rows above already use for Ctrl+D and Ctrl+L.
+        keybindings.registerKeybinding({
+            command: NotepadiaViewCommands.FOLD_ALL.id,
+            keybinding: 'alt+0',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaViewCommands.UNFOLD_ALL.id,
+            keybinding: 'alt+shift+0',
+            when: 'editorTextFocus'
+        });
+        for (let level = 1; level <= MAX_MONACO_FOLD_LEVEL; level++) {
+            keybindings.registerKeybinding({
+                command: foldLevelCommandId(level),
+                keybinding: `alt+${level}`,
+                when: 'editorTextFocus'
+            });
+            keybindings.registerKeybinding({
+                command: foldLevelCommandId(level),
+                keybinding: `alt+shift+${level}`,
+                when: 'editorTextFocus'
+            });
+        }
+
+        // C3 - Full Screen and Post-It.
+        //
+        // F11 is a browser accelerator: the browser process enters its own full
+        // screen before the page sees the key, so binding it changes nothing in
+        // the browser target. The Notepad++-native binding is kept anyway
+        // (the packaged Electron app and an installed PWA do receive it) and
+        // Ctrl+Shift+F11 is added as the chord the browser does not reserve, so
+        // the menu entry is never a shortcut that silently does nothing.
+        //
+        // F12 is *not* reserved in Chrome, Firefox or Edge, so it works as-is.
+        keybindings.registerKeybinding({
+            command: NotepadiaViewCommands.FULL_SCREEN.id,
+            keybinding: 'f11'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaViewCommands.FULL_SCREEN.id,
+            keybinding: 'ctrlcmd+shift+f11'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaViewCommands.POST_IT.id,
+            keybinding: 'f12'
+        });
+
+        // The synchronize-scrolling toggles have no Notepad++ chord of their
+        // own, so none is invented here.
+        keybindings.registerKeybinding({
+            command: NotepadiaSyncScrollCommands.SYNC_VERTICAL.id,
+            keybinding: 'ctrlcmd+alt+shift+v',
+            when: 'editorTextFocus'
+        });
+        keybindings.registerKeybinding({
+            command: NotepadiaSyncScrollCommands.SYNC_HORIZONTAL.id,
+            keybinding: 'ctrlcmd+alt+shift+h',
             when: 'editorTextFocus'
         });
     }

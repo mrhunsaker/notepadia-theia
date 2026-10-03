@@ -1,5 +1,6 @@
 const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
-    currentLine, openMenuBar, hoverByLabel, clickByLabel, subLabels, closeMenus } = require('./lib.js');
+    currentLine, openMenuBar, hoverByLabel, clickByLabel,
+    subLabels, closeMenus } = require('./lib.js');
 
 const URL = process.env.E2E_URL || 'http://127.0.0.1:3000/';
 
@@ -36,8 +37,46 @@ async function pageReload(page) {
     const viewTop = await findSubmenuItems(page);
     assert('View menu has Zoom submenu', viewTop.includes('Zoom'), JSON.stringify(viewTop.filter(t => t && t !== 'View')));
     assert('View menu has Tab Size submenu', viewTop.includes('Tab Size'), JSON.stringify(viewTop));
-    assert('View menu has Show All Characters', viewTop.includes('Show All Characters'), JSON.stringify(viewTop));
     assert('View menu has Document Map', viewTop.includes('Document Map'), JSON.stringify(viewTop));
+
+    // C3 - the entries the View menu gained. "Show All Characters" is no longer
+    // a top-level row: Notepad++ keeps it inside Show Symbol, and so does this.
+    assert('View menu has Show Symbol submenu', viewTop.includes('Show Symbol'), JSON.stringify(viewTop));
+    assert('View menu has Fold Level submenu', viewTop.includes('Fold Level'), JSON.stringify(viewTop));
+    assert('View menu has Fold All', viewTop.includes('Fold All'), JSON.stringify(viewTop));
+    assert('View menu has Unfold All', viewTop.includes('Unfold All'), JSON.stringify(viewTop));
+    assert('View menu has Clone to Other View', viewTop.includes('Clone to Other View'), JSON.stringify(viewTop));
+    assert('View menu has Summary...', viewTop.includes('Summary...'), JSON.stringify(viewTop));
+    assert('View menu has Full Screen', viewTop.includes('Full Screen'), JSON.stringify(viewTop));
+    assert('View menu has Post-It', viewTop.includes('Post-It'), JSON.stringify(viewTop));
+    assert('Show All Characters moved into Show Symbol',
+        !viewTop.includes('Show All Characters'), JSON.stringify(viewTop));
+
+    await hoverByLabel(page, 'Show Symbol');
+    await sleep(700);
+    const symbolItems = await findSubmenuItems(page);
+    assert('Show Symbol submenu has Space/TAB, All Characters, End of Line, Indent Guide',
+        symbolItems.includes('Show Space and TAB')
+        && symbolItems.includes('Show All Characters')
+        && symbolItems.includes('Show End of Line')
+        && symbolItems.includes('Show Indent Guide'),
+        JSON.stringify(symbolItems));
+    await closeMenus(page);
+
+    await openMenuBar(page, 'View');
+    await hoverByLabel(page, 'Fold Level');
+    await sleep(700);
+    const foldItems = await findSubmenuItems(page);
+    // Monaco registers folding actions for levels 1-7 only, so 8 is absent by
+    // design rather than bound to something that would not fold level 8.
+    for (let level = 1; level <= 7; level++) {
+        assert(`Fold Level submenu has level ${level}`, foldItems.includes(`Fold Level ${level}`),
+            JSON.stringify(foldItems));
+    }
+    assert('Fold Level submenu stops at 7 (Monaco has no level-8 action)',
+        !foldItems.includes('Fold Level 8'), JSON.stringify(foldItems));
+    await closeMenus(page);
+    await openMenuBar(page, 'View');
     await hoverByLabel(page, 'Zoom');
     await sleep(600);
     const zoomItems = await findSubmenuItems(page);
@@ -133,6 +172,7 @@ async function pageReload(page) {
     assert('Document Map can be toggled off', docMapOff !== null && docMapOff === 0,
         'minimap width=' + docMapOff);
     await closeMenus(page);
+
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

@@ -213,6 +213,29 @@ The Notepad++-style feature layer is implemented as the shared
   syntax colors, line numbers and header/footer variables
 - View > Document Map toggles the minimap, applied to every open editor via
   the `editor.minimap.enabled` preference and persisted across tabs and reloads
+- the complete Notepad++ View menu: a **Show Symbol** submenu (Show Space and
+  TAB, Show All Characters, Show End of Line, Show Indent Guide) driving
+  Monaco's `editor.renderWhitespace`, `editor.guides.indentation` and
+  `editor.experimentalWhitespaceRendering` preferences (so every open editor
+  follows and the choice persists), with the End of Line `¶` drawn as a
+  stylesheet decoration because Monaco has no EOL glyph
+- Fold All (`Alt+0`), Unfold All (`Alt+Shift+0`) and Fold Level 1-7
+  (`Alt+1`-`Alt+7`); Notepad++ lists eight levels but Monaco registers folding
+  actions only for 1-7, so level 8 is left off rather than bound to nothing
+- a two-pane split view, Notepad++'s Clone to Other View and Move to Other
+  View, plus Synchronize Vertical / Horizontal Scrolling, which mirrors the two
+  panes through a re-entrancy guard
+- Full Screen (`F11`, plus **Ctrl+Shift+F11** where the browser claims F11)
+  through the Fullscreen API, and Post-It / distraction-free (`F12`), a real
+  view mode that hides the menu bar, toolbar, tab bar and status bar and
+  restores cleanly
+- View > Summary..., Notepad++'s document statistics (characters, words,
+  lines and selected characters) computed from the same pure counters as the
+  status bar
+- Notepad++'s Show Wrap Symbol, Function List and Project Panels are
+  deliberately absent: Monaco 1.75 has no wrapping-indicator option, Project
+  Panels is already `Open Folder as Workspace...`, and Function List ships
+  with the function-list work it depends on
 - a Notepad++ default behavior profile as the cold-start baseline: word wrap
   off, 4-wide real tabs (`editor.insertSpaces: false`), no auto-closing
   brackets/surround, no suggestions on type, formatting-off by default, and

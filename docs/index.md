@@ -47,6 +47,12 @@ The product is organized as a monorepo:
   documents.
 - Bookmarks with gutter glyphs and next/previous navigation, plus a Document
   Map (persistent, preference-backed minimap) for the editor.
+- The complete Notepad++ View menu: a **Show Symbol** submenu (space/tab,
+  end-of-line `¶`, indent guides) driven by Monaco preferences, **Fold All** /
+  **Unfold All** / **Fold Level 1-7** (`Alt+0` / `Alt+Shift+0` / `Alt+1`-`Alt+7`),
+  a two-pane **Clone** / **Move to Other View** split with **Synchronize
+  Vertical / Horizontal Scrolling**, **Full Screen** (`F11`) and **Post-It**
+  (`F12`) distraction-free mode, and **Summary...** document statistics.
 - A full Notepad++ status bar — length/lines, `Ln / Col / Pos`, selection,
   encoding, EOL, indent mode and an `INS`/`OVR` indicator — with a real
   overtype mode toggled by the `Insert` key.

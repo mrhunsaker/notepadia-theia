@@ -153,3 +153,87 @@ body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closabl
 body.notepadia-chrome.notepadia-tabclose-all .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable > .lm-TabBar-tabCloseIcon {
   display: inline-block;
 }
+/*
+ * C3 - View > Show Symbol > Show End of Line.
+ *
+ * Monaco has no built-in end-of-line glyph, so the marker is drawn as a
+ * decoration on the last column of every line. The class is set by
+ * notepadia-view-contribution.ts from `notepadia.view.showEndOfLine`.
+ */
+/*
+ * Styling for the end-of-line glyph only.
+ *
+ * The glyph is the `content` below. It cannot be the decoration's
+ * `after.content`, because a plain `deltaDecorations` entry with `after` sets
+ * `options.after` but not the `afterContentClassName` that
+ * viewModelDecorations.js actually turns into an inline decoration - so an
+ * `after`-only marker is never drawn. The class is therefore supplied directly
+ * as `afterContentClassName`, and the character lives here, in one place.
+ *
+ * The colour reuses the line-number token because that is exactly what
+ * Notepad++ dims an end-of-line marker to.
+ */
+body.notepadia-chrome .notepadia-eol-glyph::after {
+  content: "\00b6";
+  color: var(--theia-editorLineNumber-foreground, #808080);
+  margin-left: 3px;
+}
+
+/*
+ * C3 - View > Tab Bar > Multi-line.
+ *
+ * Without the class the tab bar is a single scrolling row (Notepad++ with one
+ * tab row); with it, tabs are allowed to wrap onto as many lines as they need,
+ * which is theia's default behaviour.
+ */
+body.notepadia-chrome.notepadia-tabbar-multiline #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-content {
+  flex-wrap: wrap;
+  overflow-y: auto;
+}
+
+body.notepadia-chrome:not(.notepadia-tabbar-multiline) #theia-main-content-panel .lm-TabBar[data-orientation="horizontal"] .lm-TabBar-content {
+  flex-wrap: nowrap;
+  overflow-y: hidden;
+}
+
+/*
+ * C3 - View > Post-It (F12), Notepad++'s distraction-free mode: everything but
+ * the editor is hidden, and the editor is re-centred with a readable measure so
+ * the text is not stretched the full width of a wide window.
+ */
+body.notepadia-chrome.notepadia-postit #theia-menu,
+body.notepadia-chrome.notepadia-postit #theia-menu-bar,
+body.notepadia-chrome.notepadia-postit #theia-toolbar,
+body.notepadia-chrome.notepadia-postit .notepadia-toolbar,
+body.notepadia-chrome.notepadia-postit #theia-statusBar,
+body.notepadia-chrome.notepadia-postit #theia-main-content-panel > .lm-TabBar,
+body.notepadia-chrome.notepadia-postit .lm-Widget.lm-DockPanel-tabBar,
+body.notepadia-chrome.notepadia-postit .theia-app-left,
+body.notepadia-chrome.notepadia-postit .theia-app-right {
+  display: none !important;
+}
+
+/* Post-It leaves nothing above the editor, so the main panel takes the window. */
+body.notepadia-chrome.notepadia-postit .lm-DockPanel.lm-main,
+body.notepadia-chrome.notepadia-postit #theia-main-content-panel {
+  top: 0 !important;
+}
+
+/* A soft page behind the text, so the editor no longer reads as a tool. */
+body.notepadia-chrome.notepadia-postit #theia-main-content-panel {
+  background: #fbf7e8;
+}
+
+body.notepadia-chrome.notepadia-postit .monaco-editor,
+body.notepadia-chrome.notepadia-postit .monaco-editor-background,
+body.notepadia-chrome.notepadia-postit .monaco-editor .margin {
+  background: transparent;
+}
+
+/*
+ * C3 - the split created by Clone to Other View. A hairline between the two
+ * panes, which is how Notepad++ separates its two views.
+ */
+body.notepadia-chrome .lm-DockPanel.lm-main .lm-DockPanel-separator {
+  background: #c8c8c8;
+}

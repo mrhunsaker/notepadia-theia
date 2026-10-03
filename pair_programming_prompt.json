@@ -579,7 +579,10 @@
             "Extend e2e/view-menu.cjs: fold all then unfold all and assert the visible line count changes and returns; clone to other view and assert two editors exist; enable vertical sync, scroll one, assert the other followed.",
             "New assertions for Show Symbol submenu entries changing editor options."
           ],
-          "commitMessage": "feat(menus): Notepad++ View menu - symbols, folding, split view, sync scrolling"
+          "commitMessage": "feat(menus): Notepad++ View menu - symbols, folding, split view, sync scrolling",
+          "status": "completed",
+          "completedRef": "pending",
+          "followUp": "Show Symbol drives Monaco editor preferences (editor.renderWhitespace, editor.guides.indentation, editor.experimentalWhitespaceRendering='font') rather than control.updateOptions(), because the product pins editor.renderWhitespace:'none' and Theia re-applies it, so per-widget options were silently overwritten - the toggles lit without drawing. Show End of Line is a decoration with afterContentClassName and a stylesheet ::after '\\00b6', since Monaco has no built-in EOL glyph and an inline 'after' is dropped unless it comes from a registered decoration class. Folding is limited to levels 1-7 (MAX_MONACO_FOLD_LEVEL) because Monaco registers editor.foldLevel1..7 and no level 8, so Notepad++'s eighth level is documented as inapplicable rather than faked. Show Wrap Symbol is not offered (Monaco 1.75 exposes no wrapping-indicator option). Function List and Project Panels are not registered: Project Panels is already Open Folder as Workspace..., and Function List ships with E1. Split view enforces exactly two panes via Widget.isVisible, and Synchronize Vertical/Horizontal Scrolling mirror positions through a re-entrancy guard. The Summary dialog appended its Close button in onAfterAttach after super.onAfterAttach, which is where AbstractDialog binds this.closeButton, leaving a dead button; it is now appended in the constructor. Suites: show-symbol (17), folding (10), split-sync (11), postit-fullscreen (10), summary (10) added to e2e/run.cjs."
         },
         {
           "id": "C4",

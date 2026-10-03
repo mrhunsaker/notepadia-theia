@@ -9,7 +9,12 @@ import { PreferenceService } from '@theia/core/lib/common/preferences';
 import { NOTEPADIA_TAB_ID_PREFIX } from './notepadia-tab-decorator';
 import { editorZoomAction } from '../common/zoom-chords';
 
+/** Whether the toolbar with New/Open/Save is visible (A3). */
 export const NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE = 'notepadia.toolbar.visible';
+/** Whether the status bar at the bottom of the window is visible (A5). */
+export const NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE = 'notepadia.statusBar.visible';
+/** Whether the tab bar shows one line or multiple lines (A4). */
+export const NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE = 'notepadia.tabBar.multiLine';
 /** Draw a close button on every tab (A4); when disabled it only shows on the active tab. */
 export const NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE = 'notepadia.tabBar.drawCloseButton';
 
@@ -38,6 +43,10 @@ export namespace NotepadiaShellCommands {
     export const TOGGLE_DRAW_CLOSE_BUTTON: Command = {
         id: 'notepadia.view.toggleDrawCloseButton',
         label: 'Draw Close Button'
+    };
+    export const TOGGLE_TAB_BAR_MULTI_LINE: Command = {
+        id: 'notepadia.view.toggleTabBarMultiLine',
+        label: 'Multi-line'
     };
 }
 
@@ -88,7 +97,15 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
             if (event.preferenceName === NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE) {
                 this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
             }
+            if (event.preferenceName === NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE) {
+                this.applyTabBarMultiLine(this.preferenceService.get<boolean>(NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE, false));
+            }
+            if (event.preferenceName === NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE) {
+                this.applyStatusBarVisibility();
+            }
         });
+        this.applyStatusBarVisibility();
+        this.applyTabBarMultiLine(this.preferenceService.get<boolean>(NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE, false));
     }
 
     /**
@@ -157,6 +174,15 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
         document.body.classList.toggle(NOTEPADIA_TAB_CLOSE_ALL_CLASS, drawOnEveryTab);
     }
 
+    protected applyTabBarMultiLine(multiLine: boolean): void {
+        document.body.classList.toggle('notepadia-tabbar-multiline', multiLine);
+    }
+
+    protected applyStatusBarVisibility(): void {
+        const visible = this.preferenceService.get<boolean>(NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE, true);
+        document.body.classList.toggle(NOTEPADIA_STATUS_BAR_HIDDEN_CLASS, !visible);
+    }
+
     async onDidInitializeLayout(): Promise<void> {
         // Notepad++ opens with only the menubar, tab bar, editor and status
         // bar. The right-hand panel is gone entirely; the left (Folder as
@@ -184,14 +210,27 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
             }
         });
         commands.registerCommand(NotepadiaShellCommands.TOGGLE_STATUS_BAR, {
-            isToggled: () => !document.body.classList.contains(NOTEPADIA_STATUS_BAR_HIDDEN_CLASS),
-            execute: () => document.body.classList.toggle(NOTEPADIA_STATUS_BAR_HIDDEN_CLASS)
+            isToggled: () => this.preferenceService.get<boolean>(NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE, true),
+            execute: () => {
+                const visible = this.preferenceService.get<boolean>(NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE, true);
+                this.preferenceService.set(NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE, !visible).catch(() => { });
+                this.applyStatusBarVisibility();
+            }
         });
         commands.registerCommand(NotepadiaShellCommands.TOGGLE_DRAW_CLOSE_BUTTON, {
             isToggled: () => this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true),
             execute: () => {
                 const drawOnEveryTab = this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true);
                 this.preferenceService.set(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, !drawOnEveryTab).catch(() => { });
+                this.applyDrawCloseButton(!drawOnEveryTab);
+            }
+        });
+        commands.registerCommand(NotepadiaShellCommands.TOGGLE_TAB_BAR_MULTI_LINE, {
+            isToggled: () => this.preferenceService.get<boolean>(NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE, false),
+            execute: () => {
+                const multiLine = this.preferenceService.get<boolean>(NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE, false);
+                this.preferenceService.set(NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE, !multiLine).catch(() => { });
+                this.applyTabBarMultiLine(!multiLine);
             }
         });
     }
@@ -201,5 +240,13 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
         menus.registerMenuAction(view, { commandId: NotepadiaShellCommands.TOGGLE_FOLDER_WORKSPACE.id, order: 'a' });
         menus.registerMenuAction(view, { commandId: NotepadiaShellCommands.TOGGLE_TOOLBAR.id, order: 'b' });
         menus.registerMenuAction(view, { commandId: NotepadiaShellCommands.TOGGLE_STATUS_BAR.id, order: 'c' });
+        // Notepad++'s View > Tab Bar > Multi-line. Theia always allows a tab bar
+        // to wrap onto several lines already, so this is off by default and the
+        // menu item forces the single-line, scrolling behaviour instead - the
+        // switch that makes the difference for a user who wants the tabs to
+        // stay in one row.
+        // `View > Tab Bar > Multi-line` is registered by
+        // notepadia-menu-contribution.ts, next to Draw Close Button, so the whole
+        // submenu is built in one place.
     }
 }

@@ -22,6 +22,8 @@ import { NotepadiaKeybindingContribution } from './notepadia-keybinding-contribu
 import { NotepadiaLanguageContribution } from './notepadia-language-contribution';
 import { NotepadiaRecentFilesContribution } from './notepadia-recent-files-contribution';
 import { NotepadiaMenuContribution } from './notepadia-menu-contribution';
+import { NotepadiaViewContribution } from './notepadia-view-contribution';
+import { NotepadiaSyncScrollContribution } from './notepadia-sync-scroll';
 import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribution';
 import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
 import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
@@ -105,6 +107,19 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(NotepadiaDropContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaDropContribution);
+
+    // C3 - the View menu's Show Symbol, folding, split, Full Screen, Post-It
+    // and Summary entries. Sync scrolling is a separate contribution because it
+    // owns its own scroll listeners.
+    bind(NotepadiaViewContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaViewContribution);
+    bind(MenuContribution).toService(NotepadiaViewContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaViewContribution);
+
+    bind(NotepadiaSyncScrollContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaSyncScrollContribution);
+    bind(MenuContribution).toService(NotepadiaSyncScrollContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaSyncScrollContribution);
 
     bind(NotepadiaMenuContribution).toSelf().inSingletonScope();
     bind(MenuContribution).toService(NotepadiaMenuContribution);

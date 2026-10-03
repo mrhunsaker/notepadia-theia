@@ -4,11 +4,23 @@ import {
 } from '@theia/core/lib/common/preferences';
 import {
     NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE,
-    NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE
+    NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE,
+    NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE,
+    NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE
 } from './notepadia-shell-contribution';
 
-export const NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE = 'notepadia.statusBar.visible';
-export const NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE = 'notepadia.tabBar.multiLine';
+import {
+    NOTEPADIA_SHOW_SPACE_AND_TAB_PREFERENCE,
+    NOTEPADIA_SHOW_END_OF_LINE_PREFERENCE,
+    NOTEPADIA_SHOW_INDENT_GUIDE_PREFERENCE,
+    NOTEPADIA_POSTIT_PREFERENCE
+} from './notepadia-view-contribution';
+
+import {
+    NOTEPADIA_SYNC_VERTICAL_PREFERENCE,
+    NOTEPADIA_SYNC_HORIZONTAL_PREFERENCE
+} from './notepadia-sync-scroll';
+
 export const NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE = 'notepadia.documentMap.visible';
 export const NOTEPADIA_SESSION_RESTORE_PREFERENCE = 'notepadia.session.restore';
 export const NOTEPADIA_SEARCH_EXTENDED_MODE_PREFERENCE = 'notepadia.search.extendedMode';
@@ -49,6 +61,36 @@ const schema: PreferenceSchema = {
             type: 'boolean',
             description: 'Whether every tab shows a close button, instead of only the active tab.',
             default: true
+        },
+        [NOTEPADIA_SHOW_SPACE_AND_TAB_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether spaces and tabs are drawn as dots and arrows, as Notepad++\'s View > Show Symbol > Show Space and TAB does. Off by default, which is the Notepad++ default set on editor.renderWhitespace.',
+            default: false
+        },
+        [NOTEPADIA_SHOW_END_OF_LINE_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether the end-of-line marker is drawn at the end of each line, as Notepad++\'s View > Show Symbol > Show End of Line does.',
+            default: false
+        },
+        [NOTEPADIA_SHOW_INDENT_GUIDE_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether the vertical indent guide is drawn down each indentation level, as Notepad++\'s View > Show Symbol > Show Indent Guide does.',
+            default: true
+        },
+        [NOTEPADIA_POSTIT_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether Post-It mode hides everything but the editor, the same as Notepad++\'s View > Post-It (F12).',
+            default: false
+        },
+        [NOTEPADIA_SYNC_VERTICAL_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether the two split views keep the same vertical scroll position.',
+            default: false
+        },
+        [NOTEPADIA_SYNC_HORIZONTAL_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether the two split views keep the same horizontal scroll position.',
+            default: false
         }
     }
 };

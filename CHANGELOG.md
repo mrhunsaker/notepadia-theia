@@ -1,5 +1,56 @@
 # Changelog
 
+## 2026.10.03 (The View menu is complete)
+
+- **The View menu now has the entries Notepad++ keeps there.** A **Show Symbol**
+  submenu (Show Space and TAB, Show All Characters, Show End of Line, Show
+  Indent Guide), **Fold All** (`Alt+0`) and **Unfold All** (`Alt+Shift+0`), a
+  **Fold Level** submenu (`Alt+1`-`Alt+7`, `Alt+Shift+1`-`Alt+Shift+7`),
+  **Clone to Other View** and **Move to Other View**, **Synchronize Vertical
+  Scrolling** and **Synchronize Horizontal Scrolling**, **Summary...**, **Full
+  Screen** (`F11`) and **Post-It** (`F12`). The old single "Show All
+  Characters" row is now inside Show Symbol, where Notepad++ has it, and is no
+  longer duplicated at the top level.
+- **Show Symbol writes Monaco preferences, not just today's widget.** The
+  toggles used to call `control.updateOptions()` on the current editor, which
+  Theia overwrote on its next preference pass because the product pins
+  `editor.renderWhitespace: "none"` - so checking Show Space and TAB lit the
+  check mark and drew nothing. The commands now write `editor.renderWhitespace`,
+  `editor.guides.indentation`, and `editor.experimentalWhitespaceRendering`
+  (whitespace glyphs are only drawn as `.mwh` in Monaco's `font` renderer, not
+  in its default `svg` overlay). A preference change reaches every open editor
+  and survives a reload.
+- **Show End of Line is a decoration, because Monaco has no end-of-line glyph.**
+  Monaco exposes no option that draws a `¶`, so each line gets a decoration
+  whose `afterContentClassName` is turned into a `::after` box by the
+  extension's stylesheet. An inline `after` cannot be passed straight through
+  `deltaDecorations`; only a registered class survives the view-model's
+  decoration pipeline.
+- **Folding stops at level 7 because Monaco does.** Notepad++ offers eight
+  levels; Monaco registers `editor.foldLevel1` through `editor.foldLevel7` and
+  nothing for eight, so the eighth row is left off rather than bound to an
+  action that does not exist.
+- **Split view is exactly two panes, and it scrolls in sync.** Clone puts the
+  current file in a second pane, Move leaves it only in the other pane, and
+  closing the pane returns the file. With both open, Synchronize Vertical /
+  Horizontal Scrolling mirrors the two positions through a re-entrancy guard, so
+  one pane following the other does not bounce back.
+- **Full Screen and Post-It are the browser's to build, and they are.** Full
+  Screen drives the Fullscreen API on the document; Post-It hides the menu bar,
+  toolbar, tab bar and status bar and leaves the editor, and is a real view mode
+  rather than a one-off class. `F11` is claimed by the browser before the page
+  sees it, so `Ctrl+Shift+F11` ships alongside it, the way the other
+  browser-reserved chords already do.
+- **Summary... counts with the status bar's own arithmetic.** Characters,
+  words, document lines and selected characters come from the same pure
+  functions that feed `length : N lines : N` and `Sel`, so the dialog and the
+  status bar cannot disagree.
+- **Show Wrap Symbol, Function List and Project Panels are not offered.**
+  Monaco 1.75 has no wrapping-indicator option to bind Show Wrap Symbol to;
+  Project Panels is already `Open Folder as Workspace...`; and Function List
+  arrives with the function-list work it depends on, rather than as a row with
+  no panel behind it.
+
 ## 2026.10.03 (Begin/End Select keeps up with the arrow keys)
 
 - **Arrow keys no longer throw the caret across the selection.** With a

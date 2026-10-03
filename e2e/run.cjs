@@ -20,6 +20,11 @@ const SUITES = [
     'bookmarks',
     'language',
     'view-menu',
+    'show-symbol',
+    'folding',
+    'split-sync',
+    'postit-fullscreen',
+    'summary',
     'theme',
     'toolbar',
     'search',
@@ -83,6 +88,23 @@ function seedWorkspace() {
     write('blank-unnecessary.txt', Buffer.from('a  \n\n\n\nb\t\n', 'utf8'));
     write('dup.txt', Buffer.from('x\na\na\na\nb\nb\nc\n', 'utf8'));
     write('split.txt', Buffer.from('the quick brown fox jumps over the lazy dog while the sun sets above the river and the stars begin to appear in the dark sky\n', 'utf8'));
+    // C3 fixtures. foldable.txt has three nested levels so Fold Level 1..3 and
+    // Fold/Unfold All all have something to act on; long.txt is tall enough that
+    // a pane can actually scroll it, which synchronised scrolling needs.
+    write('foldable.txt', Buffer.from([
+        'function outer() {',
+        '    function middle() {',
+        '        function inner() {',
+        '            return 1;',
+        '        }',
+        '        return inner();',
+        '    }',
+        '    return middle();',
+        '}',
+        ''
+    ].join('\n'), 'utf8'));
+    write('long.txt', Buffer.from(
+        Array.from({ length: 400 }, (_, i) => `line ${i + 1} of the long fixture`).join('\n') + '\n', 'utf8'));
 
     for (const f of ['col-text.txt', 'col-number.txt', 'col-zeros.txt', 'col-repeated.txt']) {
         write(f, alpha);
