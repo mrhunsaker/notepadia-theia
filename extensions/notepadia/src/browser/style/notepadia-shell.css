@@ -237,3 +237,72 @@ body.notepadia-chrome.notepadia-postit .monaco-editor .margin {
 body.notepadia-chrome .lm-DockPanel.lm-main .lm-DockPanel-separator {
   background: #c8c8c8;
 }
+
+/*
+ * C4 - Window > Windows..., Notepad++'s document switcher. Name / Path / Type
+ * in a listbox; the shared grid keeps the header and every row aligned.
+ */
+.notepadia-windows {
+  display: flex;
+  flex-direction: column;
+  min-width: 520px;
+}
+
+.notepadia-windows-header,
+.notepadia-windows-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(160px, 2fr) 72px;
+  gap: 8px;
+  align-items: center;
+}
+
+.notepadia-windows-header {
+  padding: 4px 8px;
+  font-weight: 600;
+  border-bottom: var(--theia-panel-border-width, 1px) solid var(--theia-input-border, transparent);
+}
+
+.notepadia-windows-list {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--theia-input-border, transparent);
+  margin-top: 4px;
+}
+
+.notepadia-windows-row {
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.notepadia-windows-row:hover {
+  background: var(--theia-list-hoverBackground);
+}
+
+.notepadia-windows-row[aria-selected="true"] {
+  background: var(--theia-list-activeSelectionBackground);
+  color: var(--theia-list-activeSelectionForeground);
+}
+
+.notepadia-windows-row:focus,
+.notepadia-windows-list:focus {
+  outline: 1px solid var(--theia-focusBorder, #007acc);
+  outline-offset: -1px;
+}
+
+.notepadia-windows-name,
+.notepadia-windows-path,
+.notepadia-windows-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notepadia-windows-path {
+  opacity: 0.8;
+}
+
+.notepadia-windows-empty {
+  padding: 8px;
+  opacity: 0.7;
+}

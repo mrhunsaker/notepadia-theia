@@ -232,6 +232,11 @@ The Notepad++-style feature layer is implemented as the shared
 - View > Summary..., Notepad++'s document statistics (characters, words,
   lines and selected characters) computed from the same pure counters as the
   status bar
+- a Window menu in Notepad++'s position (between Macros and Settings): the first
+  ten open documents numbered from one and renumbered as tabs open and close,
+  plus **Windows...**, a `Name`/`Path`/`Type` list with multi-select and
+  Activate / Save / Close / Sort; the menu and the Document List read the same
+  shared model
 - Notepad++'s Show Wrap Symbol, Function List and Project Panels are
   deliberately absent: Monaco 1.75 has no wrapping-indicator option, Project
   Panels is already `Open Folder as Workspace...`, and Function List ships

@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026.10.03 (The Window menu)
+
+- **Notepad++'s Window menu is here.** A new top-level `Window` submenu sits
+  where Notepad++ has it, between `Macros` and `Settings`. It lists the first
+  ten open documents numbered from one; clicking an entry activates that tab,
+  and the list is renumbered as tabs open and close.
+- **`Windows...` opens Notepad++'s document switcher.** The dialog lists every
+  open document with `Name`, `Path` and `Type` columns and offers `Activate`,
+  `Save`, `Close` and `Sort`. Rows are multi-selectable (Ctrl/Shift click, or
+  Space with the keyboard), so several documents can be saved or closed at once;
+  `Sort` cycles Name, Path and Type and reverses on wrap.
+- **The Window menu and the Document List now share one model.** A new
+  `NotepadiaOpenDocuments` service lists the main-area editors in tab order and
+  exposes "the set changed" and "the active document changed" as separate
+  events, so both surfaces cannot disagree about what is open.
+- **The menu rebuild no longer tears itself down.** Opening a top-level menu
+  moves focus, and the first cut rebuilt the Window list on every active
+  change - which cleared and refilled the menu bar while the menu was opening,
+  leaving every menu showing nothing. The menu now listens only for documents
+  being added or removed and rebuilds on the next tick, so it never touches the
+  bar from inside the shell's widget event.
+
 ## 2026.10.03 (The View menu is complete)
 
 - **The View menu now has the entries Notepad++ keeps there.** A **Show Symbol**

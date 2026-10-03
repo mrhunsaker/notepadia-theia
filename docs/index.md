@@ -53,6 +53,9 @@ The product is organized as a monorepo:
   a two-pane **Clone** / **Move to Other View** split with **Synchronize
   Vertical / Horizontal Scrolling**, **Full Screen** (`F11`) and **Post-It**
   (`F12`) distraction-free mode, and **Summary...** document statistics.
+- Notepad++'s **Window** menu: the first ten open documents numbered from one
+  and renumbered as tabs change, and **Windows...**, a multi-select
+  `Name`/`Path`/`Type` list with Activate / Save / Close / Sort.
 - A full Notepad++ status bar — length/lines, `Ln / Col / Pos`, selection,
   encoding, EOL, indent mode and an `INS`/`OVR` indicator — with a real
   overtype mode toggled by the `Insert` key.

@@ -27,6 +27,8 @@ import { NotepadiaSyncScrollContribution } from './notepadia-sync-scroll';
 import { NotepadiaStatusBarContribution } from './notepadia-status-bar-contribution';
 import { NotepadiaDocumentListWidget } from './notepadia-document-list-widget';
 import { NotepadiaDocumentListContribution } from './notepadia-document-list-contribution';
+import { NotepadiaOpenDocuments } from './notepadia-open-documents';
+import { NotepadiaWindowMenuContribution } from './notepadia-window-menu-contribution';
 import { NotepadiaFaviconContribution } from './notepadia-favicon-contribution';
 import { NotepadiaUpdaterContribution } from './notepadia-updater-contribution';
 import { NotepadiaColumnEditorContribution } from './notepadia-column-editor';
@@ -139,6 +141,10 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(CommandContribution).toService(NotepadiaOvertypeContribution);
     bind(FrontendApplicationContribution).toService(NotepadiaOvertypeContribution);
 
+    // C4 - one model of the open documents behind both the Document List and
+    // the Window menu / Windows... dialog.
+    bind(NotepadiaOpenDocuments).toSelf().inSingletonScope();
+
     bind(NotepadiaDocumentListWidget).toSelf();
     bind(WidgetFactory).toDynamicValue(ctx => ({
         id: NotepadiaDocumentListWidget.ID,
@@ -148,6 +154,12 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaDocumentListContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaDocumentListContribution);
     bind(MenuContribution).toService(NotepadiaDocumentListContribution);
+
+    // C4 - the Notepad++ Window menu and the Windows... dialog.
+    bind(NotepadiaWindowMenuContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaWindowMenuContribution);
+    bind(MenuContribution).toService(NotepadiaWindowMenuContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaWindowMenuContribution);
 
     bind(NotepadiaFaviconContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaFaviconContribution);

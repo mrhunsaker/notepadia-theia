@@ -1,5 +1,5 @@
 const { assert, finish, sleep, waitFor, launchPage, goto, openFile,
-    openMenuBar, clickByLabel, subLabels, closeMenus } = require('./lib.js');
+    openMenuBar, clickByLabel, subLabels, closeMenus, clickDialogButton } = require('./lib.js');
 
 function viewLabels(page) {
     return subLabels(page);
@@ -35,6 +35,35 @@ const modelText = page => page.evaluate(() => {
     const lines = w ? Array.from(w.querySelectorAll('.view-line')).map(e => e.innerText) : [];
     return lines.join('\n').replace(/\u00a0/g, ' ');
 });
+
+async function windowDialogRows(page) {
+    return page.evaluate(() => Array.from(document.querySelectorAll('.notepadia-windows-row')).map(r => ({
+        name: (r.querySelector('.notepadia-windows-name')?.textContent || '').trim(),
+        path: (r.querySelector('.notepadia-windows-path')?.textContent || '').trim(),
+        type: (r.querySelector('.notepadia-windows-type')?.textContent || '').trim(),
+        selected: r.getAttribute('aria-selected') === 'true'
+    })));
+}
+
+async function clickWindowRow(page, index, control) {
+    const box = await page.evaluate(i => {
+        const rows = document.querySelectorAll('.notepadia-windows-row');
+        if (!rows[i]) return null;
+        const r = rows[i].getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }, index);
+    if (!box) return false;
+    await page.mouse.move(box.x, box.y);
+    if (control) {
+        await page.keyboard.down('Control');
+        await page.mouse.click(box.x, box.y);
+        await page.keyboard.up('Control');
+    } else {
+        await page.mouse.click(box.x, box.y);
+    }
+    await sleep(300);
+    return true;
+}
 
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
@@ -91,6 +120,53 @@ const modelText = page => page.evaluate(() => {
         return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getBoundingClientRect().height > 0;
     });
     assert('Document List toggle hides the panel', !stillVisible, 'panel still visible');
+
+    await openMenuBar(page, 'Window');
+    const windowItems = await subLabels(page);
+    assert('Window menu offers the Windows... dialog', windowItems.includes('Windows...'),
+        JSON.stringify(windowItems));
+    const appLabel = windowItems.find(l => /^\d+ app\.js$/.test(l));
+    assert('Window menu numbers app.js', !!appLabel, JSON.stringify(windowItems));
+    const numbered = windowItems.filter(l => /^\d+ /.test(l));
+    assert('Window menu lists every open document', numbered.length === 3, JSON.stringify(windowItems));
+
+    await clickByLabel(page, appLabel);
+    await sleep(1500);
+    const windowActivated = await modelText(page);
+    assert('clicking a Window entry activates the document', windowActivated.includes('function greet'),
+        JSON.stringify(windowActivated.split('\n')[0]));
+
+    await openMenuBar(page, 'Window');
+    await clickByLabel(page, 'Windows...');
+    await waitFor(page, '.notepadia-windows-row', 15000);
+    const rows = await windowDialogRows(page);
+    assert('Windows... dialog lists Name, Path and Type',
+        rows.length === 3
+        && rows.some(r => r.name === 'app.js' && r.type === 'js' && r.path.endsWith('app.js'))
+        && rows.some(r => r.name === 'config.json' && r.type === 'json')
+        && rows.some(r => r.name === 'sample.txt' && r.type === 'txt'),
+        JSON.stringify(rows));
+
+    await clickWindowRow(page, 0, false);
+    await clickWindowRow(page, 1, true);
+    const selectedRows = (await windowDialogRows(page)).filter(r => r.selected);
+    assert('Windows... dialog multi-selects rows', selectedRows.length === 2, JSON.stringify(selectedRows));
+
+    await clickDialogButton(page, 'Close');
+    const dialogGone = await page.evaluate(() => {
+        const el = document.querySelector('.notepadia-windows-list');
+        if (!el) return true;
+        const cs = getComputedStyle(el);
+        return cs.display === 'none' || cs.visibility === 'hidden' || el.getBoundingClientRect().height === 0;
+    });
+    assert('Windows... Close closes the selected documents', dialogGone,
+        'dialog still present');
+
+    await openMenuBar(page, 'Window');
+    const afterClose = await subLabels(page);
+    const remaining = afterClose.filter(l => /^\d+ /.test(l));
+    assert('Window menu rebuilds after closing documents', remaining.length === 1, JSON.stringify(afterClose));
+    await closeMenus(page);
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

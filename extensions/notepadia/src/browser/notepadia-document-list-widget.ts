@@ -1,9 +1,8 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { Message } from '@theia/core/shared/@lumino/messaging';
-import { Widget } from '@theia/core/shared/@lumino/widgets';
 import { DisposableCollection } from '@theia/core/lib/common/disposable';
-import { ApplicationShell, BaseWidget, NavigatableWidget, Saveable } from '@theia/core/lib/browser';
-import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
+import { BaseWidget, Saveable } from '@theia/core/lib/browser';
+import { NotepadiaDocument, NotepadiaOpenDocuments } from './notepadia-open-documents';
 
 export const NOTEPADIA_DOCUMENT_LIST_ID = 'notepadia.documentList';
 
@@ -31,12 +30,11 @@ export class NotepadiaDocumentListWidget extends BaseWidget {
     protected readonly filterInput: HTMLInputElement;
     protected readonly listNode: HTMLDivElement;
     protected readonly emptyNode: HTMLDivElement;
-    protected readonly saveableSubscriptions: Map<Widget, DisposableCollection> = new Map();
+    protected readonly saveableSubscriptions: Map<string, DisposableCollection> = new Map();
     protected filterText = '';
 
     constructor(
-        @inject(ApplicationShell) protected readonly shell: ApplicationShell,
-        @inject(EditorManager) protected readonly editorManager: EditorManager
+        @inject(NotepadiaOpenDocuments) protected readonly documents: NotepadiaOpenDocuments
     ) {
         super();
         this.id = NotepadiaDocumentListWidget.ID;
@@ -75,9 +73,9 @@ export class NotepadiaDocumentListWidget extends BaseWidget {
 
         this.listNode.addEventListener('click', event => {
             const item = (event.target as HTMLElement).closest<HTMLElement>('.notepadia-document-list-entry');
-            const widgetId = item?.dataset.widgetId;
-            if (widgetId) {
-                void this.shell.activateWidget(widgetId);
+            const documentId = item?.dataset.documentId;
+            if (documentId) {
+                this.documents.activate(documentId);
             }
         });
     }
@@ -98,77 +96,57 @@ export class NotepadiaDocumentListWidget extends BaseWidget {
     }
 
     protected wireListeners(): void {
-        this.toDispose.push(this.shell.onDidAddWidget(widget => {
-            if (NavigatableWidget.is(widget)) {
-                this.watchDirty(widget);
-                this.update();
-            }
-        }));
-        this.toDispose.push(this.shell.onDidRemoveWidget(widget => {
-            if (NavigatableWidget.is(widget)) {
-                const subscriptions = this.saveableSubscriptions.get(widget);
-                if (subscriptions) {
-                    subscriptions.dispose();
-                    this.saveableSubscriptions.delete(widget);
-                }
-            }
+        this.toDispose.push(this.documents.onDidChange(() => {
+            this.watchDirty();
             this.update();
         }));
-        this.toDispose.push(this.shell.onDidChangeCurrentWidget(() => this.update()));
-        this.toDispose.push(this.editorManager.onCurrentEditorChanged(() => this.update()));
-        for (const widget of this.openWidgets()) {
-            this.watchDirty(widget);
-        }
+        this.toDispose.push(this.documents.onDidChangeActive(() => this.update()));
+        this.watchDirty();
     }
 
-    protected watchDirty(widget: NavigatableWidget): void {
-        if (this.saveableSubscriptions.has(widget)) {
-            return;
-        }
-        const subscriptions = new DisposableCollection();
-        const saveable = Saveable.get(widget);
-        if (saveable) {
-            subscriptions.push(saveable.onDirtyChanged(() => this.update()));
-        }
-        this.saveableSubscriptions.set(widget, subscriptions);
-        this.toDispose.push(subscriptions);
-    }
-
-    protected openWidgets(): NavigatableWidget[] {
-        const result: NavigatableWidget[] = [];
-        for (const widget of this.shell.widgets) {
-            if (NavigatableWidget.is(widget)) {
-                result.push(widget);
+    /** Keep one dirty subscription per open document, driven by the shared model. */
+    protected watchDirty(): void {
+        const documents = this.documents.documents();
+        const openIds = new Set(documents.map(document => document.id));
+        for (const [id, subscriptions] of this.saveableSubscriptions) {
+            if (!openIds.has(id)) {
+                subscriptions.dispose();
+                this.saveableSubscriptions.delete(id);
             }
         }
-        return result;
+        for (const document of documents) {
+            if (this.saveableSubscriptions.has(document.id)) {
+                continue;
+            }
+            const subscriptions = new DisposableCollection();
+            const saveable = Saveable.get(document.widget);
+            if (saveable) {
+                subscriptions.push(saveable.onDirtyChanged(() => this.update()));
+            }
+            this.saveableSubscriptions.set(document.id, subscriptions);
+            this.toDispose.push(subscriptions);
+        }
     }
 
-    protected labelFor(widget: NavigatableWidget): string {
-        const uri = NavigatableWidget.getUri(widget);
-        const label = uri ? uri.path.base : widget.title.label;
-        return label || widget.id;
-    }
-
-    protected detailFor(widget: NavigatableWidget): string {
-        const uri = NavigatableWidget.getUri(widget);
-        return uri ? uri.path.toString() : widget.id;
+    protected matches(document: NotepadiaDocument): boolean {
+        return document.name.toLocaleLowerCase().includes(this.filterText);
     }
 
     protected renderList(): void {
-        const widgets = this.openWidgets()
-            .filter(widget => this.labelFor(widget).toLocaleLowerCase().includes(this.filterText))
-            .sort((a, b) => this.labelFor(a).toLocaleLowerCase().localeCompare(this.labelFor(b).toLocaleLowerCase()));
-        const currentlyActive = this.shell.currentWidget?.id ?? this.editorManager.currentEditor?.id;
+        const documents = this.documents.documents();
+        const visible = documents
+            .filter(document => this.matches(document))
+            .sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
+        const currentlyActive = this.documents.activeId;
 
         this.listNode.textContent = '';
-        for (const widget of widgets) {
+        for (const doc of visible) {
             const entry = document.createElement('div');
             entry.className = 'notepadia-document-list-entry';
-            entry.classList.toggle('active', widget.id === currentlyActive);
-            entry.classList.toggle('dirty', Saveable.isDirty(widget));
-            entry.dataset.widgetId = widget.id;
-            entry.title = this.detailFor(widget);
+            entry.classList.toggle('active', doc.id === currentlyActive);
+            entry.classList.toggle('dirty', doc.dirty);
+            entry.dataset.documentId = doc.id;
+            entry.title = doc.path || doc.id;
 
             const mark = document.createElement('span');
             mark.className = 'notepadia-document-list-active-mark';
@@ -176,23 +154,22 @@ export class NotepadiaDocumentListWidget extends BaseWidget {
 
             const label = document.createElement('span');
             label.className = 'notepadia-document-list-file-label';
-            label.textContent = this.labelFor(widget);
+            label.textContent = doc.name;
             entry.appendChild(label);
 
             this.listNode.appendChild(entry);
         }
 
-        const isEmpty = this.openWidgets().length === 0;
-        const empty = isEmpty ? 'No open documents' : 'No matching documents';
+        const empty = documents.length === 0 ? 'No open documents' : 'No matching documents';
         this.emptyNode.textContent = empty;
-        this.emptyNode.style.display = widgets.length === 0 ? '' : 'none';
+        this.emptyNode.style.display = visible.length === 0 ? '' : 'none';
     }
 
     protected activateFirstVisible(): void {
         const first = this.listNode.querySelector<HTMLElement>('.notepadia-document-list-entry');
-        const widgetId = first?.dataset.widgetId;
-        if (widgetId) {
-            void this.shell.activateWidget(widgetId);
+        const documentId = first?.dataset.documentId;
+        if (documentId) {
+            this.documents.activate(documentId);
         }
     }
 

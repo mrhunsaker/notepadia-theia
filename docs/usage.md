@@ -97,6 +97,25 @@ selected characters. It uses the same counters as the status bar's
 `length : N lines : N` and `Sel` fields, so the dialog and the status bar
 cannot disagree.
 
+## The Window menu
+
+`Window` lists the first ten open documents, numbered from one, in tab order.
+Clicking one activates that tab. The list follows the open set, so it is
+renumbered as documents are opened and closed; only the first ten appear, as in
+Notepad++.
+
+`Window ▸ Windows...` opens Notepad++'s document switcher: every open document
+with its **Name**, **Path** and **Type** (`Text` when the name has no usable
+extension), and the **Activate**, **Save**, **Close** and **Sort** buttons. Rows
+are multi-selectable - Ctrl-click to add one, Shift-click for a range, or Space
+with the keyboard - so **Save** and **Close** act on everything selected at
+once. **Sort** cycles Name, Path and Type and reverses direction when it wraps.
+The dialog is a real listbox: the arrow keys and Home/End move, Space toggles,
+Enter activates the focused document, and double-clicking a row opens it.
+
+The Document List panel (`View ▸ Document List`) and this menu read the same
+model, so they always agree about what is open.
+
 ## New documents
 
 `File ▸ New` (Ctrl+N, or **Ctrl+Alt+N** where the browser claims Ctrl+N) opens a
@@ -137,6 +156,8 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
   **Synchronize Horizontal Scrolling**, **Summary...**, **Full Screen**,
   **Post-It**, Word Wrap, Toolbar, Status Bar and a **Tab Bar** submenu (see
   [Show Symbol, folding and the split view](#show-symbol-folding-and-the-split-view)).
+- **Window**: the first ten open documents, numbered from one, and **Windows...**
+  (see [The Window menu](#the-window-menu)).
 
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.
