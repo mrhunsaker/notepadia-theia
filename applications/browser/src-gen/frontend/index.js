@@ -56,7 +56,8 @@ FrontendApplicationConfigProvider.set({
         "editor.lightbulb.enabled": "off",
         "editor.suggest.showWords": false,
         "editor.scrollBeyondLastLine": false,
-        "editor.roundedSelection": false
+        "editor.roundedSelection": false,
+        "editor.accessibilitySupport": "auto"
     }
 });
 

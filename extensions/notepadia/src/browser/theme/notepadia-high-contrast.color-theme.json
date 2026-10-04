@@ -1,0 +1,145 @@
+{
+  "name": "Notepadia High Contrast",
+  "type": "dark",
+  "description": "High-contrast variant of the Notepad++ dark palette: pure black surfaces, every text pair at 7:1 or better",
+  "colors": {
+    "editor.background": "#000000",
+    "editor.foreground": "#FFFFFF",
+    "editorLineNumber.foreground": "#A0A0A0",
+    "editorLineNumber.activeForeground": "#FFFFFF",
+    "editor.selectionBackground": "#3A3AFF",
+    "editor.inactiveSelectionBackground": "#1A1A5E",
+    "editor.lineHighlightBackground": "#0A0A2E",
+    "editor.lineHighlightBorder": "#0A0A2E",
+    "editorCursor.foreground": "#FFFF00",
+    "editorIndentGuide.background": "#707070",
+    "editorWhitespace.foreground": "#A0A0A0",
+    "editorCurrentLineHighlight.background": "#0A0A2E",
+    "editorWidget.background": "#000000",
+    "editorWidget.foreground": "#FFFFFF",
+    "editorWidget.border": "#6FC3DF",
+    "titleBar.activeBackground": "#000000",
+    "titleBar.activeForeground": "#FFFFFF",
+    "titleBar.inactiveBackground": "#000000",
+    "titleBar.inactiveForeground": "#C0C0C0",
+    "menubar.selectionBackground": "#000000",
+    "menubar.selectionForeground": "#FFFF00",
+    "menubar.selectionBorder": "#FFFF00",
+    "statusBar.background": "#000000",
+    "statusBar.foreground": "#FFFFFF",
+    "statusBarItem.hoverBackground": "#000000",
+    "statusBarItem.activeBackground": "#000000",
+    "statusBarItem.activeForeground": "#FFFF00",
+    "tab.activeBackground": "#000000",
+    "tab.activeForeground": "#FFFFFF",
+    "tab.activeBorder": "#FFFF00",
+    "tab.inactiveBackground": "#000000",
+    "tab.inactiveForeground": "#D0D0D0",
+    "tab.hoverBackground": "#1A1A1A",
+    "tab.border": "#6FC3DF",
+    "sideBar.background": "#000000",
+    "sideBar.foreground": "#FFFFFF",
+    "sideBarSectionHeader.background": "#000000",
+    "panel.background": "#000000",
+    "panel.foreground": "#FFFFFF",
+    "panel.border": "#6FC3DF",
+    "focusBorder": "#FFFF00",
+    "menu.background": "#000000",
+    "menu.foreground": "#FFFFFF",
+    "menu.selectionBackground": "#000000",
+    "menu.selectionForeground": "#FFFF00",
+    "menu.separatorBackground": "#6FC3DF",
+    "list.activeSelectionBackground": "#000000",
+    "list.activeSelectionForeground": "#FFFF00",
+    "list.inactiveSelectionBackground": "#000000",
+    "list.inactiveSelectionForeground": "#FFFF00",
+    "list.hoverBackground": "#1A1A1A",
+    "list.hoverForeground": "#FFFFFF",
+    "list.focusBackground": "#000000",
+    "list.focusForeground": "#FFFF00",
+    "input.background": "#000000",
+    "input.foreground": "#FFFFFF",
+    "input.border": "#6FC3DF",
+    "button.background": "#000000",
+    "button.foreground": "#FFFF00",
+    "button.hoverBackground": "#1A1A1A",
+    "button.border": "#6FC3DF",
+    "dropdown.background": "#000000",
+    "dropdown.foreground": "#FFFFFF",
+    "scrollbarSlider.background": "#6FC3DF",
+    "scrollbarSlider.hoverBackground": "#FFFF00",
+    "scrollbarSlider.activeBackground": "#FFFFFF"
+  },
+  "tokenColors": [
+    {
+      "scope": [
+        "keyword",
+        "storage",
+        "storage.type",
+        "keyword.control",
+        "keyword.other"
+      ],
+      "settings": {
+        "foreground": "#569CD6",
+        "fontStyle": "bold"
+      }
+    },
+    {
+      "scope": [
+        "string",
+        "string.quoted.single",
+        "string.quoted.double",
+        "string.quoted.other"
+      ],
+      "settings": {
+        "foreground": "#F1B24A"
+      }
+    },
+    {
+      "scope": [
+        "comment",
+        "comment.line",
+        "comment.block"
+      ],
+      "settings": {
+        "foreground": "#7FC97F",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": [
+        "constant",
+        "constant.numeric",
+        "constant.language",
+        "constant.character",
+        "constant.character.escape"
+      ],
+      "settings": {
+        "foreground": "#B5CEA8"
+      }
+    },
+    {
+      "scope": [
+        "keyword.operator",
+        "keyword.operator.arithmetic",
+        "keyword.operator.assignment",
+        "keyword.operator.comparison",
+        "keyword.operator.logical",
+        "punctuation.operator"
+      ],
+      "settings": {
+        "foreground": "#FFFFFF"
+      }
+    },
+    {
+      "scope": [
+        "meta.preprocessor",
+        "keyword.directive",
+        "preprocessor"
+      ],
+      "settings": {
+        "foreground": "#C586C0"
+      }
+    }
+  ]
+}

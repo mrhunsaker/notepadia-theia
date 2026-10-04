@@ -47,7 +47,8 @@ const SUITES = [
     'backup',
     'file-menu',
     'edit-extras',
-    'run-menu'
+    'run-menu',
+    'a11y'
 ];
 
 function seedWorkspace() {

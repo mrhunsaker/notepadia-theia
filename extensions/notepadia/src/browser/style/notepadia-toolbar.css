@@ -108,9 +108,16 @@ body.notepadia-chrome .notepadia-toolbar {
  * Disabled buttons keep `aria-disabled` rather than the `disabled` attribute so
  * they stay in the tab ring; the greying is what communicates the state
  * visually, and pointer-events must stay on so the tooltip still appears.
+ *
+ * The opacity is 0.5 rather than a dimmer 0.4 because the icon is the button's
+ * only content, which makes it meaningful non-text graphics under WCAG 1.4.11
+ * and puts a 3:1 floor on it. Dimmed to 0.4 the icon lands at 2.80:1 in Notepadia
+ * Classic and 2.66:1 in Classic Dark; at 0.5 it is 3.87:1 and 3.34:1. Both are
+ * still unmistakably dimmer than an enabled button, and `theme-contrast.test.cjs`
+ * fails if this value ever drifts below the floor.
  */
 .notepadia-toolbar-button-disabled {
-    opacity: 0.4;
+    opacity: 0.5;
     cursor: default;
 }
 

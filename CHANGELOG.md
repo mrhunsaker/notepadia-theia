@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026.10.04 (Keyboard and screen reader verification)
+
+- **The workbench is reachable with Tab alone, and the editor is no longer a
+  trap.** Measured against the running app rather than read off the source, Tab
+  walks menu bar, toolbar, document tabs, editor and status bar in that order,
+  and every stop announces itself through Chromium's accessibility tree. Monaco
+  binds Tab to insert a tab - Notepad++ behaviour, kept - so Escape then Tab is
+  the way out, which is the same escape hatch VS Code uses.
+- **Three upstream shell defects fixed at runtime.** Lumino left document tab
+  titles as `<li>` elements inside a `role="tablist"` `<ul>`, which axe calls
+  `aria-required-children` (critical) and `listitem` (serious) and which kept
+  tabs out of the tab order; Lumino marked submenu items `role="presentation"`,
+  leaving `role="menu"` with no valid children; and Theia put `aria-label` on
+  roleless status bar `<div>`s, one of them literally
+  `$(bracket), [object HTMLDivElement]`. All three are repaired by attribute
+  writes only, and can go when the shell stops producing them.
+- **Four Notepad++ Classic colours adjusted to meet WCAG AA**, each the nearest
+  passing value: inactive line numbers `#808080` to `#767676`, shown whitespace
+  `#A0A0A0` to `#8A8A8A` (and `#5A5A5A` to `#6A6A6A` in the dark palette), and
+  the button background `#0078D7` to `#0072C6`. Disabled toolbar icons dim at
+  `0.5` rather than `0.4` because the icon is the button's only content and
+  0.4 falls to 2.8:1. Every shipped palette is now checked in
+  `theme-contrast.test.cjs`, and the Find dialog's labels moved off the hint
+  colour that was failing 4.5:1.
+- **A high-contrast theme ships alongside the two Classic palettes**, with pure
+  black surfaces and editor text at AAA. *Settings > Preferences > Color Theme*
+  lists all three.
+- **What is still missing is written down.** Monaco's Alt+F1 accessibility help
+  is not registered by Theia 1.75 and does nothing, and no NVDA or Orca session
+  has been recorded yet. `docs/accessibility.md` says so plainly rather than
+  claiming full support, and `e2e/a11y.cjs` asserts the Alt+F1 gap so it stays
+  visible. Real screen reader verification is the one item still owed.
+
 ## 2026.10.03 (The Run menu)
 
 - **Notepad++'s `Run...` is here, in a form a browser tab can actually

@@ -45,6 +45,7 @@ import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
+import { NotepadiaAccessibilityContribution } from './notepadia-accessibility-contribution';
 import { NotepadiaShellContribution } from './notepadia-shell-contribution';
 import { NotepadiaFileOperationsContribution } from './notepadia-file-operations-contribution';
 import {
@@ -253,6 +254,9 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(NotepadiaThemeContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaThemeContribution);
+
+    bind(NotepadiaAccessibilityContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(NotepadiaAccessibilityContribution);
 
     bind(NotepadiaShellContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaShellContribution);

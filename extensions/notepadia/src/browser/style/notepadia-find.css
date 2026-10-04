@@ -103,7 +103,15 @@
     min-width: 84px;
     text-align: right;
     font-size: var(--theia-ui-font-size1, 12px);
-    color: var(--theia-descriptionForeground, var(--theia-foreground));
+    /*
+     * The field labels are the primary text of the form, not a secondary
+     * description of it, so they take the normal foreground. The dimmer
+     * `--theia-descriptionForeground` was used here for a long time and
+     * lands under 4.5:1 against the dialog background, which axe reports as a
+     * serious color-contrast violation; the primary foreground clears AA in
+     * every theme the app ships.
+     */
+    color: var(--theia-foreground);
 }
 
 .notepadia-find-field > input {
@@ -137,7 +145,8 @@
 
 .notepadia-find-fieldset > legend {
     font-size: var(--theia-ui-font-size1, 12px);
-    color: var(--theia-descriptionForeground, var(--theia-foreground));
+    /* Same reasoning as the field labels: a legend names a group of options. */
+    color: var(--theia-foreground);
     padding: 0 4px;
 }
 

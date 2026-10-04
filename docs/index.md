@@ -126,5 +126,6 @@ Project milestones:
   Replace, Find in Files and Mark, with workspace search, the five mark
   styles, and the Mark controls kept in a `Search ▸ Mark` submenu.
 
-See [Architecture](architecture.md) for the internal design, and
+See [Architecture](architecture.md) for the internal design,
+[Accessibility](accessibility.md) for keyboard and screen reader support, and
 [Releases & updates](releases.md) for how new builds reach users.
