@@ -38,6 +38,7 @@ import { NotepadiaFindState } from './notepadia-find-state';
 import { NotepadiaFindDialog } from './notepadia-find-dialog';
 import { NotepadiaFindContribution } from './notepadia-find-contribution';
 import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
+import { NotepadiaRunContribution } from './notepadia-run-contribution';
 import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
@@ -63,6 +64,7 @@ import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
 import { UntitledResourceResolver } from '@theia/core/lib/common/resource';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
+import { NotepadiaRunPath, NotepadiaRunService } from '../common/notepadia-run-protocol';
 
 // Product stylesheet layer. The webpack application build resolves this css
 // through the extension's src directory; the build's copy-static step also
@@ -194,6 +196,15 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(CommandContribution).toService(NotepadiaMacroContribution);
     bind(MenuContribution).toService(NotepadiaMacroContribution);
 
+    // C5 - the Run menu. The desktop half arrives over its own Electron IPC
+    // channel and is only bound in the packaged app, so in the browser the
+    // contribution falls back to opening http(s) commands and explaining why
+    // anything else needs the desktop build.
+    bind(NotepadiaRunContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaRunContribution);
+    bind(MenuContribution).toService(NotepadiaRunContribution);
+    bind(FrontendApplicationContribution).toService(NotepadiaRunContribution);
+
     bind(NotepadiaSessionContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaSessionContribution);
     bind(MenuContribution).toService(NotepadiaSessionContribution);
@@ -282,6 +293,9 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     if (isBound(ElectronMainConnectionProvider)) {
         bind(NotepadiaUpdaterService).toDynamicValue(context =>
             ElectronIpcConnectionProvider.createProxy<NotepadiaUpdaterService>(context.container, NotepadiaUpdaterPath)
+        ).inSingletonScope();
+        bind(NotepadiaRunService).toDynamicValue(context =>
+            ElectronIpcConnectionProvider.createProxy<NotepadiaRunService>(context.container, NotepadiaRunPath)
         ).inSingletonScope();
     }
 });

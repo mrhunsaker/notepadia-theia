@@ -46,7 +46,8 @@ const SUITES = [
     'local-files',
     'backup',
     'file-menu',
-    'edit-extras'
+    'edit-extras',
+    'run-menu'
 ];
 
 function seedWorkspace() {

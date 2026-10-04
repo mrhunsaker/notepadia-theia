@@ -1,5 +1,38 @@
 # Changelog
 
+## 2026.10.03 (The Run menu)
+
+- **Notepad++'s `Run...` is here, in a form a browser tab can actually
+  honour.** A new top-level `Run` menu sits where Notepad++ has it, between
+  `Macros` and `Window`. A command that resolves to an `http://` or `https://`
+  URL opens in a new tab; anything else says plainly that starting a program
+  needs the desktop build. Nothing fails silently, and the menu is not
+  registered at all when it would have nothing to offer.
+- **Notepad++'s `$(NAME)` run variables expand, in a pure, unit-tested
+  function.** `$(FULL_CURRENT_PATH)`, `$(CURRENT_DIRECTORY)`, `$(FILE_NAME)`,
+  `$(NAME_PART)`, `$(EXT_PART)`, `$(CURRENT_WORD)`, `$(CURRENT_LINE)`,
+  `$(CURRENT_LINESTR)` and `$(CURRENT_COLUMN)` are replaced before the command
+  is handed anywhere. Both `/` and `\` are understood, only the last extension
+  is split off (`.gitignore` is all name, `archive.tar.gz` keeps `archive.tar`),
+  and an unknown variable such as `$(HOME)` is passed through untouched -
+  dropping it would run a different command than the one you typed.
+- **Named commands are saved and listed in the menu.**
+  `Run ▸ Modify Shortcut/Delete Command...` keeps up to ten named entries in
+  the Run menu, runs one or deletes one, and persists them across restarts
+  through Theia's `StorageService`. The dialog keeps Notepad++'s label but does
+  not store a shortcut per entry; keybindings live in the keybindings
+  preferences instead, so nothing is faked.
+- **The desktop build really can launch, behind a switch that is off by
+  default.** In the packaged app the expanded command goes to
+  `child_process.spawn` over a dedicated Electron channel, in the current
+  document's directory, reporting back the exit code and up to 64 KiB of
+  output. That is a genuine security surface - a saved command is arbitrary
+  text - so it requires the `notepadia.run.allowProcessLaunch` preference,
+  which is off until you turn it on.
+- **Enter runs a command once.** The dialog overlay already routes Enter to the
+  open dialog, so the command box has no handler of its own; without that
+  detail a single Enter would have run the command twice.
+
 ## 2026.10.03 (The Window menu)
 
 - **Notepad++'s Window menu is here.** A new top-level `Window` submenu sits

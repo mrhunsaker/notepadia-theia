@@ -21,6 +21,8 @@ import {
     NOTEPADIA_SYNC_HORIZONTAL_PREFERENCE
 } from './notepadia-sync-scroll';
 
+import { NOTEPADIA_RUN_ALLOW_PROCESS_PREFERENCE } from './notepadia-run-contribution';
+
 export const NOTEPADIA_DOCUMENT_MAP_VISIBLE_PREFERENCE = 'notepadia.documentMap.visible';
 export const NOTEPADIA_SESSION_RESTORE_PREFERENCE = 'notepadia.session.restore';
 export const NOTEPADIA_SEARCH_EXTENDED_MODE_PREFERENCE = 'notepadia.search.extendedMode';
@@ -90,6 +92,11 @@ const schema: PreferenceSchema = {
         [NOTEPADIA_SYNC_HORIZONTAL_PREFERENCE]: {
             type: 'boolean',
             description: 'Whether the two split views keep the same horizontal scroll position.',
+            default: false
+        },
+        [NOTEPADIA_RUN_ALLOW_PROCESS_PREFERENCE]: {
+            type: 'boolean',
+            description: 'Whether Run > Run... may launch programs on this computer. Running a saved command executes arbitrary text, so this is off by default and only ever has an effect in the packaged desktop app - a browser tab cannot start a process at all.',
             default: false
         }
     }

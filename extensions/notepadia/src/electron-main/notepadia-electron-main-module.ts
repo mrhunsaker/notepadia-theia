@@ -6,6 +6,8 @@ import { ElectronMainApplicationContribution } from '@theia/core/lib/electron-ma
 import { NotepadiaElectronMainApplication } from './notepadia-electron-main-application';
 import { NotepadiaUpdater } from './notepadia-updater';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
+import { NotepadiaRunServer } from './notepadia-run-server';
+import { NotepadiaRunPath, NotepadiaRunService } from '../common/notepadia-run-protocol';
 
 export default new ContainerModule((bind, _unbind, _isBound, rebind) => {
     rebind(ElectronMainApplication).to(NotepadiaElectronMainApplication).inSingletonScope();
@@ -16,6 +18,17 @@ export default new ContainerModule((bind, _unbind, _isBound, rebind) => {
         new RpcConnectionHandler<NotepadiaUpdaterService>(
             NotepadiaUpdaterPath,
             () => context.container.get(NotepadiaUpdater)
+        )
+    ).inSingletonScope();
+
+    // C5 - the Run menu's desktop half, over its own channel. `ElectronConnectionHandler`
+    // is a root contribution provider, so a second binding is collected alongside the
+    // updater's rather than replacing it.
+    bind(NotepadiaRunServer).toSelf().inSingletonScope();
+    bind(ElectronConnectionHandler).toDynamicValue(context =>
+        new RpcConnectionHandler<NotepadiaRunService>(
+            NotepadiaRunPath,
+            () => context.container.get(NotepadiaRunServer)
         )
     ).inSingletonScope();
 });

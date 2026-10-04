@@ -237,6 +237,14 @@ The Notepad++-style feature layer is implemented as the shared
   plus **Windows...**, a `Name`/`Path`/`Type` list with multi-select and
   Activate / Save / Close / Sort; the menu and the Document List read the same
   shared model
+- a Run menu in Notepad++'s position (between Macros and Window): **Run...**
+  expands Notepad++'s `$(FULL_CURRENT_PATH)`, `$(FILE_NAME)`,
+  `$(CURRENT_DIRECTORY)`, `$(CURRENT_WORD)` and the rest before running, opens
+  `http`/`https` commands in a new tab, and explains plainly that starting a
+  program needs the desktop build - where it does reach `child_process.spawn`,
+  behind the `notepadia.run.allowProcessLaunch` preference, which is off by
+  default. Named commands are listed in the menu and managed through **Modify
+  Shortcut/Delete Command...**
 - Notepad++'s Show Wrap Symbol, Function List and Project Panels are
   deliberately absent: Monaco 1.75 has no wrapping-indicator option, Project
   Panels is already `Open Folder as Workspace...`, and Function List ships

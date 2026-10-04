@@ -116,6 +116,56 @@ Enter activates the focused document, and double-clicking a row opens it.
 The Document List panel (`View ▸ Document List`) and this menu read the same
 model, so they always agree about what is open.
 
+## The Run menu
+
+`Run` sits where Notepad++ has it, between `Macros` and `Window`, and holds
+**Run...** plus **Modify Shortcut/Delete Command...**. It is not bound to a
+single chord: Notepad++ reaches it with `F5`, and here `F5` is
+**Insert ▸ Date & Time**, so **Run...** is opened from the menu. Bind it in the
+keybindings preferences if you want a chord.
+
+**Run...** takes a command line, expands Notepad++'s run variables in it, and
+then does what the target it is running in can actually do:
+
+- a command that expands to an `http://` or `https://` URL opens in a new tab,
+- any other command in the browser says that a browser tab cannot start a
+  program, and that it needs the desktop build. It never fails silently.
+
+The variables are expanded before anything else happens:
+
+| Variable | Expands to |
+| --- | --- |
+| `$(FULL_CURRENT_PATH)` | full path of the current document, empty for an unsaved one |
+| `$(CURRENT_DIRECTORY)` | its directory, without a trailing separator |
+| `$(FILE_NAME)` | the file name, e.g. `notes.txt` |
+| `$(NAME_PART)` | the name without its last extension, e.g. `notes` |
+| `$(EXT_PART)` | that last extension, without the dot, e.g. `txt` |
+| `$(CURRENT_WORD)` | the word under the caret |
+| `$(CURRENT_LINE)` | the caret's line number, from 1 |
+| `$(CURRENT_LINESTR)` | the text of the caret's line |
+| `$(CURRENT_COLUMN)` | the caret's column, from 1 |
+
+Both `/` and `\` are understood as separators. Only the last extension is
+split off, so `.gitignore` is all name and `archive.tar.gz` has the name part
+`archive.tar`. A variable Notepad++ does not define, such as `$(HOME)`, is left
+exactly as written rather than being emptied - dropping it would run a
+different command from the one you typed.
+
+**Save as (optional)** names the command and **Save** keeps it. Saved commands
+are listed in the Run menu (the first ten) and kept across restarts.
+**Modify Shortcut/Delete Command...** lists them all with their commands and
+offers **Run**, **Delete** and **Close**; Delete removes the entry from the
+menu. It keeps Notepad++'s dialog name but does not store a shortcut with each
+entry - assign chords in the keybindings preferences if you want them.
+
+On the desktop build the expanded command really is launched, in the current
+document's directory, and the exit code and output are reported back. That
+executes arbitrary text, so it is gated behind the
+`notepadia.run.allowProcessLaunch` preference, which is **off** by default; until
+you turn it on, the Run menu explains that launching is turned off. A command
+that runs longer than 30 seconds reports that it is still running rather than
+holding the dialog: the process is left alone on purpose.
+
 ## New documents
 
 `File ▸ New` (Ctrl+N, or **Ctrl+Alt+N** where the browser claims Ctrl+N) opens a
@@ -125,8 +175,9 @@ Save As... (Ctrl+Shift+S) prompts for a real file name.
 
 ## Menus and commands
 
-Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
-`Settings`, while the `File` and `Edit` menus gain Notepad++-style sections:
+Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, `Settings`,
+`Window` and `Run`, while the `File` and `Edit` menus gain Notepad++-style
+sections:
 
 - **File**: New / **Open from Computer** / **Open from Workspace...** /
   **Upload to Workspace...** / **Open Folder as Workspace...** / Save /
@@ -158,6 +209,8 @@ Notepadia adds the top-level menus `Search`, `Encoding`, `Language`, and
   [Show Symbol, folding and the split view](#show-symbol-folding-and-the-split-view)).
 - **Window**: the first ten open documents, numbered from one, and **Windows...**
   (see [The Window menu](#the-window-menu)).
+- **Run**: **Run...** and **Modify Shortcut/Delete Command...**, with your saved
+  commands listed between them (see [The Run menu](#the-run-menu)).
 
 Text manipulation reuses Monaco's hardened editing engine through
 `editor.action.*` triggers instead of bespoke string rewriting.

@@ -56,6 +56,12 @@ The product is organized as a monorepo:
 - Notepad++'s **Window** menu: the first ten open documents numbered from one
   and renumbered as tabs change, and **Windows...**, a multi-select
   `Name`/`Path`/`Type` list with Activate / Save / Close / Sort.
+- Notepad++'s **Run** menu: **Run...** expands the `$(FULL_CURRENT_PATH)`,
+  `$(FILE_NAME)`, `$(CURRENT_DIRECTORY)`, `$(CURRENT_WORD)` and other run
+  variables, opens `http`/`https` commands in a new tab, and says so plainly
+  when a command needs the desktop build (where it does launch, behind a
+  preference that is off by default). Named commands are listed in the menu and
+  managed through **Modify Shortcut/Delete Command...**.
 - A full Notepad++ status bar — length/lines, `Ln / Col / Pos`, selection,
   encoding, EOL, indent mode and an `INS`/`OVR` indicator — with a real
   overtype mode toggled by the `Insert` key.

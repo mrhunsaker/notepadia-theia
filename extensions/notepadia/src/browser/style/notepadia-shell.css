@@ -306,3 +306,78 @@ body.notepadia-chrome .lm-DockPanel.lm-main .lm-DockPanel-separator {
   padding: 8px;
   opacity: 0.7;
 }
+
+/*
+ * C5 - Run... and Modify Shortcut/Delete Command...
+ */
+.notepadia-run {
+  display: flex;
+  flex-direction: column;
+  min-width: 480px;
+  gap: 4px;
+}
+
+.notepadia-run .theia-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.notepadia-run-label {
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.notepadia-run-hint {
+  margin-top: 10px;
+  font-size: 90%;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.notepadia-run-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--theia-input-border, transparent);
+  margin-top: 4px;
+}
+
+.notepadia-run-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(160px, 2.5fr);
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.notepadia-run-row:hover {
+  background: var(--theia-list-hoverBackground);
+}
+
+.notepadia-run-row[aria-selected="true"] {
+  background: var(--theia-list-activeSelectionBackground);
+  color: var(--theia-list-activeSelectionForeground);
+}
+
+.notepadia-run-row:focus,
+.notepadia-run-list:focus {
+  outline: 1px solid var(--theia-focusBorder, #007acc);
+  outline-offset: -1px;
+}
+
+.notepadia-run-name,
+.notepadia-run-command {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notepadia-run-command {
+  opacity: 0.8;
+}
+
+.notepadia-run-empty {
+  padding: 8px;
+  opacity: 0.7;
+}
