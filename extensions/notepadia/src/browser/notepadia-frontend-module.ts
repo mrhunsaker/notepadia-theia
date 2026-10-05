@@ -41,6 +41,8 @@ import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
 import { NotepadiaRunContribution } from './notepadia-run-contribution';
 import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
+import { NotepadiaSearchResultsWidget } from './notepadia-search-results-widget';
+import { NotepadiaSearchResultsContribution } from './notepadia-search-results-contribution';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
@@ -279,6 +281,22 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaToolbarWidget).toSelf().inSingletonScope();
     bind(NotepadiaToolbarContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NotepadiaToolbarContribution);
+
+    // B3 - the Notepad++ Search Results window (F7) with F4 / Shift+F4
+    // stepping through its hits. The Find dialog publishes into the widget
+    // through WidgetManager rather than injecting it, so that the producer and
+    // the window always share the one factory-created instance; an injected
+    // binding would be a second widget with an empty group stack.
+    bind(NotepadiaSearchResultsWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaSearchResultsWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaSearchResultsWidget)
+    }));
+
+    bind(NotepadiaSearchResultsContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaSearchResultsContribution);
+    bind(MenuContribution).toService(NotepadiaSearchResultsContribution);
+    bind(KeybindingContribution).toService(NotepadiaSearchResultsContribution);
 
     bind(PreferenceContribution).toConstantValue(NotepadiaPreferenceContribution);
 

@@ -9,6 +9,12 @@ import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import * as monaco from '@theia/monaco-editor-core';
 import { SearchInWorkspaceWidget } from '@theia/search-in-workspace/lib/browser/search-in-workspace-widget';
+import { SearchInWorkspaceService } from '@theia/search-in-workspace/lib/browser/search-in-workspace-service';
+import {
+    SearchInWorkspaceClient,
+    SearchInWorkspaceOptions
+} from '@theia/search-in-workspace/lib/common/search-in-workspace-interface';
+import { URI } from '@theia/core/lib/common/uri';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { Disposable } from '@theia/core/lib/common/disposable';
 import {
@@ -20,6 +26,12 @@ import {
 } from '../common/find-options';
 import { NotepadiaFindState } from './notepadia-find-state';
 import { MARK_STYLE_COUNT, NotepadiaSearchMarkContribution } from './notepadia-search-mark';
+import {
+    NotepadiaSearchFileInput,
+    NotepadiaSearchHitInput,
+    NotepadiaSearchInput,
+    NotepadiaSearchResultsWidget
+} from './notepadia-search-results-widget';
 
 /**
  * The Find dialog tabs, mirroring the Notepad++ "Find / Replace / Find in
@@ -103,7 +115,8 @@ export class NotepadiaFindDialog extends ReactWidget {
         @inject(StorageService) protected readonly storage: StorageService,
         @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
         @inject(NotepadiaFindState) protected readonly findState: NotepadiaFindState,
-        @inject(NotepadiaSearchMarkContribution) protected readonly searchMark: NotepadiaSearchMarkContribution
+        @inject(NotepadiaSearchMarkContribution) protected readonly searchMark: NotepadiaSearchMarkContribution,
+        @inject(SearchInWorkspaceService) protected readonly searchInWorkspace: SearchInWorkspaceService
     ) {
         super();
         this.id = NotepadiaFindDialog.ID;
@@ -457,22 +470,42 @@ export class NotepadiaFindDialog extends ReactWidget {
             const first = matches[0].range;
             control.revealRangeInCenterIfOutsideViewport(first);
         }
+        const model = this.currentModel();
+        if (model) {
+            this.publishResults({
+                term: this.findState.get().term,
+                scope: 'Current Document',
+                filesSearched: 1,
+                files: [{
+                    uri: model.uri.toString(),
+                    name: new URI(model.uri.toString()).path.base,
+                    hits: matches.map(match => this.hitFromMatch(model, match))
+                }]
+            });
+        }
         this.setStatus(`${matches.length} result${matches.length === 1 ? '' : 's'} on current document`);
     }
 
     protected findInAllOpenDocuments(): void {
         let total = 0;
         let documents = 0;
+        const files: NotepadiaSearchFileInput[] = [];
         for (const widget of this.editorManager.all) {
             const editor = MonacoEditor.get(widget);
             const model = editor?.getControl().getModel();
             if (!model) {
                 continue;
             }
-            const count = this.matchesInModel(model).length;
+            const modelMatches = this.matchesInModel(model);
+            const count = modelMatches.length;
             if (count > 0) {
                 total += count;
                 documents += 1;
+                files.push({
+                    uri: model.uri.toString(),
+                    name: new URI(model.uri.toString()).path.base,
+                    hits: modelMatches.map(match => this.hitFromMatch(model, match))
+                });
             }
         }
         if (total === 0) {
@@ -484,7 +517,39 @@ export class NotepadiaFindDialog extends ReactWidget {
         if (firstHere) {
             this.applyMatch(firstHere.range, true);
         }
+        this.publishResults({
+            term: this.findState.get().term,
+            scope: 'All Opened Documents',
+            filesSearched: this.editorManager.all.length,
+            files
+        });
         this.setStatus(`Found ${total} occurrence${total === 1 ? '' : 's'} in ${documents} document${documents === 1 ? '' : 's'}`);
+    }
+
+    /**
+     * Appends one search to the Notepad++ Search Results window (B3).
+     *
+     * The widget is reached through WidgetManager so that the window the Find
+     * dialog fills is the same instance the F7 command and the F4 navigation
+     * act on; injecting the widget here would give the dialog a private one
+     * with an empty group stack.
+     */
+    protected async publishResults(input: NotepadiaSearchInput): Promise<void> {
+        const widget = await this.widgetManager.getOrCreateWidget(NotepadiaSearchResultsWidget.ID);
+        if (widget instanceof NotepadiaSearchResultsWidget) {
+            widget.addSearch(input);
+        }
+    }
+
+    /** One Monaco match as a result row, with the line text it sits on. */
+    protected hitFromMatch(model: monaco.editor.ITextModel, match: monaco.editor.FindMatch): NotepadiaSearchHitInput {
+        const line = match.range.startLineNumber;
+        return {
+            line,
+            column: match.range.startColumn,
+            length: match.range.endColumn - match.range.startColumn,
+            text: model.getLineContent(line)
+        };
     }
 
     protected matchesInModel(model: monaco.editor.ITextModel): monaco.editor.FindMatch[] {
@@ -609,6 +674,10 @@ export class NotepadiaFindDialog extends ReactWidget {
         }
         this.setStatus(replace ? 'Replacing in files...' : 'Searching in files...');
         const run = async (): Promise<void> => {
+            if (!replace) {
+                await this.searchInFiles(opts, globs);
+                return;
+            }
             const widget = await this.widgetManager.getOrCreateWidget(SearchInWorkspaceWidget.ID);
             const findWidget = widget as unknown as {
                 matchCaseState: { enabled: boolean };
@@ -636,11 +705,75 @@ export class NotepadiaFindDialog extends ReactWidget {
             findWidget.updateSearchTerm(opts.term, findWidget.showReplaceField);
             findWidget.update();
             await this.shell.activateWidget(SearchInWorkspaceWidget.ID);
-            if (replace) {
-                await this.replaceInFiles(findWidget);
-            }
+            await this.replaceInFiles(findWidget);
         };
         run().catch(error => this.setStatus(`Search failed: ${error.message}`));
+    }
+
+    /**
+     * Notepad++'s "Find All" on the Find in Files tab fills the Search Results
+     * window, not Theia's search panel, which has a different shape and
+     * vocabulary from anything in Notepad++.
+     *
+     * The same backend does the searching: this asks the search service for
+     * the results directly instead of driving the panel and scraping its tree,
+     * so the rows come from structured data with the line text included. That
+     * also keeps Replace All on the panel, where the replacement machinery is.
+     */
+    protected async searchInFiles(opts: FindOptions, globs: string[]): Promise<void> {
+        const roots = this.workspaceService.tryGetRoots().map(root => root.resource.toString());
+        if (roots.length === 0) {
+            this.setStatus('No workspace folder is open');
+            return;
+        }
+        const files = await this.collectFileMatches(opts.term, roots, {
+            matchCase: opts.caseSensitive,
+            matchWholeWord: opts.wholeWord,
+            useRegExp: this.mode === 'regex',
+            include: globs,
+            includeIgnored: this.includeHidden
+        });
+        const hits = files.reduce((count, file) => count + file.hits.length, 0);
+        if (hits === 0) {
+            this.setStatus('No results');
+            return;
+        }
+        this.publishResults({ term: opts.term, scope: 'Files', files });
+        this.setStatus(`Found ${hits} occurrence${hits === 1 ? '' : 's'} in ${files.length} file${files.length === 1 ? '' : 's'}`);
+    }
+
+    /**
+     * The search service's callback API, collected into a promise. onDone is the
+     * only completion signal there is, and a failed search resolves with
+     * whatever arrived rather than leaving the caller waiting.
+     */
+    protected collectFileMatches(term: string, roots: string[], options: SearchInWorkspaceOptions): Promise<NotepadiaSearchFileInput[]> {
+        return new Promise(resolve => {
+            const files: NotepadiaSearchFileInput[] = [];
+            const client: SearchInWorkspaceClient = {
+                onResult: (_searchId, result) => {
+                    if (!result.matches || result.matches.length === 0) {
+                        return;
+                    }
+                    files.push({
+                        uri: result.fileUri,
+                        name: new URI(result.fileUri).path.base,
+                        hits: result.matches.map(match => ({
+                            line: match.line,
+                            column: match.character,
+                            length: match.length,
+                            // Older backends report the line as a plain string,
+                            // the current one as a preview object.
+                            text: typeof match.lineText === 'string'
+                                ? match.lineText
+                                : (match.lineText?.text ?? '')
+                        }))
+                    });
+                },
+                onDone: () => resolve(files)
+            };
+            this.searchInWorkspace.searchWithCallback(term, roots, client, options).catch(() => resolve(files));
+        });
     }
 
     /**

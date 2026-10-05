@@ -193,6 +193,29 @@ Note: menu-hovering must stay within the window — the Bookmarks entry sits at
 the bottom of the Edit menu, so puppeteer suites need a viewport taller than
 the menu (>= ~640px) for hover/submenu interactions.
 
+### Search Results window (F7)
+
+- `NotepadiaSearchResultsWidget` is a `ReactWidget` on
+  `WidgetManager.getOrCreate` with id `notepadia.searchResults`, added to the
+  shell's bottom area on first use. `NotepadiaSearchResultsContribution` binds
+  F7 / F4 / Shift+F4, registers the four commands and puts them in
+  `menubar ▸ 3_search`; the toolbar and command handlers call back into the same
+  singleton, so F7 works before the panel has ever been opened.
+- Producers are the dialog's two Find All buttons and Find in Files' Find All.
+  `NotepadiaSearchDialogWidget` owns a `SearchInWorkspaceService` binding (the
+  only user of that DI binding in the extension) so the dialog publishes to the
+  window rather than calling it directly, which keeps widget construction in the
+  binding container.
+- Document hits come from Monaco's own search, so positions are converted with
+  `monacoToTheiaPosition`. Workspace hits come from
+  `SearchInWorkspaceService.searchWithCallback`, which reports matches but never
+  how many files it read, so those headers stop at `in N files`.
+- `Replace All` is deliberately not a producer: it runs on Theia's
+  `search-in-workspace` service, whose replace path is separate from the search
+  callback, and results would appear after the edits rather than drive them.
+- The tree keeps one cursor, so F4 / Shift+F4 step through a flat list of
+  visible hits and wrap; with no row chosen it starts from the editor's caret.
+
 ### Language menu
 
 `NotepadiaLanguageContribution` exposes Notepad++-style language handling (the

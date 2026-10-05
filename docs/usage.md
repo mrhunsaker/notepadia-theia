@@ -198,8 +198,10 @@ sections:
   **Clipboard History** and **Character Panel**. **Bookmarks** are also under
   Edit.
 - **Search**: Find / Find Next / Find Previous / Replace / Find in Files /
-  Replace in Files / Mark, plus a **Mark** submenu (Mark All, Clear All Marks,
-  Select and Find Next).
+  Replace in Files / Mark / Go To Line / Matching Bracket / Search Results
+  Window / Next Search Result / Previous Search Result / Clear All Search
+  Results, plus a **Mark** submenu (Mark All, Clear All Marks, Select and Find
+  Next).
 - **View**: Zoom, Tab Size, **Show Symbol** (Show Space and TAB, Show All
   Characters, Show End of Line, Show Indent Guide), **Fold All** / **Unfold
   All**, a **Fold Level** submenu, Document Map, Document List, **Clone to
@@ -255,12 +257,16 @@ only, Backward direction, Wrap around, In selection) and a status line
 reporting the match position, e.g. `2 of 4` or `4 results on current document`.
 
 - **Find**: `Find Next`, `Count`, `Find All in Current Document` (selects
-  every hit) and `Find All in All Opened Documents`.
+  every hit) and `Find All in All Opened Documents`. Both Find All actions also
+  fill the [Search Results window](#search-results-window).
 - **Replace**: `Replace`, `Replace All` and `Replace All in All Opened
   Documents`, all of which are ordinary undoable edits.
 - **Find in Files**: `Filters` and `Directory` narrow the workspace search,
   `In hidden folders` includes dot-folders, and `Find All` / `Replace All`
-  drive the existing search-in-workspace backend.
+  drive the existing search-in-workspace backend. `Find All` sends its results
+  to the [Search Results window](#search-results-window); `Replace All` stays
+  on Theia's search panel, because that is where the replacement machinery
+  lives.
 - **Mark**: marks every occurrence in the current document in one of five
   styles, with `Mark All`, `Clear All Marks`, `Select and Find Next` and a
   `Purge for each search` option. The same actions remain available under
@@ -320,6 +326,8 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+F2 | Toggle bookmark on the current line |
 | F2 / Shift+F2 | Next / previous bookmark (wraps in file) |
 | F3 / Shift+F3 | Find next / previous |
+| F4 / Shift+F4 | Next / previous search result |
+| F7 | Show / hide the Search Results window |
 | Ctrl+F | Open the tabbed Find dialog (Find tab) |
 | Ctrl+H | Open the tabbed Find dialog (Replace tab) |
 | Ctrl+Shift+F | Open the tabbed Find dialog (Find in Files tab) |
@@ -549,6 +557,42 @@ Unlike Notepad++, no dialog opens - the command is the conversion, and a
   quotes is literal, so `yyyy'-'MM'-'dd` gives `2026-09-30`, and `''` is a
   literal apostrophe. A format with no token in it is refused with a reason,
   rather than inserting the same constant string every time you use it.
+
+## Search Results window
+
+`F7` (or `Search ▸ Search Results Window`) opens a panel at the foot of the
+window that lists what a search found, in the order Notepad++ lists it. `F7`
+toggles it, so the same key shows and hides it.
+
+Every search that Theia runs for you appends a group to the window, newest
+last, and a group stays until you clear it:
+
+- `Find All in Current Document` and `Find All in All Opened Documents` from
+  the Find tab,
+- `Find All` from the Find in Files tab.
+
+The header reads `Search "foo" (12 hits in 3 files of 1 searched)`. Under it,
+one row per file with the file's name as a URI, and under that a row per hit
+reading `Line 4: foo bar foo` with the matching text highlighted. Clicking a row
+opens that file and puts the caret on the match; double-clicking hands focus to
+the editor so you can carry on typing. A group's files can be collapsed with
+`Collapse All` and brought back with `Expand All`, a single group can be
+`Clear`ed, and `Clear All` empties the window.
+
+`F4` moves to the next hit and `Shift+F4` to the previous one, wrapping at
+either end. With no row chosen, stepping starts from the caret in the editor
+instead of the top of the list, so `F4` takes you to the hit at or after the
+caret. `F3` and `Shift+F3` still step through the editor's own matches, so
+nothing that worked before F4 was added has changed.
+
+The panel is a tree to a screen reader: each row announces its level, its
+expanded or collapsed state, and whether it holds the cursor, and a search
+that adds hits announces the new count.
+
+!!! note
+    A Find in Files header stops at `in 5 files`. The workspace search
+    backend reports the matches it found but never how many files it looked
+    at, and a made-up `of N searched` would be worse than none.
 
 ## Clipboard History
 

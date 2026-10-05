@@ -48,7 +48,8 @@ const SUITES = [
     'file-menu',
     'edit-extras',
     'run-menu',
-    'a11y'
+    'a11y',
+    'search-results'
 ];
 
 function seedWorkspace() {
