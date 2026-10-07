@@ -99,7 +99,7 @@ async function main() {
 
         // Non-toggle buttons must not claim a pressed state.
         const strayPressed = buttons.filter(b =>
-            b.pressed !== null && !['word-wrap', 'whitespace', 'document-map', 'folder-as-workspace', 'macro-record'].includes(b.id));
+            b.pressed !== null && !['word-wrap', 'whitespace', 'document-map', 'folder-as-workspace', 'function-list', 'macro-record'].includes(b.id));
         assert('aria-pressed only on real toggles', strayPressed.length === 0, JSON.stringify(strayPressed));
 
         // --- D7: Open is the user's own disk, here as everywhere ----------

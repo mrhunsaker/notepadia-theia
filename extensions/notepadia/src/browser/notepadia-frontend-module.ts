@@ -43,6 +43,8 @@ import { NotepadiaSessionContribution } from './notepadia-session-contribution';
 import { NotepadiaCharacterPanelWidget } from './notepadia-character-panel-widget';
 import { NotepadiaSearchResultsWidget } from './notepadia-search-results-widget';
 import { NotepadiaSearchResultsContribution } from './notepadia-search-results-contribution';
+import { NotepadiaFunctionListWidget } from './notepadia-function-list-widget';
+import { NotepadiaFunctionListContribution } from './notepadia-function-list-contribution';
 import { NotepadiaCharacterPanelContribution } from './notepadia-character-panel-contribution';
 import { NotepadiaPrintContribution } from './notepadia-print-contribution';
 import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contribution';
@@ -297,6 +299,21 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(CommandContribution).toService(NotepadiaSearchResultsContribution);
     bind(MenuContribution).toService(NotepadiaSearchResultsContribution);
     bind(KeybindingContribution).toService(NotepadiaSearchResultsContribution);
+
+    // E1 - Notepad++'s Function List panel. The rules live in
+    // src/common/function-list-rules.ts because the 21 curated languages here
+    // are Monarch tokenizers only: there is no symbol provider to ask, so the
+    // list is per-language regular expressions over the document, which is what
+    // Notepad++ does too.
+    bind(NotepadiaFunctionListWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaFunctionListWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaFunctionListWidget)
+    }));
+
+    bind(NotepadiaFunctionListContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaFunctionListContribution);
+    bind(MenuContribution).toService(NotepadiaFunctionListContribution);
 
     bind(PreferenceContribution).toConstantValue(NotepadiaPreferenceContribution);
 

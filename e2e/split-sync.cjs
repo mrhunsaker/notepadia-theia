@@ -35,10 +35,29 @@ async function wheelHorizontallyOverPane(page, paneIndex, deltaX) {
         return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     }, paneIndex);
     if (!box) return false;
-    await page.mouse.move(box.x, box.y);
-    await page.mouse.wheel({ deltaX });
-    await sleep(1200);
+    await wheelAt(page, box.x, box.y, { deltaX });
     return true;
+}
+
+/**
+ * Monaco replaces a pane's DOM while a split is settling, and a wheel event
+ * aimed at the old node fails with a detached frame. The gesture is about the
+ * position, not the node, so it is simply aimed again.
+ */
+async function wheelAt(page, x, y, options) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            await page.mouse.move(x, y);
+            await page.mouse.wheel(options);
+            await sleep(1200);
+            return;
+        } catch (error) {
+            if (attempt >= 2 || !/detached Frame|Execution context/i.test(String(error && error.message))) {
+                throw error;
+            }
+            await sleep(800);
+        }
+    }
 }
 
 async function wheelOverPane(page, paneIndex, deltaY) {
@@ -50,9 +69,7 @@ async function wheelOverPane(page, paneIndex, deltaY) {
         return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     }, paneIndex);
     if (!box) return false;
-    await page.mouse.move(box.x, box.y);
-    await page.mouse.wheel({ deltaY });
-    await sleep(1200);
+    await wheelAt(page, box.x, box.y, { deltaY });
     return true;
 }
 

@@ -36,6 +36,7 @@ export type NotepadiaToolbarIcon =
     | 'whitespace'
     | 'document-map'
     | 'folder'
+    | 'function-list'
     | 'macro-record'
     | 'macro-stop'
     | 'macro-run';
@@ -80,9 +81,9 @@ export function isToolbarButton(item: NotepadiaToolbarItem): item is NotepadiaTo
  *
  * Deliberately absent, because the underlying feature does not exist in this
  * application yet and a button that throws or no-ops is worse than no button:
- * Sync Vertical Scroll, Sync Horizontal Scroll (no split view), Function List
- * (no outline panel) and Indent Guide (no toggle command). Add the buttons in
- * the same commit that adds the feature.
+ * Sync Vertical Scroll, Sync Horizontal Scroll (no split view) and Indent Guide
+ * (no toggle command). Add the buttons in the same commit that adds the
+ * feature - Function List arrived with E1, as this comment promised.
  */
 export const NOTEPADIA_TOOLBAR_ITEMS: readonly NotepadiaToolbarItem[] = [
     { kind: 'button', id: 'new', commandId: 'notepadia.newDocument', label: 'New', icon: 'new' },
@@ -120,6 +121,7 @@ export const NOTEPADIA_TOOLBAR_ITEMS: readonly NotepadiaToolbarItem[] = [
     { kind: 'button', id: 'whitespace', commandId: 'notepadia.toggleWhitespace', label: 'Show All Characters', icon: 'whitespace', toggle: true },
     { kind: 'button', id: 'document-map', commandId: 'notepadia.toggleDocumentMap', label: 'Document Map', icon: 'document-map', toggle: true },
     { kind: 'button', id: 'folder-as-workspace', commandId: 'notepadia.view.toggleFolderWorkspace', label: 'Folder as Workspace', icon: 'folder', toggle: true },
+    { kind: 'button', id: 'function-list', commandId: 'notepadia.functionList.toggle', label: 'Function List', icon: 'function-list', toggle: true },
 
     { kind: 'separator', id: 'sep-view' },
     { kind: 'button', id: 'macro-record', commandId: 'notepadia.macro.start', label: 'Start Recording', icon: 'macro-record', toggle: true },

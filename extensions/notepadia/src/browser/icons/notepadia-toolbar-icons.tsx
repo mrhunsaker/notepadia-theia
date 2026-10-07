@@ -180,6 +180,14 @@ const GLYPHS: Record<NotepadiaToolbarIcon, React.ReactNode> = {
             <path d="M1.5 12.5V3.5h4.5l1.5 2h7v7z" {...S} />
         </>
     ),
+    // A list with a brace on it: the Function List panel (E1).
+    'function-list': (
+        <>
+            <path d="M1.75 2.5h12.5v11H1.75z" {...S} />
+            <path d="M6 5L4.25 6.75L6 8.5" {...S} />
+            <path d="M8.5 5.5h3.25M8.5 8h2M8.5 10.5h3.25" {...S} />
+        </>
+    ),
     'macro-record': <circle cx="8" cy="8" r="4.5" fill="currentColor" />,
     'macro-stop': <rect x="4" y="4" width="8" height="8" rx="0.75" fill="currentColor" />,
     'macro-run': <path d="M5 3.25L12.5 8L5 12.75z" fill="currentColor" />

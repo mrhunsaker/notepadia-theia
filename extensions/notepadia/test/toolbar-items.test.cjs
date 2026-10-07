@@ -89,6 +89,7 @@ describe('toolbar item model', () => {
         assert.deepEqual(toggles.sort(), [
             'document-map',
             'folder-as-workspace',
+            'function-list',
             'macro-record',
             'whitespace',
             'word-wrap'

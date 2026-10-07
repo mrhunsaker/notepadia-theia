@@ -251,6 +251,44 @@ which is not installed in this build). The built-in Monaco editor core ships no
 are the only real tokenization available; keyword/string/number tokens are
 emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
 
+### Function List panel
+
+- `NotepadiaFunctionListWidget` is a `ReactWidget` with id
+  `notepadia.functionList`, created by `WidgetFactory` on first use and docked
+  in the shell's **right** area by the shared `togglePanelWidget` helper
+  (`Shell.addWidget(..., { area: 'right' })` then `activateWidget`), the same
+  helper the Document List and Character Panel use. The contribution owns the
+  `notepadia.functionList.toggle` command, its `isToggled` answer
+  (`getAreaFor` + `isExpanded` + `widget.isVisible`) and the
+  `View > Function List` item; the toolbar item calls the same command, so both
+  paths toggle one singleton.
+- Parsing lives in `common/function-list-rules.ts` and is deliberately *not* a
+  parser: `parseFunctionList(text, languageId)` runs one regex per language over
+  the text, skipping lines whose trimmed form starts with the language's comment
+  prefix. A per-rule table maps language id to `{ kind, name, line }` regexes,
+  and the table is bounded twice - `MAX_RULE_LINE_LENGTH` (500) drops absurdly
+  long lines and `MAX_FUNCTION_ENTRIES` (5000) caps what one file can produce -
+  so the editor's `onDidChangeContent` cannot be turned into a stall by a huge
+  or generated file.
+- The widget holds exactly one parser result for the model it is showing.
+  `onCurrentEditorChanged` re-reads the editor and re-parses on every tab or
+  split switch; content changes go through a 250 ms trailing debounce;
+  `onDidChangeLanguage` re-parses because the rules are per language. Both the
+  current editor and the language listener are disposed with the widget, and
+  listeners are pushed off the model they belong to before a new one is attached
+  so switching files cannot leak listeners into a closed editor.
+- `bash` is accepted as an alias of this build's `shellscript` id, since the two
+  spellings differ between Monaco language registrations.
+- Rendering is a roving-`tabindex` ARIA `tree` with `treeitem` rows carrying
+  `aria-level`, `aria-selected` and an `aria-activedescendant` on the tree.
+  `ArrowUp` / `ArrowDown` / `Home` / `End` move the selection and `Enter` jumps
+  to the selected row's line. A click and an `Enter` both call one `navigate`,
+  which clamps the line to the model's length and uses `setPosition` +
+  `revealPositionInCenterIfOutsideViewport` + `setSelection` on the control, so
+  the caret lands on the declaration and the status bar agrees. Sorting
+  (document order or A-Z) and the name filter are view state over the parsed
+  entries, never a re-parse.
+
 ### Toolbar
 
 `NotepadiaToolbarContribution` mounts the Notepad++ toolbar into the shell's

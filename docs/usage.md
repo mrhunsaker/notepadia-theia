@@ -207,7 +207,8 @@ sections:
   All**, a **Fold Level** submenu, Document Map, Document List, **Clone to
   Other View** / **Move to Other View**, **Synchronize Vertical Scrolling** /
   **Synchronize Horizontal Scrolling**, **Summary...**, **Full Screen**,
-  **Post-It**, Word Wrap, Toolbar, Status Bar and a **Tab Bar** submenu (see
+  **Post-It**, Word Wrap, Toolbar, Status Bar, **Function List** (see
+  [Function List panel](#function-list-panel)) and a **Tab Bar** submenu (see
   [Show Symbol, folding and the split view](#show-symbol-folding-and-the-split-view)).
 - **Window**: the first ten open documents, numbered from one, and **Windows...**
   (see [The Window menu](#the-window-menu)).
@@ -286,12 +287,13 @@ toggles the strip on and off, and the choice survives reloads.
   Close All), Print, clipboard (Cut / Copy / Paste), history (Undo / Redo),
   search (Find, Replace, Find Next, Find Previous), zoom (In / Out /
   Restore Default), view toggles (Word Wrap, Show All Characters, Document
-  Map, Folder as Workspace) and macros (Start Recording, Stop Recording,
-  Play Recording).
+  Map, Folder as Workspace, Function List) and macros (Start Recording, Stop
+  Recording, Play Recording).
 - **State**: buttons that map to a real toggle — `Word Wrap`,
-  `Show All Characters`, `Document Map`, `Folder as Workspace` and
-  `Start Recording` — render `aria-pressed`, so their state is visible and
-  announced. Buttons without a toggled meaning never claim one.
+  `Show All Characters`, `Document Map`, `Folder as Workspace`,
+  `Function List` and `Start Recording` — render `aria-pressed`, so their
+  state is visible and announced. Buttons without a toggled meaning never claim
+  one.
 - **Keyboard**: the strip is a single tab stop (ARIA toolbar / roving
   tabindex). `→` / `←` move between buttons, `Home` / `End` jump to the
   first/last, and `Enter` activates the focused button. Disabled buttons are
@@ -593,6 +595,40 @@ that adds hits announces the new count.
     A Find in Files header stops at `in 5 files`. The workspace search
     backend reports the matches it found but never how many files it looked
     at, and a made-up `of N searched` would be worse than none.
+
+## Function List panel
+
+`View ▸ Function List` opens a panel down the right-hand side listing the
+functions of the file you are editing, in the order Notepad++ lists them. The
+same command hides it again, and the toolbar carries a **Function List** button
+that toggles it too.
+
+The list reads the text of the current document, so it keeps itself current: it
+re-reads 250 ms after you stop typing, and again when you switch to a file in
+another language. It never writes to your document.
+
+Each row reads the function's name, its kind (`function`, `class` or `section`)
+and the line it is declared on, and clicking a row puts the caret on that
+line. Use the filter box to narrow the list by name as you type;
+`Escape` clears it. The sort button reads `A-Z` or `1-9` and toggles between
+document order (the default, top to bottom) and alphabetical; its pressed state
+and tooltip say which of the two is in force.
+
+Languages with rules include JavaScript, TypeScript, Python, C, C++, C#, Java,
+PHP, Ruby, PowerShell, Bash and shell scripts, SQL, JSON, XML, HTML, Markdown,
+INI, Go and Rust. A file in a language with no rules, or one with nothing
+declared in it, says so instead of showing an empty box.
+
+The panel is a tree to a screen reader: the list is announced as a tree naming
+the language it is listing, each row announces its name, kind and line, and the
+row holding the list's own cursor is announced as selected. `Up` and `Down` move
+that cursor, `Home` and `End` jump to the ends, and `Enter` jumps to the
+cursor's row in the editor.
+
+!!! note
+    The list is built by matching each language's declaration syntax, not by
+    parsing the file. A declaration written in a way the pattern does not
+    recognise is not listed.
 
 ## Clipboard History
 
