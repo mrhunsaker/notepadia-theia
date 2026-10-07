@@ -4,6 +4,12 @@ import {
     MenuModelRegistry
 } from '@theia/core/lib/common';
 import { CommonCommands, CommonMenus } from '@theia/core/lib/browser';
+import {
+    FileNavigatorCommands,
+    NAVIGATOR_CONTEXT_MENU,
+    NavigatorContextMenu
+} from '@theia/navigator/lib/browser/navigator-contribution';
+import { WorkspaceCommands } from '@theia/workspace/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaShellCommands } from './notepadia-shell-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
@@ -118,6 +124,38 @@ export class NotepadiaMenuContribution implements MenuContribution {
         unregister(CommonCommands.COPY_PATH.id, editClipboard);
         unregister('file.copyDownloadLink', editClipboard);
         unregister('navigator.copyRelativeFilePath', editClipboard);
+
+        // E3 - trim the File Navigator's context menu to Notepad++'s Folder as
+        // Workspace menu. Notepad++ shows Open, New (file/folder), Rename,
+        // Delete, Remove from Folder as Workspace, Copy path and Find in Files;
+        // everything else Theia adds (Open With, Copy/Paste, Copy Relative
+        // Path, Copy Download Link, Duplicate, Compare, Download/Upload,
+        // Collapse All) has no place there. The commands themselves stay bound,
+        // so the removed entries only disappear from this menu.
+        unregister(FileNavigatorCommands.OPEN_WITH.id, NAVIGATOR_CONTEXT_MENU);
+        unregister(CommonCommands.COPY.id, NAVIGATOR_CONTEXT_MENU);
+        unregister(CommonCommands.PASTE.id, NAVIGATOR_CONTEXT_MENU);
+        unregister(WorkspaceCommands.COPY_RELATIVE_FILE_PATH.id, NAVIGATOR_CONTEXT_MENU);
+        unregister('file.copyDownloadLink', NAVIGATOR_CONTEXT_MENU);
+        unregister('file.upload', NAVIGATOR_CONTEXT_MENU);
+        unregister('file.download', NAVIGATOR_CONTEXT_MENU);
+        unregister(WorkspaceCommands.FILE_DUPLICATE.id, NAVIGATOR_CONTEXT_MENU);
+        unregister(WorkspaceCommands.FILE_COMPARE.id, NAVIGATOR_CONTEXT_MENU);
+        unregister('compare:first', NAVIGATOR_CONTEXT_MENU);
+        unregister('compare:second', NAVIGATOR_CONTEXT_MENU);
+        unregister(FileNavigatorCommands.COLLAPSE_ALL.id, NAVIGATOR_CONTEXT_MENU);
+        // Theia's own folder search, replaced by the shared Find in Files entry
+        // below so the menu carries one search command, as Notepad++ does.
+        unregister('search-in-workspace.in-folder', NAVIGATOR_CONTEXT_MENU);
+        // Notepad++'s Folder as Workspace can search the selected folder. The
+        // Find in Files dialog is shared, so this entry opens it on the Find in
+        // Files tab; the selected folder is not prefilled into its directory
+        // field (the dialog owns that state), which the follow-up records.
+        menus.registerMenuAction(NavigatorContextMenu.SEARCH, {
+            commandId: NotepadiaFindCommands.OPEN_FILES.id,
+            label: 'Find in Files...',
+            order: 'a'
+        });
 
         // File (Notepad++ order)
         menus.registerMenuAction(file, {

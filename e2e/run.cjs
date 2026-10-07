@@ -26,6 +26,7 @@ const SUITES = [
     'postit-fullscreen',
     'summary',
     'theme',
+    'chrome',
     'toolbar',
     'search',
     'find-dialog',

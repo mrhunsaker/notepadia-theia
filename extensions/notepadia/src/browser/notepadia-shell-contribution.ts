@@ -1,11 +1,12 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
-import { FrontendApplication, FrontendApplicationContribution, Widget } from '@theia/core/lib/browser';
+import { FrontendApplication, FrontendApplicationContribution, Widget, WidgetManager } from '@theia/core/lib/browser';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-menus';
 import { StatusBar } from '@theia/core/lib/browser/status-bar/status-bar';
 import { PreferenceService } from '@theia/core/lib/common/preferences';
+import { EXPLORER_VIEW_CONTAINER_ID } from '@theia/navigator/lib/browser/navigator-widget-factory';
 import { NOTEPADIA_TAB_ID_PREFIX } from './notepadia-tab-decorator';
 import { editorZoomAction } from '../common/zoom-chords';
 
@@ -17,6 +18,22 @@ export const NOTEPADIA_STATUS_BAR_VISIBLE_PREFERENCE = 'notepadia.statusBar.visi
 export const NOTEPADIA_TAB_BAR_MULTI_LINE_PREFERENCE = 'notepadia.tabBar.multiLine';
 /** Draw a close button on every tab (A4); when disabled it only shows on the active tab. */
 export const NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE = 'notepadia.tabBar.drawCloseButton';
+
+/**
+ * E3 - the title Notepad++ gives its left panel, regardless of which folder is
+ * open. The title is applied to the Explorer `ViewContainer` that hosts the
+ * navigator (see {@link NotepadiaShellContribution.applyFolderWorkspaceTitle}).
+ */
+export const FOLDER_AS_WORKSPACE_LABEL = 'Folder as Workspace';
+
+/**
+ * E3 - the Theia icon theme preference. Notepad++'s Folder as Workspace has no
+ * per-file language icons, so the shell selects the built-in `none` theme
+ * unless the user has already chosen one.
+ */
+export const NOTEPADIA_ICON_THEME_PREFERENCE = 'workbench.iconTheme';
+/** The id of the built-in Theia icon theme that draws no file icons. */
+export const NOTEPADIA_ICON_THEME_NONE = 'none';
 
 /**
  * Body classes owned by the shell layer. `notepadia-chrome` gates the
@@ -69,7 +86,8 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
     constructor(
         @inject(ApplicationShell) protected readonly shell: ApplicationShell,
         @inject(StatusBar) protected readonly statusBar: StatusBar,
-        @inject(PreferenceService) protected readonly preferenceService: PreferenceService
+        @inject(PreferenceService) protected readonly preferenceService: PreferenceService,
+        @inject(WidgetManager) protected readonly widgetManager: WidgetManager
     ) { }
 
     async onStart(_app: FrontendApplication): Promise<void> {
@@ -90,6 +108,19 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
 
         // D2 - keep Ctrl+= / Ctrl+- / Ctrl+0 on the editor's zoom.
         document.addEventListener('keydown', this.handleZoomChord, true);
+
+        // E3 - present the File Navigator as Notepad++'s Folder as Workspace.
+        // The panel header is the Explorer `ViewContainer` that hosts the
+        // navigator, so that is the widget whose title must read the Notepad++
+        // name. It may be created either side of this contribution's layout
+        // callback, so it is retitled both when the container widget is created
+        // and, below, when the layout is already in place.
+        this.widgetManager.onDidCreateWidget(({ factoryId, widget }) => {
+            if (factoryId === EXPLORER_VIEW_CONTAINER_ID) {
+                this.applyFolderWorkspaceTitle(widget);
+            }
+        });
+        this.applyPlainIconTheme();
 
         // A4 - View > Tab Bar > Draw Close Button.
         this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
@@ -190,6 +221,57 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
         // menu.
         await this.shell.collapsePanel('left').catch(() => { });
         await this.shell.collapsePanel('right').catch(() => { });
+        // E3 - for a layout that already contained the navigator, `onStart`'s
+        // creation listener has already fired; this covers the case where the
+        // widget was created before this contribution started.
+        const explorerContainer = await this.widgetManager.getWidget(EXPLORER_VIEW_CONTAINER_ID);
+        if (explorerContainer) {
+            this.applyFolderWorkspaceTitle(explorerContainer);
+        }
+    }
+
+    /**
+     * E3 - label the Explorer panel "Folder as Workspace", as Notepad++ does.
+     *
+     * The panel header reads the hosting `ViewContainer`'s title, not the
+     * navigator widget's, so the container is retitled. A `ViewContainer`
+     * normally settles its title once, but the navigator decorates or renames
+     * child widgets over time, so the label is also guarded against later
+     * rewrites. Lumino's `title.changed` signal is the supported hook: setting
+     * the label from the handler re-renders the panel header, and the second
+     * pass is a no-op because the label already matches, so the signal cannot
+     * loop. The guard makes the hook idempotent for a re-created widget.
+     */
+    protected applyFolderWorkspaceTitle(widget: Widget): void {
+        const title = widget.title as typeof widget.title & { notepadiaFolderWorkspace?: boolean };
+        if (title.notepadiaFolderWorkspace) {
+            return;
+        }
+        title.notepadiaFolderWorkspace = true;
+        if (title.label !== FOLDER_AS_WORKSPACE_LABEL) {
+            title.label = FOLDER_AS_WORKSPACE_LABEL;
+        }
+        title.changed.connect(() => {
+            if (title.label !== FOLDER_AS_WORKSPACE_LABEL) {
+                title.label = FOLDER_AS_WORKSPACE_LABEL;
+            }
+        });
+    }
+
+    /**
+     * E3 - Notepad++'s Folder as Workspace shows plain names, not a per-language
+     * icon theme. The built-in `none` theme draws no file icons; it is only
+     * selected when the user has not already chosen one, so an explicit
+     * preference is never overwritten.
+     */
+    protected applyPlainIconTheme(): void {
+        const inspection = this.preferenceService.inspect<string>(NOTEPADIA_ICON_THEME_PREFERENCE);
+        const userSet = !!inspection && (inspection.globalValue !== undefined
+            || inspection.workspaceValue !== undefined
+            || inspection.workspaceFolderValue !== undefined);
+        if (!userSet) {
+            this.preferenceService.set(NOTEPADIA_ICON_THEME_PREFERENCE, NOTEPADIA_ICON_THEME_NONE).catch(() => { });
+        }
     }
 
     registerCommands(commands: CommandRegistry): void {

@@ -52,10 +52,13 @@ async function bodyClass(page, name) {
     assert('clean tab carries saved state', state && state.classes.includes('notepadia-tab-saved'),
         JSON.stringify(state && state.classes));
 
-    // The default file icon is suppressed and the state icon is painted.
+    // The default file icon is suppressed and the state icon is painted. With
+    // the E3 icons theme (`workbench.iconTheme: none`) Theia renders no tab
+    // icon element at all, so "suppressed" is either our display:none under the
+    // older themes or an absent element - both mean the icon is not shown.
     assert('state icon painted via label ::before', state && state.bgImage.includes('data:image/svg+xml'),
         JSON.stringify(state && state.bgImage));
-    assert('default tab icon suppressed on state tab', state && state.iconDisplay === 'none',
+    assert('default tab icon suppressed on state tab', state && (state.iconDisplay === 'none' || state.iconDisplay === null),
         JSON.stringify(state && state.iconDisplay));
 
     // Type into the editor: the tab flips to the dirty state.

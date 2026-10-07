@@ -630,6 +630,23 @@ cursor's row in the editor.
     parsing the file. A declaration written in a way the pattern does not
     recognise is not listed.
 
+## Folder as Workspace panel
+
+The file tree Notepad++ calls Folder as Workspace is Notepadia's left panel. It
+starts hidden; `View ▸ Folder as Workspace`, or the matching toolbar button,
+opens it, and the same toggle closes it again.
+
+The panel is headed `Folder as Workspace` whatever folder is open, rather than
+taking the workspace root's name the way VS Code's Explorer does. Its rows are
+drawn Notepad++'s way — a tight 20px line and plain names rather than a
+per-language file icon — and a right-click opens the Folder as Workspace menu
+(New File, New Folder, Find in Files, Copy Path, Rename, Delete, Remove Folder)
+rather than Explorer's full editor menu.
+
+!!! note
+    Notepad++'s separate multi-root Project Panels 1, 2 and 3 are not built.
+    The single Folder as Workspace tree is the whole of the left panel.
+
 ## Clipboard History
 
 `Edit ▸ Clipboard History` opens a panel listing what you have copied in this

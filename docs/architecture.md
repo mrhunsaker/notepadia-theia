@@ -289,6 +289,37 @@ emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
   (document order or A-Z) and the name filter are view state over the parsed
   entries, never a re-parse.
 
+### Folder as Workspace panel
+
+- There is no bespoke tree: the panel is Theia's File Navigator presented the
+  way Notepad++ presents Folder as Workspace. The side panel header reads the
+  hosting `ViewContainer`'s title, not the navigator widget's, so
+  `NotepadiaShellContribution` retitles the container with id
+  `explorer-view-container` to `Folder as Workspace`. Lumino's `title.changed`
+  signal is used rather than a one-off assignment, so a later rename is
+  corrected and the header re-renders; the label already matching makes the
+  second pass a no-op, so the signal cannot loop.
+- The container may be created on either side of this contribution's
+  `onDidInitializeLayout`, so it is retitled both from
+  `WidgetManager.onDidCreateWidget` (keyed on the container's factory id) and
+  from `onDidInitializeLayout` via `getWidget`, whichever runs last.
+- The tree is tightened in `style/notepadia-shell.css` behind the
+  `body.notepadia-chrome` gate (20px rows, smaller expansion toggle, 12px
+  segments). The built-in `none` icon theme is selected once on startup
+  (`workbench.iconTheme`) so the names are plain, as they are in Notepad++, and
+  only when the user has not already set the preference in any scope.
+- `NotepadiaMenuContribution` trims the navigator's context menu in place with
+  the existing `unregisterMenuAction` pattern, scoped to
+  `NAVIGATOR_CONTEXT_MENU`: Open, New File, New Folder, Copy Path, Rename,
+  Delete and Remove Folder stay; Open With, Copy/Paste, Copy Relative Path,
+  Copy Download Link, Duplicate, Compare, Download/Upload and Collapse All go.
+  A `Find in Files...` entry is registered in the menu's search group and opens
+  the shared Find dialog on its Find in Files tab.
+- The panel starts collapsed (`ApplicationShell.collapsePanel('left')` in
+  `onDidInitializeLayout`), and `notepadia.view.toggleFolderWorkspace` answers
+  `isToggled` from `shell.isExpanded('left')`, so the View item and the toolbar
+  button are one state.
+
 ### Toolbar
 
 `NotepadiaToolbarContribution` mounts the Notepad++ toolbar into the shell's

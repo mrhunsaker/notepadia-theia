@@ -381,3 +381,38 @@ body.notepadia-chrome .lm-DockPanel.lm-main .lm-DockPanel-separator {
   padding: 8px;
   opacity: 0.7;
 }
+
+/*
+ * E3 - Folder as Workspace.
+ *
+ * The Theia navigator presents as VS Code's Explorer: 22px rows with a
+ * language file icon per entry. Notepad++'s Folder as Workspace is denser and
+ * monochrome, so the tree is tightened and the icon theme is set to `none` (see
+ * notepadia-shell-contribution.ts), leaving the plain name.
+ */
+
+body.notepadia-chrome .theia-Files .theia-TreeNode {
+  height: 20px;
+  min-height: 20px;
+  line-height: 20px;
+}
+
+body.notepadia-chrome .theia-Files .theia-TreeNodeContent {
+  padding-right: 4px;
+}
+
+body.notepadia-chrome .theia-Files .theia-ExpansionToggle {
+  min-width: 16px;
+  min-height: 16px;
+  color: var(--theia-foreground);
+  opacity: 0.75;
+}
+
+body.notepadia-chrome .theia-Files .theia-tree-node-indent {
+  height: 20px;
+  border-right-color: var(--theia-tree-inactiveIndentGuidesStroke);
+}
+
+body.notepadia-chrome .theia-Files .theia-TreeNodeSegment {
+  font-size: 12px;
+}
