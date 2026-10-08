@@ -1,0 +1,31 @@
+name: Notepadia Docker smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t notepadia:smoke .
+
+      - name: Run the image and probe the served index
+        run: |
+          docker run -d --name notepadia-smoke -p 127.0.0.1:3100:3000 notepadia:smoke
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3100/ | grep -q "Notepadia"; then
+              echo "pass: served index contains the Notepadia page"
+              docker stop notepadia-smoke
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "fail: image did not serve the app within 5 minutes"
+          docker logs notepadia-smoke || true
+          docker stop notepadia-smoke || true
+          exit 1

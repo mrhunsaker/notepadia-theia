@@ -1,0 +1,15 @@
+# Caddy reverse proxy for Notepadia (used by docker-compose.yml).
+#
+# The default below terminates TLS with a self-signed certificate via
+# `tls internal`, so a LAN deployment works with no public DNS. Two changes
+# for a real deployment:
+#   - replace notes.example.org with a hostname your users resolve, and
+#   - add an ACME-enabled public domain (e.g. editor.example.com) and an email
+#     address, then delete the `tls internal` line - Caddy will fetch a
+#     Let's Encrypt certificate automatically.
+
+notes.example.org {
+    tls internal
+
+    reverse_proxy notepadia:3000
+}

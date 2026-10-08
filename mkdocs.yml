@@ -44,5 +44,6 @@ nav:
   - Accessibility: accessibility.md
   - Architecture: architecture.md
   - Development: development.md
+  - Deployment: deployment.md
   - Packaging: packaging.md
   - Releases & updates: releases.md

@@ -1,0 +1,45 @@
+# Notepadia - one shared workspace plus a TLS-terminating Caddy proxy.
+#
+# Read docs/deployment.md BEFORE serving this to more than one person:
+# every visitor shares the /workspace volume and one set of preferences.
+# There is no authentication and no per-user isolation in the app itself.
+#
+# First run:
+#   1. Edit the site name in Caddyfile (replace notes.example.org).
+#   2. docker compose up -d
+#   3. Open https://<your-host> - Caddy uses `tls internal` (self-signed),
+#      so clients accept the certificate once, or set a public domain and a
+#      real ACME email to get a trusted certificate automatically.
+
+services:
+  notepadia:
+    build: .
+    image: notepadia:local
+    restart: unless-stopped
+    init: true
+    volumes:
+      - notepadia-workspace:/workspace
+    # Not published on the host: it is only ever reached through Caddy, which
+    # is what gives browsers the https:/secure-context the app's local-file
+    # and clipboard features need. Bind -p 127.0.0.1:3000:3000 for a
+    # single-user localhost shape instead.
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - notepadia
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  notepadia-workspace:
+  caddy-data:
+  caddy-config:

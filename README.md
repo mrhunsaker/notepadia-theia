@@ -351,19 +351,17 @@ Remaining work, in execution order:
    browser-level accelerator check that cannot be driven from Puppeteer (see
    [shortcuts the browser
    claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims))
-2. Remaining menu and panel debt: menu completeness including the Window
-   menu, the Function List panel and Folder-as-Workspace presentation, an
-   incremental search bar, a browser-appropriate Run menu, and the Search
-   Results window
-3. Accessibility and release verification: keyboard/screen-reader/contrast
-   verification, test growth with a visual baseline, a documentation truth
-   pass, macOS release-workflow verification, Electron parity for everything
-   added, and the first published `vYYYY.M.D` release to prove the updater
-   flow end to end
+2. Deployment and verification debt: a deployment story for other people
+   (shared-server caveats, a Docker image and a TLS reverse-proxy example, in
+   `docs/deployment.md`), e2e screenshot baselines, the documentation truth
+   pass, the never-run macOS release leg, an Electron parity pass for the
+   browser-first work, and the first published `vYYYY.M.D` release proving
+   the updater flow end to end
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),
-[development](https://mrhunsaker.github.io/notepadia-theia/development/) and
+[development](https://mrhunsaker.github.io/notepadia-theia/development/),
+[deployment](https://mrhunsaker.github.io/notepadia-theia/deployment/) and
 [release](https://mrhunsaker.github.io/notepadia-theia/releases/) guidance.
 
 ## License

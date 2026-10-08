@@ -1,0 +1,11 @@
+.git
+.gitignore
+.github
+.idea
+.vscode
+site
+e2e-artifacts
+**/node_modules
+**/lib
+**/dist
+**/*.log

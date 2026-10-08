@@ -36,6 +36,11 @@ needed per edit, which makes the browser target the fastest way to iterate.
     `files.autoSave: "off"`, matching Notepad++'s "never auto-save"
     convention.
 
+For running the app for other people - a LAN server, a TLS-terminated shared
+instance, or a Docker image - see the [deployment
+guide](deployment.md). It opens with the caveat that Theia's browser backend
+offers no per-user isolation, which decides what you can safely deploy.
+
 ## Run the desktop app (unpackaged)
 
 ```bash
