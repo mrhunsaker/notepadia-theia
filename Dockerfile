@@ -24,6 +24,11 @@ COPY package.json yarn.lock .npmrc .yarnrc lerna.json ./
 COPY applications applications
 COPY extensions extensions
 COPY scripts scripts
+# puppeteer (a dev-only dependency of @theia/cli and this repo) triggers a
+# chrome-headless-shell download during install, and its extractor needs the
+# unzip/tar binaries that slim images do not ship. The browser is never used at
+# runtime, so skip the download entirely.
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN corepack enable && corepack prepare yarn@1.22.22 --activate \
     && yarn install --frozen-lockfile
 
