@@ -23,6 +23,11 @@ The product is organized as a monorepo:
   behind Ctrl+F, Ctrl+H, Ctrl+Shift+F and Ctrl+M, replacing Monaco's inline
   find widget, with the Find in Files tab driving workspace search and the
   Mark tab providing the five Notepad++ mark styles.
+- A **Search Results window** behind F7 (plus F4/Shift+F4 stepping) that keeps
+  the hits of every Find All and Find-in-Files run.
+- An **Incremental Search bar** behind Ctrl+Alt+I: live per-keystroke jumping
+  with wrap-around, Enter/Shift+Enter stepping, a red-and-announced
+  `no match` state, and Escape restoring the caret unless a jump was accepted.
 - Notepad++-style shortcuts: Ctrl+D (duplicate line), Ctrl+L (delete line),
   Ctrl+F2 bookmarks, and more.
 - Browser-proof shortcuts: the chords a browser claims (`Ctrl+N`, `Ctrl+W`,
@@ -125,6 +130,11 @@ Project milestones:
 - **M28** Notepad++ tabbed Find dialog: a single modeless dialog for Find,
   Replace, Find in Files and Mark, with workspace search, the five mark
   styles, and the Mark controls kept in a `Search ▸ Mark` submenu.
+- **M29** Search Results window: F7 shows every Find All / Find in Files run,
+  F4/Shift+F4 step the hits and wrap, and a live region announces new counts.
+- **M30** Incremental search bar: Ctrl+Alt+I searches live from the caret with
+  wrap-around, Enter/Shift+Enter stepping, Highlight all, a red `no match`
+  state that aria-live announces, and per-session caret restoration on Escape.
 
 See [Architecture](architecture.md) for the internal design,
 [Accessibility](accessibility.md) for keyboard and screen reader support, and

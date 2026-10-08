@@ -181,6 +181,14 @@ The Notepad++-style feature layer is implemented as the shared
   Ctrl+Shift+F / Ctrl+M) with Find, Replace, Find in Files and Mark tabs,
   which replaces Monaco's inline find widget; the Mark controls also stay
   reachable from a Search > Mark submenu
+- a Search Results window (F7 / F4 / Shift+F4): a foot panel that keeps every
+  Find All and Find-in-Files run's hits, with wrapping next/previous stepping
+  and a tree that announces itself to screen readers
+- an Incremental Search bar (Ctrl+Alt+I): the thin bottom strip that jumps to
+  the next match as you type with wrap-around, turns red and announces
+  `no match` when nothing matches, shares its term / Match case / search mode
+  with the Find dialog, and restores the caret on Escape until you accept a
+  jump
 - Search > Mark: Mark/Mark All/Clear Marks color the search term in one of
   five styles; Select and Find Next adds each next occurrence to the
   selection

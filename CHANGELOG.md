@@ -1,5 +1,55 @@
 # Changelog
 
+## 2026.10.07 (Incremental Search)
+
+- **Notepad++'s Incremental Search bar - live, from the caret.** `Ctrl+Alt+I`
+  (or `Search ▸ Incremental Search`) opens a thin bar docked at the foot of
+  the editor. Unlike the Find dialog it does not wait for a button: every
+  keystroke searches the whole term and jumps to the next occurrence after the
+  caret, wrapping around the end of the document. `Enter` / `Shift+Enter` (and
+  the **▲**/**▼** buttons) step one occurrence at a time, and a **Highlight
+  all** checkbox colours every occurrence before cleaning up when the bar
+  closes.
+- **No match is red, and it is spoken.** A search that finds nothing turns the
+  field background red - Notepad++'s signature feedback - and a `role="status"`
+  live region announces `no match`, so a screen reader hears what the colour
+  shows.
+- **The bar and the Find dialog agree.** The term, **Match case** and the
+  Search Mode radios (Normal / Extended / Regular expression) come from the
+  same shared sources the Find dialog uses, so toggling Match case in either UI
+  changes it in both and the bar's searches honour the mode.
+- **Escape returns the caret - unless you accepted a jump.** The bar remembers
+  the caret it opened on and puts it back on Escape while no match has been
+  accepted; once a match has been stepped to with Enter, Escape keeps the jump.
+  Escape works from any control inside the bar, not just the text field.
+- Two details a first draft got wrong are worth naming. `ReactWidget` does not
+  paint until it receives an update request after attach, and the bottom dock's
+  activation is asynchronous and slow, so the widget forces an early render
+  and the focus loop keeps requesting focus on the term field until it sticks -
+  otherwise the first keystrokes land in the editor. Monaco draws selections as
+  empty overlay rectangles, so the `incremental-search` e2e suite reads the
+  selected text by geometry, not by scraping the overlay.
+
+## 2026.10.04 (Search Results window (F7))
+
+- **Every search you run is now remembered.** `F7` (or
+  `Search ▸ Search Results Window`) opens a panel at the foot of the window
+  that lists the hits of the two Find All actions and of Find in Files' Find
+  All, newest run last, each under a header such as
+  `Search "foo" (12 hits in 3 files of 1 searched)`. A group stays until you
+  clear it, and each group's files can be collapsed and expanded.
+- **`F4` / `Shift+F4` walk the results, wrapping at either end.** With no row
+  chosen, stepping starts from the caret in the editor, so F4 straight after a
+  search lands on the hit at or after the caret rather than the top of the
+  list.
+- **The results are a tree to a screen reader.** Each row announces its level
+  and expanded or collapsed state, one roving `aria-activedescendant` carries
+  the cursor, and a search that adds hits announces the new count through a
+  polite live region.
+- A workspace header stops at `in N files`: the search backend reports the
+  matches it found but never how many files it looked at, and a guessed
+  `of N searched` would be worse than none.
+
 ## 2026.10.04 (Keyboard and screen reader verification)
 
 - **The workbench is reachable with Tab alone, and the editor is no longer a
