@@ -198,10 +198,10 @@ sections:
   **Clipboard History** and **Character Panel**. **Bookmarks** are also under
   Edit.
 - **Search**: Find / Find Next / Find Previous / Replace / Find in Files /
-  Replace in Files / Mark / Go To Line / Matching Bracket / Search Results
-  Window / Next Search Result / Previous Search Result / Clear All Search
-  Results, plus a **Mark** submenu (Mark All, Clear All Marks, Select and Find
-  Next).
+  Replace in Files / Mark / Go To Line / Matching Bracket / Incremental Search
+  / Search Results Window / Next Search Result / Previous Search Result /
+  Clear All Search Results, plus a **Mark** submenu (Mark All, Clear All Marks,
+  Select and Find Next).
 - **View**: Zoom, Tab Size, **Show Symbol** (Show Space and TAB, Show All
   Characters, Show End of Line, Show Indent Guide), **Fold All** / **Unfold
   All**, a **Fold Level** submenu, Document Map, Document List, **Clone to
@@ -278,6 +278,25 @@ reporting the match position, e.g. `2 of 4` or `4 results on current document`.
     `. matches newline` option is shown disabled with an explanation rather
     than silently doing nothing. Notepad++ supports it; this build does not.
 
+## Incremental Search
+
+`Ctrl+Alt+I` (or `Search ▸ Incremental Search`) opens Notepad++'s Incremental
+Search bar, a thin strip docked at the foot of the editor. Unlike the Find
+dialog it searches as you type: every keystroke jumps to the next occurrence
+of the whole term after the caret, wrapping around the end of the document.
+
+- `Enter` / `Shift+Enter` step to the next / previous occurrence; the **▲** /
+  **▼** buttons do the same.
+- **Highlight all** colors every occurrence and cleans up when the bar closes.
+- **Match case** is shared with the Find dialog, so either UI toggles the same
+  setting, and the **Search Mode** radios (Normal / Extended / Regular
+  expression) apply to the bar's search too.
+- When nothing matches, the field turns red and the bar announces `no match`
+  through an aria-live region instead of just showing red.
+- `Escape` closes the bar. If no match was accepted during the session the
+  caret returns to where it was when the bar opened; once a match has been
+  stepped to with Enter, `Escape` keeps the jump.
+
 ## Toolbar
 
 A 26px Notepad++-style toolbar runs under the menu bar. `View ▸ Toolbar`
@@ -334,6 +353,7 @@ whether every tab shows an always-visible `x` on hover.
 | Ctrl+H | Open the tabbed Find dialog (Replace tab) |
 | Ctrl+Shift+F | Open the tabbed Find dialog (Find in Files tab) |
 | Ctrl+M | Open the tabbed Find dialog (Mark tab) |
+| Ctrl+Alt+I | Toggle the Incremental Search bar |
 | Insert | Toggle INS/OVR (overtype) mode |
 | Ctrl+Alt+N | New document (browser-safe) |
 | Ctrl+F4 | Close document (browser-safe) |

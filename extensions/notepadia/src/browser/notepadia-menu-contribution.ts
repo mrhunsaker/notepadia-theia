@@ -13,6 +13,7 @@ import { WorkspaceCommands } from '@theia/workspace/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaShellCommands } from './notepadia-shell-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
+import { NotepadiaIncrementalSearchCommands } from './notepadia-incremental-search';
 import { NotepadiaSearchMarkCommands } from './notepadia-search-mark';
 import { NotepadiaEditExtrasCommands, NOTEPADIA_EDIT_MENU_PATHS } from './notepadia-edit-extras-contribution';
 import { NotepadiaClipboardHistoryCommands } from './notepadia-clipboard-history-contribution';
@@ -455,6 +456,13 @@ export class NotepadiaMenuContribution implements MenuContribution {
             commandId: NotepadiaCommands.MATCHING_BRACKET.id,
             label: 'Matching Bracket',
             order: 'i'
+        });
+        // B4 - Notepad++'s Incremental Search sits next to Matching Bracket in
+        // the Search menu; it toggles the bottom bar with Ctrl+Alt+I.
+        menus.registerMenuAction(search, {
+            commandId: NotepadiaIncrementalSearchCommands.TOGGLE.id,
+            label: 'Incremental Search',
+            order: 'i.5'
         });
         // Notepad++ keeps a Mark submenu next to Bookmark at the foot of the
         // Search menu. Its entries open the Find dialog on the Mark tab and

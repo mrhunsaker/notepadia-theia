@@ -37,6 +37,10 @@ import { NotepadiaSearchMarkContribution } from './notepadia-search-mark';
 import { NotepadiaFindState } from './notepadia-find-state';
 import { NotepadiaFindDialog } from './notepadia-find-dialog';
 import { NotepadiaFindContribution } from './notepadia-find-contribution';
+import {
+    NotepadiaIncrementalSearchContribution,
+    NotepadiaIncrementalSearchWidget
+} from './notepadia-incremental-search';
 import { NotepadiaMacroContribution } from './notepadia-macro-contribution';
 import { NotepadiaRunContribution } from './notepadia-run-contribution';
 import { NotepadiaSessionContribution } from './notepadia-session-contribution';
@@ -196,6 +200,18 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(NotepadiaFindDialog).toSelf().inSingletonScope();
     bind(NotepadiaFindContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaFindContribution);
+
+    // B4 - Notepad++'s Incremental Search bar, a slim widget docked at the
+    // bottom of the editor area. It is created on demand (getOrCreateWidget)
+    // and toggled by Ctrl+Alt+I or the Search menu entry, so the widget and
+    // the command always share the one factory-created instance.
+    bind(NotepadiaIncrementalSearchWidget).toSelf();
+    bind(WidgetFactory).toDynamicValue(ctx => ({
+        id: NotepadiaIncrementalSearchWidget.ID,
+        createWidget: () => ctx.container.get(NotepadiaIncrementalSearchWidget)
+    }));
+    bind(NotepadiaIncrementalSearchContribution).toSelf().inSingletonScope();
+    bind(CommandContribution).toService(NotepadiaIncrementalSearchContribution);
 
     bind(NotepadiaMacroContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(NotepadiaMacroContribution);

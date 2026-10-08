@@ -30,6 +30,7 @@ const SUITES = [
     'toolbar',
     'search',
     'find-dialog',
+    'incremental-search',
     'document-list',
     'spaces-tabs',
     'status-bar',

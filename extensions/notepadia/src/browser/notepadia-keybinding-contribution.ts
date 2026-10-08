@@ -7,6 +7,7 @@ import {
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaOvertypeCommands } from './notepadia-overtype-contribution';
 import { NotepadiaFindCommands } from './notepadia-find-contribution';
+import { NotepadiaIncrementalSearchCommands } from './notepadia-incremental-search';
 import { NotepadiaLocalFileCommands } from './notepadia-local-files-contribution';
 import { NotepadiaEditExtrasCommands } from './notepadia-edit-extras-contribution';
 import {
@@ -123,6 +124,13 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
         keybindings.registerKeybinding({
             command: NotepadiaFindCommands.OPEN_MARK.id,
             keybinding: 'ctrlcmd+m'
+        });
+        // B4 - Ctrl+Alt+I mirrors Notepad++'s Incremental Search bar. The
+        // browser does not claim the chord, so the native binding is the only
+        // one.
+        keybindings.registerKeybinding({
+            command: NotepadiaIncrementalSearchCommands.TOGGLE.id,
+            keybinding: 'ctrlcmd+alt+i'
         });
         keybindings.registerKeybinding({
             command: NotepadiaCommands.GO_TO_LINE.id,

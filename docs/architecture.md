@@ -216,6 +216,39 @@ the menu (>= ~640px) for hover/submenu interactions.
 - The tree keeps one cursor, so F4 / Shift+F4 step through a flat list of
   visible hits and wrap; with no row chosen it starts from the editor's caret.
 
+### Incremental Search (Ctrl+Alt+I)
+
+`NotepadiaIncrementalSearchWidget` is a `ReactWidget` on `WidgetManager` id
+`notepadia.incrementalSearch`, created through a `WidgetFactory` binding and
+docked into the shell's bottom area on first use, mirroring the Search Results
+window. `NotepadiaIncrementalSearchContribution` binds the toggle command, the
+`ctrlcmd+alt+i` keybinding and the `Search ▸ Incremental Search` menu entry
+(order `i.5`, between Matching Bracket and the Search Results entries).
+
+- Every keystroke re-runs the search from the session anchor (the caret
+  captured when the bar opened) with `findNextMatch`/`findPreviousMatch` and
+  wrap; the term is resolved with the B2 `resolveSearch` helper and the mode
+  from `NotepadiaSearchMarkContribution.searchMode()`, so mode and Match case
+  come from the same shared sources the Find dialog uses, and the term is
+  written back to `NotepadiaFindState`.
+- `Enter` / `Shift+Enter` (and the **▲**/**▼** buttons) step by one occurrence
+  and mark the session as accepted. `Escape` closes the bar and, unless a
+  match was accepted, restores the anchor caret via the `initialSelection`
+  captured on open.
+- Highlight all is one `IEditorDecorationsCollection` reused with `.set()`
+  (the same pattern as bookmarks and search-mark), styled by
+  `notepadia-incremental-highlight`. A single `onKeyDown` on the container div
+  owns the Escape / Enter handling, so Escape dismisses the bar no matter which
+  control inside it has focus.
+- A `no-match` class paints the field with
+  `--theia-inputValidation-errorForeground`, and a `role="status"` region
+  announces `no match` so the state is audible as well as visible.
+- `ReactWidget` only renders on an update request once attached, and the
+  shell's bottom-dock activation is asynchronous, so the widget forces an
+  early render in `onAfterAttach` and the contribution's focus loop keeps
+  requesting focus on the term field until it sticks - otherwise the first
+  keystrokes would land in the editor.
+
 ### Language menu
 
 `NotepadiaLanguageContribution` exposes Notepad++-style language handling (the
