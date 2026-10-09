@@ -51,10 +51,13 @@ jobs:
         run: |
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
-          elif [ -n "${GITHUB_REF_NAME}" ]; then
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # Pushed a version tag (`vYYYY.M.D`); strip the `v`.
             VERSION="${GITHUB_REF_NAME#v}"
           else
-            # No tag and no input: use the current UTC date (YYYY.M.D).
+            # workflow_dispatch with no version input (its ref is a branch, so
+            # GITHUB_REF_TYPE is "branch", not "tag"): use the current UTC date
+            # (YYYY.M.D).
             VERSION="$(node scripts/set-build-version.mjs)"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
