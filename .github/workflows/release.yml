@@ -100,18 +100,6 @@ jobs:
           - platform: macos
             os: macos-15
             targets: --mac
-    # Per-job signing env. Windows/Linux are always unsigned; the macOS job
-    # signs/notarizes only when the Apple Developer ID secrets are configured,
-    # and stays unsigned (auto-discovery off) otherwise so it never hangs on a
-    # certificate search. `CSC_IDENTITY_AUTO_DISCOVERY` becomes "true" exactly
-    # when `platform == macos` AND `secrets.CSC_LINK` is set.
-    env:
-      CSC_IDENTITY_AUTO_DISCOVERY: ${{ matrix.platform == 'macos' && secrets.CSC_LINK != '' }}
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -163,9 +151,26 @@ jobs:
         working-directory: applications/electron
         run: node ../../scripts/set-build-version.mjs package.json "${{ needs.prepare.outputs.version }}"
 
+      # Signing env is exported only when the Apple secrets actually exist.
+      # electron-builder treats an empty-string CSC_LINK as a path (it resolves
+      # against the project dir and dies with "<dir> not a file"), so these
+      # vars must be left *unset* on unsigned builds rather than set to "".
+      # CSC_IDENTITY_AUTO_DISCOVERY=false skips the keychain cert search on
+      # macOS so the build proceeds unsigned and never hangs on a lookup.
       - name: Package and publish (${{ matrix.platform }})
         working-directory: applications/electron
-        run: npx --no-install electron-builder ${{ matrix.targets }} --publish always
+        run: |
+          if [ "${{ matrix.platform }}" = "macos" ] && [ -n "${{ secrets.CSC_LINK }}" ]; then
+            export CSC_IDENTITY_AUTO_DISCOVERY=true
+            export CSC_LINK="${{ secrets.CSC_LINK }}"
+            export CSC_KEY_PASSWORD="${{ secrets.CSC_KEY_PASSWORD }}"
+            export APPLE_ID="${{ secrets.APPLE_ID }}"
+            export APPLE_APP_SPECIFIC_PASSWORD="${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}"
+            export APPLE_TEAM_ID="${{ secrets.APPLE_TEAM_ID }}"
+          elif [ "${{ matrix.platform }}" = "macos" ]; then
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          npx --no-install electron-builder ${{ matrix.targets }} --publish always
 
       # The user has no local Mac, so every macOS build must be validated here.
       # Verifies the Info.plist, that all configured file-association extensions
