@@ -260,9 +260,9 @@ contribution):
   menus by its own `isVisible` registration gate. It opens Monaco's own
   language quick-pick, which enumerates every registered language.
 - **Curated language list** (JavaScript, TypeScript, HTML, CSS, Markdown, YAML,
-  XML, Python, C, C++, C#, Java, PHP, Ruby, Go, Rust, Shell Script, SQL, Plain
-  Text). Each entry is a menu action calling `editor.setLanguage(id)`, matching
-  Notepad++'s `Language` menu.
+  XML, Python, C, C++, C#, Java, JSON, PHP, PowerShell, Ruby, Go, Rust, Shell
+  Script, SQL, Plain Text). Each entry is a menu action calling
+  `editor.setLanguage(id)`, matching Notepad++'s `Language` menu.
 - Because this build ships almost no registered languages (~`plaintext` and
   `jsonc` only), the contribution **registers the listed languages at startup**
   (`monaco.languages.register({ id, aliases, extensions })`) and attaches a

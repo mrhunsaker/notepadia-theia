@@ -869,16 +869,13 @@ export class NotepadiaViewContribution implements
             order: 'k'
         });
 
-        // Notepad++ also lists Function List and Project Panels here. Neither is
-        // registered, on purpose:
+        // Notepad++ also lists Function List and Project Panels in this menu.
         //
+        //  - `Function List` is registered by
+        //    notepadia-function-list-contribution.ts (E1), next to Document
+        //    Map.
         //  - `Project Panels` is already covered by `Folder as Workspace`
         //    (registered by notepadia-shell-contribution.ts), which is what the
         //    panel step (E3) refines; a second entry would duplicate it.
-        //  - `Function List` depends on E1, which has not been built yet. A menu
-        //    entry with no panel behind it would be a dead row, so it ships with
-        //    E1 instead of ahead of it.
-        //
-        // docs/usage.md records both under "not applicable yet".
     }
 }

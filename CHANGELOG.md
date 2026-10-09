@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.10.08 (Documentation truth pass)
+
+- **The documentation now describes what the app does, not what it was meant
+  to do.** `docs/usage.md` is rewritten around the Notepad++ menu tree - every
+  menu and submenu in order, each entry with its chord and whether a browser
+  limits it - and a new `docs/differences.md` page [Differences from
+  Notepad++](https://mrhunsaker.github.io/notepadia-theia/differences/) records
+  each deliberate deviation and why. The README's "What is implemented" list
+  was checked claim-by-claim against the code and corrected where it had
+  drifted: the Language menu is 21 curated languages (not 22), the toolbar is
+  27 buttons, the e2e suite count is 40, Function List is implemented (not
+  "deliberately absent"), `EOL Conversion` offers LF and CRLF (not CR), and
+  the docs now describe the ISO-8859 family reachable through `Change File
+  Encoding...`. The four product screenshots join the docs home page.
+- **`Ctrl+F5` inserts the long Date & Time again.** The chord had been bound to
+  the *short* format since the browser-chord table was added, so `Ctrl+F5`
+  inserted the same `HH:mm:ss dd/MM/yyyy` as `F5`. It now inserts
+  `ddd, MMM d, yyyy h:mm tt`, matching Notepad++ and the documentation;
+  `Ctrl+Alt+Shift+D` remains the browser-safe alternate.
+
 ## 2026.10.07 (Incremental Search)
 
 - **Notepad++'s Incremental Search bar - live, from the caret.** `Ctrl+Alt+I`

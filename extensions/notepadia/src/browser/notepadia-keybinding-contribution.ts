@@ -204,8 +204,10 @@ export class NotepadiaKeybindingContribution implements KeybindingContribution {
             keybinding: 'f5',
             when: 'editorTextFocus'
         });
+        // Ctrl+F5 is Notepad++'s Date & Time (long) chord and, like F5, a
+        // browser hard-reload; its alternate is Ctrl+Alt+Shift+D below.
         keybindings.registerKeybinding({
-            command: NotepadiaEditExtrasCommands.DATE_TIME_SHORT.id,
+            command: NotepadiaEditExtrasCommands.DATE_TIME_LONG.id,
             keybinding: 'ctrlcmd+f5',
             when: 'editorTextFocus'
         });

@@ -98,6 +98,31 @@ The product is organized as a monorepo:
   copy, a file that changed on disk in the meantime is never overwritten, and
   `notepadia.backup.enabled` / `notepadia.backup.intervalSeconds` control it.
 
+## Screenshots
+
+The browser build, as it actually runs (captured from a real session by
+`scripts/capture-docs-screenshots.mjs`):
+
+**The editor** — Notepad++'s shell: menu bar, toolbar, tab bar with the floppy
+saved icon, and the full status bar showing the language, EOL and indent mode:
+
+![The main editor with a JavaScript file open](images/main-editor.png)
+
+**The Find dialog** — one modeless dialog with Find, Replace, Find in Files
+and Mark tabs, opened by `Ctrl+F`:
+
+![The tabbed Find dialog](images/find-dialog.png)
+
+**Incremental Search** — the `Ctrl+Alt+I` bar at the foot of the editor,
+searching live from the caret:
+
+![The incremental search bar](images/incremental-search.png)
+
+**Two-pane split** — `View ▸ Move to Other View` with synchronized scrolling,
+the way Notepad++ splits a document:
+
+![A two-pane split view](images/split-view.png)
+
 ## Project status
 
 Project milestones:

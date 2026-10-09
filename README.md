@@ -116,8 +116,8 @@ The Notepad++-style feature layer is implemented as the shared
 - Theia browser application and desktop (Electron) application
 - Monaco editor through Theia
 - file navigator/filesystem, editor tabs, session restore and recent files
-- Notepad++-style menus (File, Edit, Search, View, Encoding, Language,
-  Settings) and Ctrl/Cmd shortcuts
+- Notepad++-style menus (File, Edit, Search, View, Encoding, Language, Macros,
+  Run, Window, Settings, plus Theia's Help) and Ctrl/Cmd shortcuts
 - chords a browser claims (`Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`, `F5`,
   `Ctrl+F5`) stay bound for the desktop app and gain browser-safe alternates on
   the web (`Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`,
@@ -156,8 +156,14 @@ The Notepad++-style feature layer is implemented as the shared
   regex, match case, whole word) through the tabbed Find dialog
 - find in files / replace in files via Theia's search-in-workspace, driven
   from the Find in Files tab of that same dialog
-- encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI) with re-save
-- EOL conversion (LF, CRLF, CR) with re-save
+- encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI) with re-save,
+  `Change File Encoding...` to reopen or save with any encoding Theia ships
+  (the ISO-8859 family, KOI8-R, Big5, Shift JIS and the rest), `Reload as
+  UTF-8` for decoding, and a status-bar encoding indicator that opens the same
+  picker when clicked
+- EOL conversion (LF, CRLF) with re-save; classic CR is detected and reported
+  in the status bar but is not offered as a conversion target, because Monaco
+  has no CR line separator
 - bookmarks (toggle, next/previous, clear) and line operations
   (duplicate line, delete current line, move line up/down)
 - document list panel (View > Document List): filtered list of open files
@@ -165,7 +171,7 @@ The Notepad++-style feature layer is implemented as the shared
 - tab size selection (2/4/8) and an Insert Spaces / Use Tabs toggle
   (View > Tab Size) with a status bar indicator
 - go to line and matching bracket navigation
-- language support: 22 curated languages with Monarch tokenizers
+- language support: 21 curated languages with Monarch tokenizers
 - full Notepad++ status bar: length/lines, `Ln  Col  Pos`, selection,
   encoding, EOL, indent mode and an INS/OVR indicator
 - real INS/OVR overtype mode: `Insert` (or a click on the mode indicator)
@@ -192,9 +198,9 @@ The Notepad++-style feature layer is implemented as the shared
 - Search > Mark: Mark/Mark All/Clear Marks color the search term in one of
   five styles; Select and Find Next adds each next occurrence to the
   selection
-- extended search mode (Search > Search Mode > Extended): Notepad++'s `\n`,
-  `\r`, `\t`, `\xHH`, `\o...`, `\d...`, `\b...` escapes are expanded to
-  literals before searching
+- extended search mode (Find dialog > Search Mode > Extended radio): Notepad++'s
+  `\n`, `\r`, `\t`, `\0`, `\\`, `\xHH`, `\oOOO`, `\dDDD` and `\bBBBBBBBB`
+  escapes are expanded to literals before searching
 - Edit > Character Panel: a keyboard-accessible ASCII/symbol grid that inserts
   the picked character at the caret
 - Edit > Copy to Clipboard: current full file path, current filename and
@@ -217,10 +223,20 @@ The Notepad++-style feature layer is implemented as the shared
   document for the session
 - File > Save Session... / Load Session...: named session files persist the
   open tab set, order, active tab, caret positions and bookmarks
-- File > Print (Ctrl+P): prints the active document through an iframe with
-  syntax colors, line numbers and header/footer variables
+- File > Print and File > Print Preview...: render the active document as
+  plain text with line numbers and a file-name header in a dedicated window,
+  then hand it to the OS print dialog (Print) or leave it open (Print
+  Preview...). The toolbar and tab context menu carry the same commands. No
+  chord is bound - in a browser Ctrl+P belongs to the page's own print
+  dialog
 - View > Document Map toggles the minimap, applied to every open editor via
   the `editor.minimap.enabled` preference and persisted across tabs and reloads
+- View > Function List opens a panel next to Document Map: a per-language
+  outline of the current document's functions, classes and sections
+  (JavaScript, TypeScript, Python, C, C++, C#, Java, PHP, Ruby, PowerShell,
+  shell, SQL, JSON, XML, HTML, Markdown, INI, Go, Rust) with a name filter, an
+  A-Z / document-order sort, click-to-jump, and a re-parse 250 ms after typing
+  stops; toggled from the menu or the toolbar button
 - the complete Notepad++ View menu: a **Show Symbol** submenu (Show Space and
   TAB, Show All Characters, Show End of Line, Show Indent Guide) driving
   Monaco's `editor.renderWhitespace`, `editor.guides.indentation` and
@@ -253,10 +269,9 @@ The Notepad++-style feature layer is implemented as the shared
   behind the `notepadia.run.allowProcessLaunch` preference, which is off by
   default. Named commands are listed in the menu and managed through **Modify
   Shortcut/Delete Command...**
-- Notepad++'s Show Wrap Symbol, Function List and Project Panels are
-  deliberately absent: Monaco 1.75 has no wrapping-indicator option, Project
-  Panels is already `Open Folder as Workspace...`, and Function List ships
-  with the function-list work it depends on
+- Notepad++'s Show Wrap Symbol and Project Panels are deliberately absent:
+  Monaco 1.75 has no wrapping-indicator option, and Project Panels is already
+  `Open Folder as Workspace...`
 - a Notepad++ default behavior profile as the cold-start baseline: word wrap
   off, 4-wide real tabs (`editor.insertSpaces: false`), no auto-closing
   brackets/surround, no suggestions on type, formatting-off by default, and
@@ -264,7 +279,7 @@ The Notepad++-style feature layer is implemented as the shared
 - Notepad++ window surface: Notepadia Classic light/dark themes, an extension
   stylesheet layer, and shell chrome reduced to the Notepad++ shape (no
   activity bar, no right-hand panel, no breadcrumbs, a minimal status bar)
-- a 26px Notepad++-style toolbar under the menu bar: 26 buttons grouped as
+- a 26px Notepad++-style toolbar under the menu bar: 27 buttons grouped as
   file actions, print, clipboard, undo/redo, search, zoom, view toggles and
   macros, with tooltips, roving-tabindex keyboard navigation, `aria-pressed`
   states on real toggles, and a persistent `View > Toolbar` toggle
@@ -280,7 +295,7 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 24
+- CI workflows: build (browser app on Linux), e2e (lint + build + 40
   Puppeteer test suites with artifact upload on failure), release (tag-triggered
   publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
   Pages)
@@ -325,7 +340,7 @@ yarn lint
 yarn build
 ```
 
-Run the 25 end-to-end suites (headless Chromium via Puppeteer):
+Run the 40 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
