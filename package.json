@@ -37,6 +37,8 @@
   "devDependencies": {
     "cross-spawn": "^7.0.6",
     "lerna": "^9.0.7",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0",
     "puppeteer": "^25.1.0",
     "rimraf": "^2.7.1"
   },

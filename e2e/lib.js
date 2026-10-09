@@ -380,17 +380,95 @@ async function dialogError(page) {
 }
 
 async function statusLang(page) {
-    return page.evaluate(() => document.querySelector('[id="status-bar-notepadia.language"]')?.textContent.trim() || null);
+    return statusField(page, 'notepadia.language');
 }
 
 async function statusBar(page) {
     return page.evaluate(() => Array.from(document.querySelectorAll('#theia-statusBar > *')).map(e => (e.textContent || '').trim()).filter(Boolean).join(' | '));
 }
 
+// The status bar renders one element per field with the DOM id
+// `status-bar-<id>` (e.g. `status-bar-notepadia.language`). Reading by field id
+// keeps suites out of the status bar's internal markup.
+async function statusField(page, id) {
+    return page.evaluate(fieldId => {
+        const el = document.querySelector(`[id="status-bar-${fieldId}"]`);
+        const text = el ? (el.textContent || '').trim() : '';
+        return text || null;
+    }, id);
+}
+
+// Click a toolbar button by the accessible name / tooltip text it carries.
+// Buttons expose the plain label via aria-label and the label plus shortcut via
+// title, so match either, preferring an exact aria-label hit.
+async function clickToolbarButton(page, tooltip) {
+    const handle = await page.evaluateHandle(label => {
+        const buttons = Array.from(document.querySelectorAll('.notepadia-toolbar-button'));
+        return buttons.find(el => {
+            const aria = (el.getAttribute('aria-label') || '').trim();
+            const title = (el.getAttribute('title') || '').split('\n')[0].trim();
+            return aria === label || title === label;
+        }) || buttons.find(el => {
+            const title = (el.getAttribute('title') || '').trim();
+            return title.startsWith(label);
+        }) || null;
+    }, tooltip);
+    const el = handle.asElement();
+    if (!el) {
+        await handle.dispose();
+        throw new Error('toolbar button not found: ' + tooltip);
+    }
+    await el.click();
+    await handle.dispose();
+    await sleep(400);
+}
+
+// Open the Notepad++ tabbed Find dialog with Ctrl+F and optionally select one
+// of its tabs (Find / Replace / Find in Files / Mark). This is the shared entry
+// point; `dialog-helpers.cjs` layers the richer dialog interactions on top.
+async function openFindDialog(page, tab) {
+    await page.click('.monaco-editor .view-lines');
+    await sleep(250);
+    await page.keyboard.down('Control');
+    await page.keyboard.press('Home');
+    await page.keyboard.up('Control');
+    await sleep(250);
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyF');
+    await page.keyboard.up('Control');
+    await waitFor(page, '.notepadia-find-panel', 10000, 'find dialog');
+    await sleep(400);
+    if (tab) {
+        const clicked = await page.evaluate(t => {
+            const el = Array.from(document.querySelectorAll('.notepadia-find-tab'))
+                .find(x => (x.textContent || '').trim() === t);
+            if (!el) return false;
+            el.click();
+            return true;
+        }, tab);
+        if (!clicked) throw new Error('find dialog tab not found: ' + tab);
+        await sleep(400);
+    }
+}
+
+// True when the dock panel with this widget id (e.g. `notepadia.functionList`)
+// is present and actually on screen; a collapsed dock keeps the node in the DOM.
+async function panelIsVisible(page, id) {
+    return page.evaluate(panelId => {
+        const el = document.getElementById(panelId);
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0
+            && cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
+    }, id);
+}
+
 module.exports = {
     URL, WS, assert, finish, sleep, waitFor, launchPage, goto, acceptUnloadPrompts,
     openFile, save, openTopMenu, findItemIndex, clickMenuItem, clickSubMenuItem, clickMenuPath,
     clickByLabel, hoverByLabel, openMenuBar, subLabels, closeMenus,
-    editorLines, clickEditorLine, currentLine, modelText, statusLang, statusBar,
+    editorLines, clickEditorLine, currentLine, modelText, statusLang, statusBar, statusField,
+    clickToolbarButton, openFindDialog, panelIsVisible,
     dialogPrimaryLabel, clickDialogButton, setDialogInput, dialogError
 };

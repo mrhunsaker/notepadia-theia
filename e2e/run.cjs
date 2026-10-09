@@ -13,6 +13,9 @@ const URL = `http://127.0.0.1:${PORT}/`;
 const ARTIFACT_DIR = process.env.E2E_ARTIFACTS || path.join(ROOT, 'e2e-artifacts');
 
 const SUITES = [
+    // Screenshot regression runs first so it captures a cold profile before any
+    // other suite mutates persisted preferences or layout.
+    'screenshots',
     'p1-core',
     'encoding',
     'eol',
@@ -172,8 +175,20 @@ async function main() {
 
     let runFailures = 0;
     const results = [];
-    for (const suite of SUITES) {
-        if (process.env.E2E_SUITES && !process.env.E2E_SUITES.split(',').includes(suite)) {
+    // Optional slicing: E2E_SUITES is an explicit comma-separated allow-list;
+    // E2E_SHARD is "n/total" for a deterministic interleaved matrix shard.
+    const suiteFilter = process.env.E2E_SUITES
+        ? (suite => process.env.E2E_SUITES.split(',').includes(suite))
+        : (() => {
+            const shard = (process.env.E2E_SHARD || '').split('/').map(Number);
+            if (shard.length === 2 && shard[0] >= 1 && shard[0] <= shard[1]) {
+                return (_suite, index) => (index % shard[1]) === (shard[0] - 1);
+            }
+            return () => true;
+        })();
+    for (let index = 0; index < SUITES.length; index += 1) {
+        const suite = SUITES[index];
+        if (!suiteFilter(suite, index)) {
             continue;
         }
         const file = path.join(__dirname, suite + '.cjs');

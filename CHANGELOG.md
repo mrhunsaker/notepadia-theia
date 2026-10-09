@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.10.08 (Screenshot baselines and CI sharding)
+
+- **A styling regression now fails CI with a visible diff.** A 41st e2e suite
+  (`e2e/screenshots.cjs`) renders the running app at a fixed 1280x800 viewport
+  and pixel-diffs the main editor and the Find dialog against the committed
+  baselines in `e2e/baselines/` (`pixelmatch` + `pngjs`, with a small
+  anti-aliasing tolerance). On drift the failure artifact bundle carries the
+  `baseline-*`, `actual-*` and `diff-*` PNGs; refresh the baselines deliberately
+  with `E2E_UPDATE_BASELINES=1`.
+- **Shared e2e helpers.** `clickToolbarButton`, `openFindDialog`, `statusField`
+  and `panelIsVisible` live in `e2e/lib.js` instead of being re-spelled in every
+  suite.
+- **The e2e workflow is sharded** across two interleaved matrix jobs
+  (`E2E_SHARD=1/2` and `2/2`) so the wall-clock stays under 20 minutes; each job
+  still runs lint, build and the unit tests.
+
 ## 2026.10.08 (Documentation truth pass)
 
 - **The documentation now describes what the app does, not what it was meant

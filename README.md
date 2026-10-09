@@ -295,10 +295,10 @@ The Notepad++-style feature layer is implemented as the shared
 - automatic updates via electron-updater + GitHub Releases (Help >
   Check for Updates...)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 40
-  Puppeteer test suites with artifact upload on failure), release (tag-triggered
-  publishing for Windows/Linux/macOS) and docs (MkDocs site deployed to GitHub
-  Pages)
+- CI workflows: build (browser app on Linux), e2e (lint + build + 41
+  Puppeteer test suites, sharded across two jobs, with artifact upload on
+  failure), release (tag-triggered publishing for Windows/Linux/macOS) and docs
+  (MkDocs site deployed to GitHub Pages)
 
 ## Architecture
 
@@ -340,7 +340,7 @@ yarn lint
 yarn build
 ```
 
-Run the 40 end-to-end suites (headless Chromium via Puppeteer):
+Run the 41 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e
@@ -350,6 +350,14 @@ Each suite boots the browser application against a seeded workspace and
 asserts the Notepad++-style behavior. Run a single suite directly, e.g.
 `E2E_URL=http://localhost:3000 node e2e/search.cjs`, pointing `E2E_URL` at a
 running `yarn start` instance.
+
+`e2e/screenshots.cjs` renders the running app at a fixed 1280x800 viewport and
+pixel-diffs the main editor and the Find dialog against the committed baselines
+in `e2e/baselines/`. A styling regression fails CI, and the failure artifact
+bundle carries the `baseline-*`, `actual-*` and `diff-*` PNGs. Refresh the
+baselines deliberately with `E2E_UPDATE_BASELINES=1 E2E_SUITES=screenshots node
+e2e/run.cjs` and commit the rewritten PNGs. CI runs the suites as two
+interleaved matrix shards (`E2E_SHARD=1/2` and `2/2`) to stay under 20 minutes.
 
 ## Next milestones
 
@@ -366,12 +374,9 @@ Remaining work, in execution order:
    browser-level accelerator check that cannot be driven from Puppeteer (see
    [shortcuts the browser
    claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims))
-2. Deployment and verification debt: a deployment story for other people
-   (shared-server caveats, a Docker image and a TLS reverse-proxy example, in
-   `docs/deployment.md`), e2e screenshot baselines, the documentation truth
-   pass, the never-run macOS release leg, an Electron parity pass for the
-   browser-first work, and the first published `vYYYY.M.D` release proving
-   the updater flow end to end
+2. Deployment and verification debt: the never-run macOS release leg, an
+   Electron parity pass for the browser-first work, and the first published
+   `vYYYY.M.D` release proving the updater flow end to end
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),

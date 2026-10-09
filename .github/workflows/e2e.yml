@@ -10,12 +10,17 @@ concurrency:
 
 jobs:
   e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       PUPPETEER_SKIP_DOWNLOAD: "false"
       PUPPETEER_CACHE_DIR: /home/runner/.cache/puppeteer
       E2E_ARTIFACTS: ${{ github.workspace }}/e2e-artifacts
+      E2E_SHARD: ${{ matrix.shard }}/2
     steps:
       - uses: actions/checkout@v4
 
@@ -64,6 +69,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: notepadia-e2e-artifacts
+          name: notepadia-e2e-artifacts-shard-${{ matrix.shard }}
           path: e2e-artifacts/**
           if-no-files-found: warn

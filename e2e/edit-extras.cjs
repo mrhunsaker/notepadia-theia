@@ -213,6 +213,29 @@ async function tabClasses(page, fragment) {
         assert('a custom format is inserted as typed',
             /\d{4}-\d{2}-\d{2}/.test(afterCustom), JSON.stringify(afterCustom));
 
+        // The browser-safe Date & Time chords. F5 / Ctrl+F5 are the reload
+        // chords the browser claims before the app can see them, so they have
+        // no browser e2e coverage (that is the G5 Electron parity leg); the
+        // alternates must reproduce the exact same short/long formats.
+        await clickEditorLine(page, 0);
+        await sleep(250);
+        for (const m of ['Control', 'Alt']) await page.keyboard.down(m);
+        await page.keyboard.press('KeyD');
+        for (const m of ['Alt', 'Control']) await page.keyboard.up(m);
+        await sleep(700);
+        const chordShort = normTxt(await modelText(page));
+        assert('Ctrl+Alt+D inserts the short format like F5',
+            /\d{2}:\d{2}:\d{2} \d{2}\/\d{2}\/\d{4}/.test(chordShort), JSON.stringify(chordShort));
+
+        for (const m of ['Control', 'Alt', 'Shift']) await page.keyboard.down(m);
+        await page.keyboard.press('KeyD');
+        for (const m of ['Shift', 'Alt', 'Control']) await page.keyboard.up(m);
+        await sleep(700);
+        const chordLong = normTxt(await modelText(page));
+        assert('Ctrl+Alt+Shift+D inserts the long format like Ctrl+F5',
+            /[A-Za-z]{3}, [A-Za-z]{3} \d{1,2}, \d{4} \d{1,2}:\d{2} (AM|PM)/.test(chordLong),
+            JSON.stringify(chordLong));
+
         // --------------------------------------------------- the read-only flag
         await openFile(page, 'edit-readonly.txt');
         await clickEditorLine(page, 0);
