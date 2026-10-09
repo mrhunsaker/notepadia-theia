@@ -374,9 +374,11 @@ Remaining work, in execution order:
    browser-level accelerator check that cannot be driven from Puppeteer (see
    [shortcuts the browser
    claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims))
-2. Deployment and verification debt: the never-run macOS release leg, an
-   Electron parity pass for the browser-first work, and the first published
-   `vYYYY.M.D` release proving the updater flow end to end
+2. Deployment and verification debt: the release pipeline is now verified end
+   to end - the once-never-run macOS leg runs green and a first dated release
+   is published. Remaining are an Electron parity pass for the browser-first
+   work and the updater-flow proof on older installed builds pulling a new
+   released version
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),

@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026.10.09 (Release pipeline verified end to end)
+
+- **The release workflow has actually run, including the macOS leg that had
+  never been exercised.** A `workflow_dispatch` run built and published all
+  three platforms. The in-CI macOS verification passed: the Info.plist was
+  `plutil -lint` clean, all 22 configured file-association extensions were
+  emitted as `CFBundleDocumentTypes`, the DMG passed `hdiutil imageinfo`, and
+  the unsigned build skipped `codesign`/`spctl` rather than failing
+  (`Verification: Info.plist valid, unsigned build OK`). The published release
+  carries the macOS DMG/zip and `latest-mac.yml`, the Windows installers and
+  `latest.yml`, and the Linux AppImage/deb/rpm and `latest-linux.yml`, each
+  artifact with a `.sha256` checksum. Run:
+  https://github.com/mrhunsaker/notepadia-theia/actions/runs/38005560205
+- **`workflow_dispatch` releases no longer pick up the branch name as their
+  version.** The version step treated `GITHUB_REF_NAME` as a tag even for a
+  branch dispatch, so a run from `main` produced version `main` and failed
+  every leg. It now strips `v` only when `GITHUB_REF_TYPE` is `tag`, and
+  otherwise falls back to the current UTC date (`YYYY.M.D`).
+- **Unsigned macOS builds no longer crash in electron-builder.** The signing
+  environment set `CSC_LINK` to an empty string when no Apple certificate was
+  configured; electron-builder reads that as a path and rejected the project
+  directory (`<projectDir> not a file`). The workflow now exports the Apple
+  Developer ID secrets only when they exist and sets
+  `CSC_IDENTITY_AUTO_DISCOVERY=false` otherwise, so unsigned builds proceed
+  cleanly.
+
 ## 2026.10.08 (Screenshot baselines and CI sharding)
 
 - **A styling regression now fails CI with a visible diff.** A 41st e2e suite
