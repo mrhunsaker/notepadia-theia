@@ -33,21 +33,24 @@ const UPDATE = process.env.E2E_UPDATE_BASELINES === '1';
 
 // Remove the sources of nondeterminism that are not the UI under test: CSS
 // animations/transitions, the blinking editor caret, and the fontconfig default
-// fonts (the baseline host resolves monospace to Noto Sans Mono, the CI runner
-// to DejaVu Sans Mono; pinning both to DejaVu keeps glyph metrics identical).
-// Codicon glyphs are safe: they set their own font-family on pseudo-elements.
+// fonts (the baseline host resolves fonts to Noto, the CI runner to DejaVu;
+// pinning everything to DejaVu keeps glyph metrics identical). Code text is
+// re-pinned to a monospace face below. Codicon glyphs are safe: they set their
+// own font-family on pseudo-elements, which an element-level font does not
+// reach. Native form controls (input/select/button use the UA default font) are
+// covered by the universal rule.
 async function stabilize(page) {
     await page.addStyleTag({
         content: `
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-            .monaco-editor .cursors-layer { visibility: hidden !important; }
-            .lm-MenuBar, .lm-Menu, #theia-statusBar, .p-TabBar,
-            .notepadia-toolbar, .notepadia-find-panel {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
                 font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif !important;
             }
+            .monaco-editor .cursors-layer { visibility: hidden !important; }
             .monaco-editor .view-lines, .monaco-editor .view-line,
             .monaco-editor .margin-view-overlays, .monaco-editor .line-numbers,
-            .monaco-editor textarea {
+            .monaco-editor textarea, .monaco-editor .inputarea {
                 font-family: 'DejaVu Sans Mono', 'Liberation Mono', monospace !important;
             }
         `
