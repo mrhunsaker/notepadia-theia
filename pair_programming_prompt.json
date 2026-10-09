@@ -1138,7 +1138,10 @@
             "mkdocs build --strict passes.",
             "The docs site shows the actual UI."
           ],
-          "commitMessage": "docs: rewrite around the Notepad++ menu tree and record deliberate deviations"
+          "commitMessage": "docs: rewrite around the Notepad++ menu tree and record deliberate deviations",
+          "status": "completed",
+          "completedRef": "645cf99 (2026-10-08)",
+          "followUp": "G2 makes the README and docs describe what the code actually does. docs/usage.md is rewritten around the Notepad++ menu tree - the top-level menu order with each entry's chord and a browser-limitation column, per-menu sections, the default behavior profile, the chrome sections, crash recovery and automatic updates - and docs/differences.md is added for deliberate deviations and registered in mkdocs.yml under 'Differences from Notepad++'. docs/index.md gains four screenshots (main editor, Find dialog, Incremental Search, split view) captured from a real browser session by scripts/capture-docs-screenshots.mjs. The README truth pass corrected drift that accumulated through the milestones: Macros/Run/Window/Help were missing from the menu list; the Language menu is 21 curated languages, not 22; the toolbar is 27 buttons, not 26; the e2e suite count is 40, not 24/25; EOL conversion offers LF/CRLF, not CR; Function List was listed as 'deliberately absent' though E1 built it; and the ISO-8859 family reachable via Change File Encoding... and the full extended-search escape set are now described. docs/architecture.md's language list gained JSON and PowerShell, and docs/differences.md's language count and Print description were corrected. One real code bug surfaced: notepadia-keybinding-contribution.ts bound Ctrl+F5 to Date & Time (short) since b292b3a while Notepad++ and the docs say long; it now binds DATE_TIME_LONG, matching Ctrl+Alt+Shift+D. A stale comment in notepadia-view-contribution.ts claiming Function List was unbuilt was also corrected. NOT covered by e2e: no suite presses F5/Ctrl+F5 or the Date & Time alternates (Ctrl+Alt+D / Ctrl+Alt+Shift+D), so the chord fix rides on the menu-based edit-extras assertions; that is a G1 gap. mkdocs build --strict passes via python3 -m mkdocs (the /usr/bin/mkdocs wrapper is a -sP sandbox that hides user site-packages)."
         },
         {
           "id": "G3",
