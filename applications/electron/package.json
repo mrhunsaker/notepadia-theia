@@ -89,7 +89,7 @@
   },
   "devDependencies": {
     "@theia/cli": "1.75.0",
-    "electron": "42.8.1",
+    "electron": "42.10.0",
     "electron-builder": "26.15.3",
     "rimraf": "^2.7.1"
   },
