@@ -434,19 +434,65 @@ it with `electron-builder`:
 - The packaged app ships the same `notepadia` extension as the browser app
   (verified by listing the `resources/app.asar` inside the extracted
   AppImage); product behavior is therefore identical between targets.
-- Known packaging nitpicks (do not block): the default Electron icon is used
-  (no brand icon shipped yet), and `desktopName`/window association is not set,
-  so window-to-.desktop linking is generic until a dedicated icon/desktop
-  name is configured.
+- Brand icons are configured for all three platforms (`build/icon.ico`,
+  `build/icon.icns`, `build/icons/*`), generated from
+  `applications/electron/build/icon.svg` by
+  `applications/electron/build/generate-icons.mjs`. The remaining nitpick
+  (does not block) is that window-to-`.desktop` association is generic until a
+  dedicated `desktopName` is configured.
+
+## Electron parity
+
+The browser application is the product; the Electron target must not lag it.
+The work that brought the desktop build to parity with the browser-first
+feature set lives in the extension's `electron-main` entry point and in the
+runtime branches of the shared contributions:
+
+- **Native file dialogs.** The local-file commands
+  (`notepadia-local-files-contribution.ts`) check
+  `electronTheiaCore.useNativeElements` at runtime: in the browser they use the
+  File System Access API or its fallback, and in the desktop app they use the
+  OS's native Open/Save dialogs. Native dialogs return ordinary paths, so the
+  command writes through Theia's `FileService` and there is no kept file handle.
+- **Print in place.** `notepadia-print-contribution.ts` detects the Electron
+  runtime the same way and, instead of opening a separate print window (which
+  the core's `setWindowOpenHandler` would intercept), injects the print body
+  into the current page and calls the renderer's own `window.print()`, which is
+  the renderer's handle on `webContents.print`.
+- **Preference parity is checked.** `scripts/check-preference-defaults.mjs`
+  (`yarn check:prefs`) parses the *generated* frontend/backend configs for the
+  browser and Electron targets and fails if any package.json preference is
+  missing from any of them. This is the guard that catches a stale `src-gen`
+  that would otherwise silently drop the Notepad++ default behavior profile
+  (including `security.workspace.trust.enabled: false`) from the desktop build.
+- **A smoke test.** `scripts/electron-smoke.mjs` (`yarn smoke:electron`) drives
+  the built desktop app over CDP on a throwaway workspace and asserts the
+  editor comes up with no trust dialog and no Restricted Mode. It runs on every
+  release leg (under `xvfb-run` on the headless Linux runner).
+- **The updater has a logger.** The Electron main container binds a console
+  logger stack in `notepadia-electron-main-module.ts`, so `NotepadiaUpdater`
+  can report its checks and downloads.
 
 ## Testing
 
-At minimum:
+The behavior described on this page is held in place by four layers:
 
-- command tests
-- encoding round-trip tests
-- EOL preservation tests
-- session restore tests
-- search/replace tests
-- Electron smoke test
-- Windows packaging smoke test
+- **Unit tests** — pure logic lives in `extensions/notepadia/src/common/*.ts`
+  and is covered by `node --test` suites in `extensions/notepadia/test/*.test.cjs`
+  (wired into `yarn test`): search options, encoding, EOL, status fields, the
+  function-list rules, the toolbars' command ids, theme contrast, and more.
+- **End-to-end suites** — 41 Puppeteer suites in `e2e/` drive the real browser
+  app and are registered in the `SUITES` array of `e2e/run.cjs`
+  (`yarn test:e2e`). They cover the editor, menus, search, panels, the browser
+  file commands, backup/recovery, the a11y checks and more.
+- **Visual and accessibility gates** — `e2e/screenshots.cjs` pixel-diffs the
+  main editor and the Find dialog against committed baselines, so a styling
+  regression fails CI; `e2e/a11y.cjs` fails on serious or critical axe
+  violations and on a trapped editor; `theme-contrast.test.cjs` checks every
+  shipped theme against WCAG.
+- **Parity and smoke checks** — `yarn check:prefs` guards preference parity
+  across the generated configs, `yarn smoke` boots the built browser app, and
+  `yarn smoke:electron` boots the packaged desktop app.
+
+CI runs these as `build.yml` (environment + build), `e2e.yml` (lint + build +
+the two e2e shards) and, on release, the smoke test on each platform leg.

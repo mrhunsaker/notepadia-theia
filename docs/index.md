@@ -1,9 +1,15 @@
 # Notepadia
 
-**Notepadia** is a Notepad++-style desktop text editor built on
-[Eclipse Theia](https://theia-ide.org). It reproduces the Notepad++ user
-experience — menus, shortcuts and editing behavior — without reproducing its
-implementation.
+**Notepadia** is a keyboard-first text editor that reproduces the
+[Notepad++](https://notepad-plus-plus.org/) **user experience** — its menus,
+shortcuts, editing behavior and window surface — on
+[Eclipse Theia](https://theia-ide.org) + Monaco, **without reproducing the
+Notepad++ implementation**. It is browser-first (`http://localhost:3000`) and
+also packaged as a native desktop application via Electron.
+
+It is not a port, fork or plugin host for Notepad++ and uses no Notepad++ code.
+See [About & goals](about.md) for what that distinction means, what is in and
+out of scope, and how the docs are organized.
 
 The product is organized as a monorepo:
 
@@ -125,42 +131,15 @@ the way Notepad++ splits a document:
 
 ## Project status
 
-Project milestones:
+Notepadia has completed the Notepad++-experience program (workstreams A–F plus
+verification tasks G1–G3 and G5) and shipped its first tagged release,
+**2026.10.10**. The remaining open item is **G4**, the demonstration that an
+installed desktop build upgrades itself from a published release.
 
-- **M1–M8** Editor core: search/replace, encoding, EOL, recent files and
-  session restore, bookmarks and line operations, language support, Notepad++
-  menus and shortcuts.
-- **M9** Linux Electron packaging (AppImage/rpm/deb).
-- **M10–M16** CI e2e + ESLint, JSON/PowerShell languages, replace-in-files,
-  matching bracket, document list panel, spaces-vs-tabs, product icons.
-- **M17** Windows packaging, file associations, and file-open routing.
-- **M18** macOS packaging and signing (installers build **unsigned** in CI;
-  code-signing/notarization pending an Apple Developer ID).
-- **M19** Automatic updates (electron-updater).
-- **M20** CI release workflow (GitHub Actions).
-- **M21** Documentation site (MkDocs on GitHub Pages).
-- **M22** macOS release-workflow verification (unsigned builds; signing
-  pending an Apple Developer ID).
-- **M23** Macros, Column Editor, Blank Operations, Split Lines /
-  Remove Consecutive Duplicate Lines, Search Mark / Select-and-Find-Next,
-  and the Document Map.
-- **M24** Unit tests for extracted logic, wired into `yarn test`.
-- **M25** Escape-search mode, named sessions, character panel, and print.
-- **M26** Notepad++ visual identity: Notepadia Classic light/dark themes,
-  shell-chrome reduction, the toolbar, and tab-bar fidelity (floppy saved/dirty
-  icons, the Notepad++ tab context menu, middle-click close).
-- **M27** Notepad++ default behavior profile: editor defaults in the app
-  preference blocks, Notepadia's own settings in the Settings UI, a persistent
-  preference-backed Document Map, and Notepad++-style untitled naming.
-- **M28** Notepad++ tabbed Find dialog: a single modeless dialog for Find,
-  Replace, Find in Files and Mark, with workspace search, the five mark
-  styles, and the Mark controls kept in a `Search ▸ Mark` submenu.
-- **M29** Search Results window: F7 shows every Find All / Find in Files run,
-  F4/Shift+F4 step the hits and wrap, and a live region announces new counts.
-- **M30** Incremental search bar: Ctrl+Alt+I searches live from the caret with
-  wrap-around, Enter/Shift+Enter stepping, Highlight all, a red `no match`
-  state that aria-live announces, and per-session caret restoration on Escape.
+The full milestone history, the workstream status table and the definition of
+done live on the [Roadmap](roadmap.md) page.
 
-See [Architecture](architecture.md) for the internal design,
+See [About & goals](about.md) for what "Notepad++ experience, not
+implementation" means, [Architecture](architecture.md) for the internal design,
 [Accessibility](accessibility.md) for keyboard and screen reader support, and
 [Releases & updates](releases.md) for how new builds reach users.

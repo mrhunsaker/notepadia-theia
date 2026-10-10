@@ -121,10 +121,18 @@ While a document is flagged:
 - the tab shows the padlock icon
 - the status bar mode indicator reads `Read-Only` instead of `INS` / `OVR`
 
-The flag belongs to the document path, not to the tab, and lasts for the
-session. Reopening the same file keeps it flagged; opening a different file
 does not inherit it. An untitled document can be flagged too, and is tracked
 separately.
+
+### Print
+
+`File ▸ Print` and `File ▸ Print Preview...` (also on the toolbar and the tab
+context menu) render the active document as plain text with line numbers and a
+file-name header. In a **browser** session that rendering opens in a dedicated
+window and is handed to the page's print dialog; no chord is bound because
+`Ctrl+P` belongs to the browser's own print command. In the **desktop app** the
+current window prints itself in place, so `File ▸ Print` reaches the operating
+system's native print dialog directly.
 
 ### Sessions and recent files
 
@@ -192,6 +200,12 @@ file that was not saved.
 The File System Access API needs a **secure context**, so `https://` or
 `http://localhost`. On plain `http://` the app automatically falls back to the
 upload/download route.
+
+In the **desktop app** there is no browser to negotiate with: `Open from
+Computer` and `Save To This Computer...` open the operating system's own native
+Open/Save dialogs, and `Ctrl+S` writes back to the file you chose. The commands
+have the same names and the same meaning in both targets - only the dialog and
+the write-back mechanism differ.
 
 !!! note "Ctrl+Alt+O, not Ctrl+O"
     Notepad++ opens local files with Ctrl+O, but the browser claims Ctrl+O (and

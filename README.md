@@ -135,7 +135,8 @@ The Notepad++-style feature layer is implemented as the shared
   `Save To This Computer...` and `Upload to Workspace...` are the bridges. On
   Chromium, a file opened with Open from Computer keeps its file handle, so
   Ctrl+S on that tab writes back to the same local file; Firefox and Safari
-  fall back to an upload/download round trip
+  fall back to an upload/download round trip; in the desktop app these same
+  commands use the OS's native Open/Save dialogs instead of the browser picker
 - the four file commands Notepad++ puts alongside Save As: `Reload from
   Disk` (asks only when the buffer is dirty), `Save a Copy As...` (writes a
   copy without moving the tab off the original file, and works on an untitled
@@ -228,7 +229,8 @@ The Notepad++-style feature layer is implemented as the shared
   then hand it to the OS print dialog (Print) or leave it open (Print
   Preview...). The toolbar and tab context menu carry the same commands. No
   chord is bound - in a browser Ctrl+P belongs to the page's own print
-  dialog
+  dialog. In the desktop app the document prints in place instead (the
+  renderer's own `window.print()`), because the core intercepts `window.open`
 - View > Document Map toggles the minimap, applied to every open editor via
   the `editor.minimap.enabled` preference and persisted across tabs and reloads
 - View > Function List opens a panel next to Document Map: a per-language
@@ -359,30 +361,24 @@ baselines deliberately with `E2E_UPDATE_BASELINES=1 E2E_SUITES=screenshots node
 e2e/run.cjs` and commit the rewritten PNGs. CI runs the suites as two
 interleaved matrix shards (`E2E_SHARD=1/2` and `2/2`) to stay under 20 minutes.
 
-## Next milestones
+## Project status
 
-Tracked in `pair_programming_prompt.json`. The Notepad++ visual identity
-work (themes, shell chrome, the toolbar and the tab bar) is complete. Phase 1
-— the Notepad++ default behavior profile (word-wrap and auto-indent
-defaults, untitled naming), the persistent Document Map, and status-bar
-parity with a real INS/OVR overtype mode — is complete.
-Remaining work, in execution order:
+Tracked in `pair_programming_prompt.json` and summarized on the
+[roadmap](https://mrhunsaker.github.io/notepadia-theia/roadmap/). The
+Notepad++-experience program is feature-complete: the visual identity, default
+behavior profile, tabbed Find dialog, menu completeness, browser-target
+correctness, accessibility pass and Electron parity are all done, and the first
+tagged release (**2026.10.10**) has shipped.
 
-1. Browser-target correctness: opening and saving files from the user's own
-   computer, browser-reserved keybinding conflicts, and unsaved-work
-   protection and crash recovery are done; what remains here is the
-   browser-level accelerator check that cannot be driven from Puppeteer (see
-   [shortcuts the browser
-   claims](https://mrhunsaker.github.io/notepadia-theia/usage/#shortcuts-the-browser-claims))
-2. Deployment and verification debt: the release pipeline is now verified end
-   to end - the once-never-run macOS leg runs green, a first dated release is
-   published, and the Electron parity pass for the browser-first work is done
-   and smoke-tested in the pipeline. Remaining is the updater-flow proof:
-   an older installed build pulling a newer published release via
-   Help > Check for Updates...
+One task remains: **G4, the updater proof** - an older *installed* desktop build
+discovering and installing a newer published release through `Help > Check for
+Updates...`. The updater code, the update manifests and a published release all
+exist; only the end-to-end upgrade of a real installation is still to be
+demonstrated.
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
-for the [user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),
+for [about & goals](https://mrhunsaker.github.io/notepadia-theia/about/), the
+[user guide](https://mrhunsaker.github.io/notepadia-theia/usage/),
 [development](https://mrhunsaker.github.io/notepadia-theia/development/),
 [deployment](https://mrhunsaker.github.io/notepadia-theia/deployment/) and
 [release](https://mrhunsaker.github.io/notepadia-theia/releases/) guidance.

@@ -39,11 +39,13 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
+  - About & goals: about.md
   - Getting started: getting-started.md
   - User guide: usage.md
   - Differences from Notepad++: differences.md
   - Accessibility: accessibility.md
   - Architecture: architecture.md
+  - Roadmap: roadmap.md
   - Development: development.md
   - Deployment: deployment.md
   - Packaging: packaging.md

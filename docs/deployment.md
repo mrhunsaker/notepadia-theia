@@ -46,8 +46,9 @@ choice. Browsing on your LAN server-directs you to
   LAN, those features silently degrade to their fallbacks (a hidden file
   input / a Blob download for local files; `execCommand` for the clipboard) -
   the app keeps working, but the richer path is gone. For the full feature
-  set you want TLS, so skip to the [reverse proxy](#a-reverse-proxy-and-tls)
-  section - that is also what `docker-compose.yml` gives you out of the box.
+  set you want TLS, so skip to the
+  [reverse proxy](#docker-composeyml) section - that is also what
+  `docker-compose.yml` gives you out of the box.
 - If you reach your own machine over LAN with `http`, treat it as the
   single-user shape: do not put it on the public internet.
 

@@ -1,5 +1,11 @@
 # Releases & updates
 
+The current release is **2026.10.10**, the first release cut from a `v*` tag
+(the earlier releases were produced by a manual `workflow_dispatch`). Each
+release ships the Windows, Linux and macOS artifacts, their update manifests and
+a `*.sha256` checksum for every artifact. See
+[Roadmap](roadmap.md) for what is still outstanding (the updater upgrade proof).
+
 ## How users get updates
 
 The desktop app embeds `electron-updater` and checks the project's GitHub
