@@ -1,5 +1,43 @@
 # Changelog
 
+## 2026.10.10 (Electron parity pass and first tagged release)
+
+- **Electron gets native routes for the browser-first work (G5); the first
+  release is cut from a git tag.** A `vYYYY.M.D` tag is pushed for the first
+  time, so `release.yml` runs from a tag (previous releases were manual
+  dispatches): it computes the version from the tag, builds Windows, Linux and
+  macOS in parallel, and publishes `v2026.10.10` with the installers, the
+  update manifests (`latest.yml`, `latest-linux.yml`, `latest-mac.yml`) and a
+  `.sha256` checksum per artifact. The macOS build remains unsigned until
+  Apple signing secrets are configured.
+- **Local files now use the native OS dialogs in Electron.** The File System
+  Access API only exists in the browser, and the navigator also replaces the
+  web dialogs with native ones, so Open from Computer, Save To This
+  Computer... and the Upload to Workspace... pick all branch on the runtime:
+  the native dialogs hand back real `file://` URIs that the app's own backend
+  reads and writes directly (no remembered handles, and Ctrl+S writes back to
+  the picked file).
+- **Print and Print Preview... print in place in Electron.** `window.open` is
+  intercepted by the core `setWindowOpenHandler`, so the separate-print-window
+  route was unusable; the page now prints itself through `window.print()` with
+  a scoped stylesheet that is cleaned up after the dialog.
+- **The packaged Electron app no longer shows the workspace-trust dialog at
+  startup.** The committed Electron `src-gen` had gone stale and dropped the
+  whole `preferences` block, so the app never applied
+  `security.workspace.trust.enabled: false`. Regenerating it embeds all 34
+  defaults, and `scripts/check-preference-defaults.mjs` (`yarn check:prefs`)
+  now also verifies the committed `src-gen` configs carry them, so the
+  regression cannot recur unnoticed.
+- **The release workflow smoke-tests the packaged app before publishing.** A
+  new `scripts/electron-smoke.mjs` launches the built binary on a real
+  workspace over the Chrome DevTools Protocol and asserts the window and
+  Notepadia toolbar render, no workspace-trust dialog and no Restricted Mode
+  appear, and that native Ctrl+N opens a new document. It runs on every
+  platform leg via `xvfb-run` on the headless Linux runner.
+- **The updater now has a working logger in Electron.** The Electron main
+  container never bound a logger, so `NotepadiaUpdater` could not log; the
+  container now provides the console-backed logger stack.
+
 ## 2026.10.09 (Release pipeline verified end to end)
 
 - **The release workflow has actually run, including the macOS leg that had
