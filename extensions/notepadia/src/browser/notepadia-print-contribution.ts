@@ -20,12 +20,14 @@ function escapeHtml(text: string): string {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function printWindowHtml(fileName: string, documentText: string): string {
-    const lines = documentText.split(/\r?\n/);
-    const rows = lines.map((line, index) => {
+function printRows(documentText: string): string {
+    return documentText.split(/\r?\n/).map((line, index) => {
         const lineNumber = index + 1;
         return `<tr><td class="ln">${lineNumber}</td><td class="code">${escapeHtml(line) || '&nbsp;'}</td></tr>`;
     }).join('\n');
+}
+
+function printWindowHtml(fileName: string, documentText: string): string {
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -46,9 +48,51 @@ function printWindowHtml(fileName: string, documentText: string): string {
 <body>
 <div class="noprint"><button onclick="window.print()">Print</button></div>
 <h1>${escapeHtml(fileName)}</h1>
-<table>${rows}</table>
+<table>${printRows(documentText)}</table>
 </body>
 </html>`;
+}
+
+const PRINT_CONTAINER_ID = 'notepadia-print';
+const PRINT_STYLE_ID = 'notepadia-print-style';
+
+/**
+ * The stylesheet for the Electron in-place print, scoped under
+ * `#notepadia-print` so it cannot restyle the workbench and hidden on screen
+ * so nothing flashes before the dialog opens.
+ */
+function scopedPrintStyle(): string {
+    return `<style id="${PRINT_STYLE_ID}">
+  #${PRINT_CONTAINER_ID} { display: none; }
+  @media print {
+    body.notepadia-printing > *:not(#${PRINT_CONTAINER_ID}) { display: none !important; }
+    body.notepadia-printing { background: #fff !important; }
+    #${PRINT_CONTAINER_ID} { display: block !important; font-family: 'SF Mono', Consolas, 'Liberation Mono', monospace; color: #000; margin: 24px; }
+    #${PRINT_CONTAINER_ID} h1 { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; margin: 0 0 12px; }
+    #${PRINT_CONTAINER_ID} table { border-collapse: collapse; width: 100%; }
+    #${PRINT_CONTAINER_ID} td { vertical-align: top; padding: 0; }
+    #${PRINT_CONTAINER_ID} td.ln { width: 1%; color: #999; padding-right: 12px; text-align: right; }
+    #${PRINT_CONTAINER_ID} td.code { white-space: pre-wrap; word-break: break-all; }
+  }
+</style>`;
+}
+
+function scopedPrintBody(fileName: string, documentText: string): string {
+    return `<div id="${PRINT_CONTAINER_ID}">
+<h1>${escapeHtml(fileName)}</h1>
+<table>${printRows(documentText)}</table>
+</div>`;
+}
+
+/**
+ * True in the Electron app, where `window.open` is intercepted by the core
+ * `setWindowOpenHandler` (it only allows Theia secondary windows and http(s)
+ * links, and otherwise pops an "Open link in the system handler?" box), so the
+ * separate-print-window route is unusable and the page prints itself through
+ * `window.print()` - the renderer's handle on `webContents.print`.
+ */
+function printsInPlace(): boolean {
+    return (window as unknown as { electronTheiaCore?: { useNativeElements?: boolean } }).electronTheiaCore?.useNativeElements === true;
 }
 
 @injectable()
@@ -88,6 +132,10 @@ export class NotepadiaPrintContribution implements CommandContribution, MenuCont
         if (!doc) {
             return;
         }
+        if (printsInPlace()) {
+            this.printInPlace(doc);
+            return;
+        }
         const windowRef = window.open('', '_blank', 'width=820,height=1000');
         if (!windowRef) {
             void this.messageService.warn('Print popup was blocked - allow popups for this site and try again.');
@@ -101,6 +149,44 @@ export class NotepadiaPrintContribution implements CommandContribution, MenuCont
         if (!preview) {
             windowRef.print();
         }
+    }
+
+    /**
+     * Electron route: the print body is injected into this page and the window
+     * prints itself, which is the renderer's path to the native print dialog
+     * (`webContents.print`). The generated content is exactly the browser
+     * route's, scoped so it cannot restyle the workbench, and removed once the
+     * dialog closes. `Print Preview...` maps here too: the system print dialog
+     * is itself the preview, and cancelling prints nothing.
+     */
+    protected printInPlace(doc: { fileName: string; documentText: string }): void {
+        const existing = document.getElementById(PRINT_CONTAINER_ID);
+        if (existing) {
+            existing.remove();
+        }
+        const existingStyle = document.getElementById(PRINT_STYLE_ID);
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+        document.head.insertAdjacentHTML('beforeend', scopedPrintStyle());
+        document.body.insertAdjacentHTML('beforeend', scopedPrintBody(doc.fileName, doc.documentText));
+        document.body.classList.add('notepadia-printing');
+
+        const cleanup = (): void => {
+            window.removeEventListener('afterprint', cleanup);
+            document.body.classList.remove('notepadia-printing');
+            document.getElementById(PRINT_CONTAINER_ID)?.remove();
+            document.getElementById(PRINT_STYLE_ID)?.remove();
+        };
+        window.addEventListener('afterprint', cleanup);
+
+        // Let the injected layout settle before handing the page to the OS.
+        window.requestAnimationFrame(() => {
+            window.print();
+            // Some platforms do not fire `afterprint`; keep the DOM from being
+            // left in print state for the rest of the session.
+            window.setTimeout(cleanup, 60000);
+        });
     }
 
     protected currentDocument(): { fileName: string; documentText: string } | undefined {

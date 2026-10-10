@@ -62,6 +62,9 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Check browser/electron preference defaults match (A6)
+        run: node scripts/check-preference-defaults.mjs
+
       # Create the draft release exactly once. The parallel packaging jobs
       # below only ever upload into this release, so they cannot race each
       # other on release creation (electron-builder does not retry a 422
@@ -220,6 +223,19 @@ jobs:
           EOF
           VERSION="${{ needs.prepare.outputs.version }}"
           gh release upload "v${VERSION}" *.sha256 --repo "${{ github.repository }}" --clobber
+
+      # G5: launch the packaged binary and assert the window opened, the toolbar
+      # rendered, and that the native Ctrl/Cmd+N chord opens a new document. The
+      # xvfb display is only needed on the headless Linux runner; Windows and
+      # macOS runners have a desktop session. Failing here blocks `finalize`,
+      # so a broken build is never published.
+      - name: Smoke test packaged app
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run -a node scripts/electron-smoke.mjs
+          else
+            node scripts/electron-smoke.mjs
+          fi
 
       - name: Upload artifacts as workflow attachments
         uses: actions/upload-artifact@v4

@@ -38,7 +38,7 @@ process.env.LC_NUMERIC = 'C';
     "defaultIconTheme": "theia-file-icons",
     "electron": {
         "windowOptions": {},
-        "showWindowEarly": false,
+        "showWindowEarly": true,
         "splashScreenOptions": {},
         "appUserModelId": "org.notepadia.desktop",
         "uriScheme": "theia"
@@ -46,7 +46,43 @@ process.env.LC_NUMERIC = 'C';
     "defaultLocale": "",
     "validatePreferencesSchema": true,
     "reloadOnReconnect": true,
-    "uriScheme": "theia"
+    "uriScheme": "theia",
+    "preferences": {
+        "files.enableTrash": false,
+        "files.autoSave": "off",
+        "security.workspace.trust.enabled": false,
+        "workbench.colorTheme": "Notepadia Classic",
+        "editor.fontFamily": "Consolas, 'Courier New', 'DejaVu Sans Mono', monospace",
+        "editor.fontSize": 13,
+        "editor.lineHeight": 0,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false,
+        "editor.wordWrap": "off",
+        "editor.autoClosingBrackets": "never",
+        "editor.autoClosingQuotes": "never",
+        "editor.autoSurround": "never",
+        "editor.quickSuggestions": false,
+        "editor.suggestOnTriggerCharacters": false,
+        "editor.formatOnPaste": false,
+        "editor.formatOnType": false,
+        "editor.trimAutoWhitespace": false,
+        "editor.renderWhitespace": "none",
+        "editor.renderControlCharacters": false,
+        "editor.lineNumbers": "on",
+        "editor.rulers": [],
+        "breadcrumbs.enabled": false,
+        "editor.accessibilitySupport": "auto",
+        "editor.minimap.enabled": false,
+        "editor.glyphMargin": true,
+        "editor.folding": true,
+        "editor.renderLineHighlight": "line",
+        "editor.occurrencesHighlight": "off",
+        "editor.lightbulb.enabled": "off",
+        "editor.suggest.showWords": false,
+        "editor.scrollBeyondLastLine": false,
+        "editor.roundedSelection": false
+    }
 };
     const isSingleInstance = true;
 

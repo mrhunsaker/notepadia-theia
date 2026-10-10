@@ -19,7 +19,7 @@
         "reloadOnReconnect": true,
         "electron": {
           "appUserModelId": "org.notepadia.desktop",
-          "showWindowEarly": false
+          "showWindowEarly": true
         },
         "preferences": {
           "files.enableTrash": false,
@@ -46,6 +46,7 @@
           "editor.lineNumbers": "on",
           "editor.rulers": [],
           "breadcrumbs.enabled": false,
+          "editor.accessibilitySupport": "auto",
           "editor.minimap.enabled": false,
           "editor.glyphMargin": true,
           "editor.folding": true,

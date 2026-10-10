@@ -79,6 +79,17 @@ interface FileSystemHandleLike {
 const LOCAL_FILE_INPUT_ID = 'notepadia-local-file-input';
 
 /**
+ * True in the Electron app, where Theia substitutes the native OS dialogs for
+ * its web dialogs (`electronTheiaCore.useNativeElements` is only ever false
+ * when `THEIA_ELECTRON_DISABLE_NATIVE_ELEMENTS=1` is force-set). Outside
+ * Electron the bridge is undefined and the File System Access API / input
+ * route below is the only way to the user's own disk.
+ */
+function usesNativeDialogs(): boolean {
+    return (window as unknown as { electronTheiaCore?: { useNativeElements?: boolean } }).electronTheiaCore?.useNativeElements === true;
+}
+
+/**
  * D1 - the two storages a Notepad++ user expects, made reachable in a
  * browser-hosted app.
  *
@@ -104,6 +115,12 @@ const LOCAL_FILE_INPUT_ID = 'notepadia-local-file-input';
  * Save As dialog. On Firefox and Safari there is no handle to keep, so the
  * `<input type="file">` route opens the file and `Save To This Computer...`
  * degrades to a browser download.
+ *
+ * In the Electron app the user's disk is the backend's own disk, so this
+ * contribution drops the browser pickers entirely (G5): every picker here is
+ * the native OS dialog Theia substitutes for its web dialog, picked files open
+ * as real `file://` editor tabs whose Ctrl+S writes straight back to the same
+ * file, and uploads read the picked files straight off disk.
  */
 @injectable()
 export class NotepadiaLocalFilesContribution implements CommandContribution, MenuContribution {
@@ -185,6 +202,10 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
      * is remembered for the tab so Save writes back to that same file.
      */
     protected async openFromThisComputer(): Promise<void> {
+        if (usesNativeDialogs()) {
+            await this.openFromThisComputerNative();
+            return;
+        }
         const picked = await this.pickLocalFiles();
         if (picked === undefined) {
             return;
@@ -195,6 +216,58 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         for (const file of picked) {
             await this.openLocalText(file.name, file.text, file.handle);
         }
+    }
+
+    /**
+     * The Electron route for Open from Computer: the app's own disk IS the
+     * backend's disk, so the native dialog hands back real `file://` URIs.
+     * Those open as ordinary editor tabs whose Ctrl+S writes straight back to
+     * the same file, which is the desktop behaviour Notepad++ users expect,
+     * so no File System Access handle has to be remembered.
+     */
+    protected async openFromThisComputerNative(): Promise<void> {
+        const uris = await this.pickLocalUris('Open');
+        if (!uris || uris.length === 0) {
+            return;
+        }
+        for (const uri of uris) {
+            await open(this.openerService, uri);
+        }
+    }
+
+    /**
+     * Native open dialog returning real file URIs (Electron only).
+     */
+    protected async pickLocalUris(openLabel: string): Promise<URI[] | undefined> {
+        const result = await this.fileDialogService.showOpenDialog({
+            title: 'Open from Computer',
+            openLabel,
+            canSelectFiles: true,
+            canSelectFolders: false,
+            canSelectMany: true
+        });
+        if (!result) {
+            return undefined;
+        }
+        return Array.isArray(result) ? result : [result];
+    }
+
+    /**
+     * The Electron route for the pick in Upload to Workspace...: the native
+     * dialog selects the files and the file service reads them; the rest of
+     * the upload flow is the same as the browser's.
+     */
+    protected async pickLocalFilesViaNativeDialog(): Promise<Array<{ name: string; text: string }> | undefined> {
+        const uris = await this.pickLocalUris('Upload');
+        if (!uris || uris.length === 0) {
+            return undefined;
+        }
+        const files: Array<{ name: string; text: string }> = [];
+        for (const uri of uris) {
+            const content = await this.fileService.readFile(uri);
+            files.push({ name: uri.path.base, text: content.value.toString() });
+        }
+        return files;
     }
 
     protected async pickLocalFiles(): Promise<Array<{ name: string; text: string; handle?: FileSystemHandleLike }> | undefined> {
@@ -302,6 +375,10 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             this.messageService.warn(nls.localize('notepadia/localFiles/nothingToSave', 'Open a document first.'));
             return;
         }
+        if (usesNativeDialogs()) {
+            await this.saveToThisComputerNative(target);
+            return;
+        }
         if (target.handle) {
             await this.writeThroughHandle(target);
             return;
@@ -324,6 +401,31 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         // No picker to show: hand the bytes to the browser instead, which is
         // the Firefox / Safari route.
         downloadText(name, target.text);
+    }
+
+    /**
+     * The Electron route for Save To This Computer...: the native save dialog
+     * returns a real `file://` path the app's backend can write directly. Like
+     * the browser route, the tab itself is left alone.
+     */
+    protected async saveToThisComputerNative(target: LocalTarget): Promise<void> {
+        const uri = await this.fileDialogService.showSaveDialog({
+            title: 'Save To This Computer...',
+            inputValue: suggestedSaveName(target.name)
+        });
+        if (!uri) {
+            return;
+        }
+        try {
+            await this.fileService.writeFile(uri, BinaryBuffer.fromString(target.text));
+            this.messageService.info(nls.localize('notepadia/localFiles/savedTo', 'Saved {0} to your computer.', target.name));
+        } catch {
+            this.messageService.error(nls.localize(
+                'notepadia/localFiles/saveFailed',
+                'Could not write {0} to your computer. It may have been moved, renamed or locked.',
+                target.name
+            ));
+        }
     }
 
     /**
@@ -408,7 +510,9 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
      * Files tree and is therefore a dead entry in the File menu.
      */
     protected async uploadToWorkspace(): Promise<void> {
-        const picked = await this.pickLocalFiles();
+        const picked = usesNativeDialogs()
+            ? await this.pickLocalFilesViaNativeDialog()
+            : await this.pickLocalFiles();
         if (!picked || picked.length === 0) {
             return;
         }

@@ -14,7 +14,7 @@ FrontendApplicationConfigProvider.set({
     "defaultIconTheme": "theia-file-icons",
     "electron": {
         "windowOptions": {},
-        "showWindowEarly": false,
+        "showWindowEarly": true,
         "splashScreenOptions": {},
         "appUserModelId": "org.notepadia.desktop",
         "uriScheme": "theia"
@@ -22,7 +22,43 @@ FrontendApplicationConfigProvider.set({
     "defaultLocale": "",
     "validatePreferencesSchema": true,
     "reloadOnReconnect": true,
-    "uriScheme": "theia"
+    "uriScheme": "theia",
+    "preferences": {
+        "files.enableTrash": false,
+        "files.autoSave": "off",
+        "security.workspace.trust.enabled": false,
+        "workbench.colorTheme": "Notepadia Classic",
+        "editor.fontFamily": "Consolas, 'Courier New', 'DejaVu Sans Mono', monospace",
+        "editor.fontSize": 13,
+        "editor.lineHeight": 0,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false,
+        "editor.wordWrap": "off",
+        "editor.autoClosingBrackets": "never",
+        "editor.autoClosingQuotes": "never",
+        "editor.autoSurround": "never",
+        "editor.quickSuggestions": false,
+        "editor.suggestOnTriggerCharacters": false,
+        "editor.formatOnPaste": false,
+        "editor.formatOnType": false,
+        "editor.trimAutoWhitespace": false,
+        "editor.renderWhitespace": "none",
+        "editor.renderControlCharacters": false,
+        "editor.lineNumbers": "on",
+        "editor.rulers": [],
+        "breadcrumbs.enabled": false,
+        "editor.accessibilitySupport": "auto",
+        "editor.minimap.enabled": false,
+        "editor.glyphMargin": true,
+        "editor.folding": true,
+        "editor.renderLineHighlight": "line",
+        "editor.occurrencesHighlight": "off",
+        "editor.lightbulb.enabled": "off",
+        "editor.suggest.showWords": false,
+        "editor.scrollBeyondLastLine": false,
+        "editor.roundedSelection": false
+    }
 });
 
 
@@ -39,7 +75,7 @@ function load(container, jsModule) {
 
 async function preload(container) {
     try {
-        await load(container, require('@theia/core/lib/browser/preload/preload-module'));
+        await load(container, import('@theia/core/lib/browser/preload/preload-module'));
         const { Preloader } = require('@theia/core/lib/browser/preload/preloader');
         const preloader = container.get(Preloader);
         await preloader.initialize();
@@ -79,34 +115,34 @@ module.exports = (async () => {
     startupLog('core modules loaded');
 
     try {
-        await load(container, require('@theia/core/lib/browser/i18n/i18n-frontend-module'));
-        await load(container, require('@theia/core/lib/electron-browser/menu/electron-menu-module'));
-        await load(container, require('@theia/core/lib/electron-browser/window/electron-window-module'));
-        await load(container, require('@theia/core/lib/electron-browser/keyboard/electron-keyboard-module'));
-        await load(container, require('@theia/core/lib/electron-browser/token/electron-token-frontend-module'));
-        await load(container, require('@theia/core/lib/electron-browser/request/electron-browser-request-module'));
-        await load(container, require('@theia/variable-resolver/lib/browser/variable-resolver-frontend-module'));
-        await load(container, require('@theia/editor/lib/browser/editor-frontend-module'));
-        await load(container, require('@theia/filesystem/lib/browser/filesystem-frontend-module'));
-        await load(container, require('@theia/filesystem/lib/browser/download/file-download-frontend-module'));
-        await load(container, require('@theia/filesystem/lib/browser/file-dialog/file-dialog-module'));
-        await load(container, require('@theia/filesystem/lib/electron-browser/file-dialog/electron-file-dialog-module'));
-        await load(container, require('@theia/workspace/lib/browser/workspace-frontend-module'));
-        await load(container, require('@theia/workspace/lib/electron-browser/electron-workspace-module'));
-        await load(container, require('@theia/navigator/lib/browser/navigator-frontend-module'));
-        await load(container, require('@theia/navigator/lib/electron-browser/electron-navigator-module'));
-        await load(container, require('@theia/editor-preview/lib/browser/editor-preview-frontend-module'));
-        await load(container, require('@theia/process/lib/common/process-common-module'));
-        await load(container, require('@theia/file-search/lib/browser/file-search-frontend-module'));
-        await load(container, require('@theia/markers/lib/browser/problem/problem-frontend-module'));
-        await load(container, require('@theia/outline-view/lib/browser/outline-view-frontend-module'));
-        await load(container, require('@theia/monaco/lib/browser/monaco-frontend-module'));
-        await load(container, require('@theia/userstorage/lib/browser/user-storage-frontend-module'));
-        await load(container, require('@theia/preferences/lib/browser/preference-frontend-module'));
-        await load(container, require('@theia/keymaps/lib/browser/keymaps-frontend-module'));
-        await load(container, require('@theia/messages/lib/browser/messages-frontend-module'));
-        await load(container, require('@theia/search-in-workspace/lib/browser/search-in-workspace-frontend-module'));
-        await load(container, require('notepadia/lib/browser/notepadia-frontend-module'));
+        await load(container, import('@theia/core/lib/browser/i18n/i18n-frontend-module'));
+        await load(container, import('@theia/core/lib/electron-browser/menu/electron-menu-module'));
+        await load(container, import('@theia/core/lib/electron-browser/window/electron-window-module'));
+        await load(container, import('@theia/core/lib/electron-browser/keyboard/electron-keyboard-module'));
+        await load(container, import('@theia/core/lib/electron-browser/token/electron-token-frontend-module'));
+        await load(container, import('@theia/core/lib/electron-browser/request/electron-browser-request-module'));
+        await load(container, import('@theia/variable-resolver/lib/browser/variable-resolver-frontend-module'));
+        await load(container, import('@theia/editor/lib/browser/editor-frontend-module'));
+        await load(container, import('@theia/filesystem/lib/browser/filesystem-frontend-module'));
+        await load(container, import('@theia/filesystem/lib/browser/download/file-download-frontend-module'));
+        await load(container, import('@theia/filesystem/lib/browser/file-dialog/file-dialog-module'));
+        await load(container, import('@theia/filesystem/lib/electron-browser/file-dialog/electron-file-dialog-module'));
+        await load(container, import('@theia/workspace/lib/browser/workspace-frontend-module'));
+        await load(container, import('@theia/workspace/lib/electron-browser/electron-workspace-module'));
+        await load(container, import('@theia/navigator/lib/browser/navigator-frontend-module'));
+        await load(container, import('@theia/navigator/lib/electron-browser/electron-navigator-module'));
+        await load(container, import('@theia/editor-preview/lib/browser/editor-preview-frontend-module'));
+        await load(container, import('@theia/process/lib/common/process-common-module'));
+        await load(container, import('@theia/file-search/lib/browser/file-search-frontend-module'));
+        await load(container, import('@theia/markers/lib/browser/problem/problem-frontend-module'));
+        await load(container, import('@theia/outline-view/lib/browser/outline-view-frontend-module'));
+        await load(container, import('@theia/monaco/lib/browser/monaco-frontend-module'));
+        await load(container, import('@theia/userstorage/lib/browser/user-storage-frontend-module'));
+        await load(container, import('@theia/preferences/lib/browser/preference-frontend-module'));
+        await load(container, import('@theia/keymaps/lib/browser/keymaps-frontend-module'));
+        await load(container, import('@theia/messages/lib/browser/messages-frontend-module'));
+        await load(container, import('@theia/search-in-workspace/lib/browser/search-in-workspace-frontend-module'));
+        await load(container, import('notepadia/lib/browser/notepadia-frontend-module'));
         
         MonacoInit.init(container);
         ;

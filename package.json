@@ -32,6 +32,8 @@
     "test": "lerna run test",
     "test:e2e": "node e2e/run.cjs",
     "smoke": "node scripts/smoke-browser.mjs",
+    "smoke:electron": "node scripts/electron-smoke.mjs",
+    "check:prefs": "node scripts/check-preference-defaults.mjs",
     "verify": "node scripts/verify-environment.mjs"
   },
   "devDependencies": {

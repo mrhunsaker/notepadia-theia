@@ -56,6 +56,9 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      - name: Check browser/electron preference defaults match (A6)
+        run: yarn check:prefs
+
       - name: Build browser application and extensions
         run: yarn build
 

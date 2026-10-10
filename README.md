@@ -17,7 +17,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 Notepadia is a focused, cross-platform desktop text editor modeled after the
-Notepad++ user experience and implemented on Eclipse Theia.
+Notepad++ user experience and implemented on Eclipse Theia IDE.
 
 ## Current baseline
 
