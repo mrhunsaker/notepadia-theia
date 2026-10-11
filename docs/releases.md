@@ -132,6 +132,13 @@ CI then behaves as follows:
 The hardened runtime and entitlements are already configured and the signing
 assertions activate automatically — nothing else to change in the repo.
 
+**Until signing is enabled**, the release notes carry a Gatekeeper warning
+automatically: the `prepare` job prepends what macOS will say about the
+unsigned build ("cannot be opened because the developer cannot be verified" /
+"is damaged") and the two ways past it (right-click → **Open**, or
+`xattr -dr com.apple.quarantine`). The warning disappears by itself the moment
+the `CSC_LINK` secret is populated, so the notes cannot go stale.
+
 ## Update manifests
 
 `electron-builder` writes the per-platform update manifest **only during a

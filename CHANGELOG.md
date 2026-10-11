@@ -38,6 +38,14 @@
   `F5` / `Ctrl+F5` Date & Time chords are delivered in the packaged app, where
   the browser never sees them, and the not-offered C3 limits (Show Wrap Symbol,
   folding past level 7) are stated in `docs/differences.md`.
+- **A supported shared-instance answer, and a self-updating unsigned-macOS
+  warning.** `docs/deployment.md` now names one-container-per-user as the
+  supported shared-instance shape and shows the compose that gives each user
+  their own workspace **and** their own `THEIA_CONFIG_DIR` volume (validated
+  with `docker compose config`), instead of only warning that the shipped
+  single container is a shared whiteboard. The release notes now prepend what
+  Gatekeeper does to the unsigned macOS build and how to get past it, a warning
+  that disappears on its own once `CSC_LINK` is configured.
 
 ## 2026.10.10 (Electron parity pass and first tagged release)
 

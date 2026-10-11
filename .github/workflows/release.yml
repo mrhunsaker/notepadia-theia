@@ -69,15 +69,35 @@ jobs:
       # below only ever upload into this release, so they cannot race each
       # other on release creation (electron-builder does not retry a 422
       # "already_exists" from the GitHub API when creating a release).
+      #
+      # When the Apple signing secrets are absent the macOS artifacts are
+      # unsigned, so prepend what Gatekeeper does and how to get past it. The
+      # note disappears by itself once CSC_LINK is configured.
       - name: Create draft GitHub release
+        env:
+          MACOS_SIGNED: ${{ secrets.CSC_LINK != '' }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          if [ "${MACOS_SIGNED}" = "true" ]; then
+            MAC_NOTE=""
+          else
+            MAC_NOTE='> **macOS build is unsigned.** The project has no Apple Developer ID, so macOS opens it with a Gatekeeper warning ("cannot be opened because the developer cannot be verified" / "is damaged"). To run it: right-click the app in Finder and choose **Open**, or clear the quarantine flag once with `xattr -dr com.apple.quarantine /Applications/Notepadia.app`. Windows and Linux builds are unaffected.'
+          fi
           if ! gh release view "v${VERSION}" --json id >/dev/null 2>&1; then
-            gh release create "v${VERSION}" \
-              --draft \
-              --title "Notepadia ${VERSION}" \
-              --generate-notes \
-              --target "${GITHUB_SHA}"
+            if [ -n "${MAC_NOTE}" ]; then
+              gh release create "v${VERSION}" \
+                --draft \
+                --title "Notepadia ${VERSION}" \
+                --notes "${MAC_NOTE}" \
+                --generate-notes \
+                --target "${GITHUB_SHA}"
+            else
+              gh release create "v${VERSION}" \
+                --draft \
+                --title "Notepadia ${VERSION}" \
+                --generate-notes \
+                --target "${GITHUB_SHA}"
+            fi
           else
             echo "Draft release v${VERSION} already exists, reusing it"
           fi

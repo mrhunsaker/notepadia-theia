@@ -132,22 +132,39 @@ Make sure the directory is writable by the container's non-root user
 ### Per-user instances
 
 Real isolation is one container per user, behind a proxy that
-authenticates and routes by login:
+authenticates and routes by login. **This is the supported shared-instance
+answer** - the shipped single-container compose above is honestly a *shared
+workspace, not a private one*, and every visitor to it shares one filesystem
+and one preference set. Give each user their own workspace volume **and their
+own `THEIA_CONFIG_DIR` volume**, so preferences (and Theia's own session/state)
+do not leak between people and survive container recreation:
 
 ```yaml
 services:
   alice:
     build: .
-    volumes: [ "alice-workspace:/workspace" ]
+    volumes:
+      - alice-workspace:/workspace
+      - alice-config:/app/notepadia-config
     expose: [ "3000" ]
   bob:
     build: .
-    volumes: [ "bob-workspace:/workspace" ]
+    volumes:
+      - bob-workspace:/workspace
+      - bob-config:/app/notepadia-config
     expose: [ "3000" ]
   caddy:
     image: caddy:2-alpine
     volumes: [ "./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data", "caddy-config:/config" ]
     ports: [ "80:80", "443:443" ]
+
+volumes:
+  alice-workspace:
+  alice-config:
+  bob-workspace:
+  bob-config:
+  caddy-data:
+  caddy-config:
 ```
 
 with a Caddyfile that authenticates and forwards by path/header
@@ -167,7 +184,9 @@ notes.example.org {
 
 (Theia 1.75 offers nothing like the Theia Cloud / Cluster session routing;
 authenticating before the app is the only supported seam, and it must be done
-at the proxy, never "in" the app.)
+at the proxy, never "in" the app.) Validate the shape before deploying it with
+`docker compose -f per-user-compose.yml config`, which resolves the volumes and
+routing without starting anything.
 
 **Resource note, measured on the real build (2026-10-08, Node 24, Theia
 1.75):** the backend process idles at ~**140 MiB** RSS with no visitors, and
