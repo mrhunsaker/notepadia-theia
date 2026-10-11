@@ -153,3 +153,30 @@ publish build**:
 These files (plus `.blockmap` files and the installers) are uploaded to the
 release by the corresponding matrix job. The app discovers them through the
 GitHub provider configured in `electron-builder.yml`.
+
+## Verifying the updater
+
+An installed build only ever sees a **published** release, and only one with a
+**greater** version, so an end-to-end check needs a newer release to be
+published before it starts.
+
+Verified against the published releases (not yet an installed upgrade — see
+[Roadmap](roadmap.md#what-remains)):
+
+- `v2026.10.10` is the latest published release
+  (`GET /repos/mrhunsaker/notepadia-theia/releases/latest` returns it, not a
+  draft), and `2026.10.10` sorts greater than `2026.10.9`.
+- All three manifests download from it and are internally consistent:
+  `latest.yml`, `latest-linux.yml` and `latest-mac.yml` each carry
+  `version: 2026.10.10`, a `files[]` entry per target with its `sha512` and
+  `size`, and a matching top-level `path`/`sha512`.
+
+Still to demonstrate on real hardware, and the only remaining part of this
+milestone:
+
+1. Install the previous build (`v2026.10.9`) on Windows and on Linux and
+   launch it.
+2. `Help ▸ Check for Updates...`, confirm the download and the restart prompt,
+   and confirm the app relaunches at `2026.10.10`.
+
+Record the exact versions tested here once that run is done.

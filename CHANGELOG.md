@@ -46,6 +46,14 @@
   single container is a shared whiteboard. The release notes now prepend what
   Gatekeeper does to the unsigned macOS build and how to get past it, a warning
   that disappears on its own once `CSC_LINK` is configured.
+- **The updater's release gate is now satisfied, and its status is recorded.**
+  `2026.10.10` is published (so an installed `2026.10.9` is offered it — the
+  updater ignores drafts), the three update manifests are confirmed to download
+  from it with a consistent `version`/`files`/`sha512`, and the published
+  release's notes now tell macOS users what Gatekeeper will do to the unsigned
+  build and how to get past it. The one remaining step — an installed build on
+  Windows and Linux actually updating itself — is written up in
+  `docs/releases.md` and left open in `docs/roadmap.md`.
 
 ## 2026.10.10 (Electron parity pass and first tagged release)
 

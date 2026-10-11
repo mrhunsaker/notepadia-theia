@@ -86,7 +86,7 @@ the G4 updater proof:
 
 | Task | Why it is still open |
 | --- | --- |
-| **G4 — updater proof** | `electron-updater` resolves only *published* releases. The updater code, the update manifests and a published release now exist; the one thing not yet demonstrated end to end is an **installed** older build discovering and installing a newer published build via `Help ▸ Check for Updates...`. |
+| **G4 — updater proof** | `electron-updater` resolves only *published* releases. The updater code, the update manifests and a published release now exist, and the newer `2026.10.10` is published too (so an installed `2026.10.9` is now offered it); the one thing not yet demonstrated end to end is an **installed** older build discovering and installing a newer published build via `Help ▸ Check for Updates...` on Windows and Linux. |
 
 Out-of-scope items (plugin ecosystem, full Style Configurator, the full
 Notepad++ language catalog, User Defined Languages, broad code-page support,
