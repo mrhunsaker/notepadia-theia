@@ -47,14 +47,15 @@ Verified automatically against the accessibility tree:
   name, read through `page.accessibility.snapshot()`, the way the ring stops
   are. A control that gains a name-less label again fails CI.
 
-**Not yet verified with a real screen reader.** A tree read is not a screen
-reader: it cannot tell you whether an announcement is *usable*, only that a name
-exists. [docs/screen-reader-test-plan.md](screen-reader-test-plan.md) is the
-repeatable script for the run that can — Run A with Orca on Linux against the
-browser build, Run B with NVDA on Windows against the packaged build. Until
-someone records a session and fills in its version table, treat screen reader
-support as "structurally correct, unconfirmed in practice", and do not read the
-automated pass as a substitute.
+**Not yet verified with a real screen reader — pending.** A tree read is not a
+screen reader: it cannot tell you whether an announcement is *usable*, only that
+a name exists. [docs/screen-reader-test-plan.md](screen-reader-test-plan.md) is
+the repeatable script for the run that can — Run A with Orca on Linux against the
+browser build, Run B with NVDA on Windows against the packaged build. Both runs
+are **deferred to a dedicated multi-system pass** and are not yet recorded; until
+one is completed and its version table filled in, treat screen reader support as
+"structurally correct, unconfirmed in practice", and do not read the automated
+pass as a substitute.
 
 The expanded automated pass has already paid for itself: it found and fixed four
 defects a tree read can see but that no one had looked for. The Column Editor's

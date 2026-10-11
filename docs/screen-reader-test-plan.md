@@ -188,7 +188,12 @@ reads any system dialog.
 Fill this in for each run and copy the confirmed result into
 [Accessibility](accessibility.md).
 
+Both runs are **pending**: they need a dedicated multi-system pass (a full
+keyboard walk with a real reader, plus a Windows machine for Run B). Until one is
+completed and this table is filled in, treat screen-reader support as
+"structurally correct, unconfirmed in practice".
+
 | Run | Reader and version | OS | App build | Date | Result |
 | --- | ------------------ | -- | --------- | ---- | ------ |
-| A | e.g. Orca 46.0 | e.g. Ubuntu 24.04 | browser @ `3100`, commit … | | |
-| B | e.g. NVDA 2025.1 | e.g. Windows 11 24H2 | packaged `v…` | | |
+| A | Orca 48.0 | Linux (GNOME / Wayland) | browser @ `3100` | — | **Pending.** Not yet run to completion; repeat on a dedicated desktop. |
+| B | NVDA | Windows | packaged `v…` | — | **Pending.** Needs a Windows machine. |

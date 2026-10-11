@@ -11,10 +11,16 @@ repository root; this page is the human-readable summary.
 ## Where the project is now
 
 The Notepad++-experience program is **feature-complete**. Every workstream below
-(A–F and the verification tasks G1–G3 and G5) is done; the only open task is
-**G4 — first published release and updater proof**, reduced to a single missing
-piece: a real installed build upgrading itself through
-`Help ▸ Check for Updates...`.
+(A–F and the verification tasks G1–G3 and G5) is done.
+
+The v9 plan (`pair_programming_prompt.json`, v9.0.0) is a verification-and-
+remediation pass over that work, grouped as **WS-H** (screen-reader
+accessibility), **WS-I** (Open/Save dialogs start in the user's home folder) and
+**WS-J** (deferred v8 gaps). WS-I and the automated half of WS-H (H3) are done, as
+are the WS-J gaps J2 and J3. Three items remain, and each is **pending** on
+hardware this workspace does not have: **H1** (a recorded Orca session), **H2** (a
+recorded NVDA session on Windows) and **J1/G4** (an installed build updating
+itself on Windows and Linux). They are listed under *What remains* below.
 
 The first *tagged* release is **2026.10.10** (previously releases were built by
 a manual `workflow_dispatch`). Tagging is now the normal release path; see
@@ -74,7 +80,8 @@ the G4 updater proof:
 - Every control labeled `Open` opens the user's own computer; the server
   workspace is reachable only under a label that names it.
 - The whole application is operable by keyboard with no serious or critical axe
-  violations.
+  violations, and a real screen reader announces it. *(keyboard and axe hold;
+  the screen-reader runs H1/H2 are pending)*
 - Every feature has an e2e suite; every pure module has unit tests; a styling
   regression fails CI.
 - README, docs and CHANGELOG describe only what the code actually does.
@@ -86,7 +93,9 @@ the G4 updater proof:
 
 | Task | Why it is still open |
 | --- | --- |
-| **G4 — updater proof** | `electron-updater` resolves only *published* releases. The updater code, the update manifests and a published release now exist, and the newer `2026.10.10` is published too (so an installed `2026.10.9` is now offered it); the one thing not yet demonstrated end to end is an **installed** older build discovering and installing a newer published build via `Help ▸ Check for Updates...` on Windows and Linux. |
+| **H1 — verified Orca session (Linux)** | The automatic accessibility checks pass, but no complete keyboard pass has been recorded through a real reader. Needs a dedicated desktop run of `docs/screen-reader-test-plan.md` Run A; deferred to a multi-system session. |
+| **H2 — verified NVDA session (Windows)** | Needs a Windows machine and the packaged build; deferred. |
+| **J1 / G4 — updater proof** | `electron-updater` resolves only *published* releases. The updater code, the update manifests and a published release now exist, and the newer `2026.10.10` is published too (so an installed `2026.10.9` is now offered it); the one thing not yet demonstrated end to end is an **installed** older build discovering and installing a newer published build via `Help ▸ Check for Updates...` on Windows and Linux. |
 
 Out-of-scope items (plugin ecosystem, full Style Configurator, the full
 Notepad++ language catalog, User Defined Languages, broad code-page support,
