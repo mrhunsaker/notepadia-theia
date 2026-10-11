@@ -45,6 +45,10 @@ cannot catch:
 
 ### Run A — Orca on Linux (browser)
 
+Use the harness script, which starts Orca with every announcement logged, opens
+the app in Chrome for Testing with accessibility enabled, and then writes a
+cleaned transcript of the announcements when you finish:
+
 ```bash
 # 1. Build and serve the app on the port the plan uses.
 yarn build:extensions && yarn build:browser
@@ -53,15 +57,35 @@ E2E_PORT=3100 yarn --cwd applications/browser start   # or: yarn start for :3000
 # 2. Install orca and a speech backend, once.
 sudo apt-get install -y orca speech-dispatcher
 
-# 3. Start Orca with speech logging so the announcements are saved as text.
-#    Orca writes to the file given by --debug-file; the file is appended to.
-orca --debug-file=/tmp/orca-speech.log &
+# 3. Start the session; the app window opens focused on the app's URL.
+./scripts/orca-session.sh
+#    ..., or:
+#      ./scripts/orca-session.sh --no-chrome       # app already open your side
 ```
+
+**Important — why the `--debug` flag matters.** The harness always passes
+`orca --debug --debug-file=…`. Without `--debug`, Orca's debug file never gets
+`SPEECH OUTPUT:` lines, so you would transcribe from nothing. The transcript
+(`/tmp/orca-speech-transcript.txt` after a run, or any prior log with the
+`--extract-only` option) is what you paste into the record below.
 
 Notes:
 
-- Turn SST (Screen Reader Optimized) on in the app if you see a prompt; it makes
-  Monaco stop swallowing key events. The setting lives in
+- **Orca speaks audibly during the run** through the system speech-dispatcher;
+  that is expected on a screen-reader run. The transcripts are what you keep.
+  (There is no silent mode: this distro's speech-dispatcher `dummy` output
+  module cannot open a device — "Cannot open plugin server" — so a silent
+  backend is not available.)
+- **Only the app window may be open and focused.** Orca announces whichever
+  window currently has focus (on Wayland, a background process cannot grab it),
+  so a clean transcript means nothing else in the way. Alt+Tab the app window
+  into focus before each action, and keep other windows closed or minimised.
+- The harness opens the app in **Chrome for Testing** with
+  `--force-renderer-accessibility`; a plain browser tab without that flag may
+  not expose an accessible tree at all. For the same reason there is no
+  Firefox variant of this build.
+- Turn SST (Screen Reader Optimized) on in the app if you see a prompt; it
+  makes Monaco stop swallowing key events. The setting lives in
   *Settings ▸ Preferences ▸ Editor ▸ Accessibility Support*.
 - Drive the app **by keyboard only**. Put the mouse away for the duration.
 - If speech is too fast to transcribe, slow Orca's rate in *Orca Preferences ▸
@@ -176,8 +200,9 @@ reads any system dialog.
 
 - **Pass:** every row ticked, and the version line filled in with the reader,
   platform and app build.
-- **Finding:** the row number, the exact announcement (paste from the Orca log or
-  NVDA Speech Viewer), what you expected, and the steps. File it as an issue and
+- **Finding:** the row number, the exact announcement (paste from the
+  `/tmp/orca-speech-transcript.txt` the harness produced, or NVDA Speech
+  Viewer), what you expected, and the steps. File it as an issue and
   label it `accessibility` and the reader's name.
 - When a finding is fixed in source, it gains a guard in `e2e/a11y.cjs` so the
   accessibility-tree shape it depended on cannot silently return, and this plan's
