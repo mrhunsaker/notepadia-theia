@@ -67,7 +67,11 @@ class NotepadiaWindowsDialog extends AbstractDialog<undefined> {
 
         const header = document.createElement('div');
         header.className = 'notepadia-windows-header';
-        header.setAttribute('role', 'row');
+        // The list below is a listbox of whole rows, not a grid, so a `row` here
+        // has no grid to belong to and no `columnheader` children - axe flags it
+        // as a critical ARIA violation. The header is a visual legend only; each
+        // option carries its own Name, Path and Type in its label instead.
+        header.setAttribute('aria-hidden', 'true');
         for (const column of ['Name', 'Path', 'Type']) {
             const cell = document.createElement('span');
             cell.textContent = column;
@@ -127,6 +131,10 @@ class NotepadiaWindowsDialog extends AbstractDialog<undefined> {
             row.dataset.index = String(index);
             row.setAttribute('role', 'option');
             row.setAttribute('aria-selected', String(this.selected.has(doc.id)));
+            // The three spans are inline, so their text would run together into
+            // one word for a screen reader; name the option the way the header
+            // reads it, with the columns separated.
+            row.setAttribute('aria-label', `${doc.name}, ${doc.path}, ${doc.type}`);
             row.tabIndex = -1;
 
             const name = document.createElement('span');

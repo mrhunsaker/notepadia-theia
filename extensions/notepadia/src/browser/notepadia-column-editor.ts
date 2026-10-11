@@ -98,8 +98,15 @@ class NotepadiaColumnEditorDialog extends AbstractDialog<ColumnEditorConfig | un
         this.zerosCheckbox.checked = false;
 
         const row = (label: string, element: HTMLElement): HTMLElement => {
+            // Associate the label with its control, otherwise a screen reader
+            // focusing the input announces an unnamed edit/select/checkbox:
+            // a bare sibling <label> with no `for` names nothing.
+            if (!element.id) {
+                element.id = `notepadia-column-editor-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+            }
             const labelNode = document.createElement('label');
             labelNode.textContent = label;
+            labelNode.htmlFor = element.id;
             labelNode.style.display = 'block';
             labelNode.style.minWidth = '130px';
             const wrapper = document.createElement('div');

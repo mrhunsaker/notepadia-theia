@@ -353,6 +353,15 @@ asserts the Notepad++-style behavior. Run a single suite directly, e.g.
 `E2E_URL=http://localhost:3000 node e2e/search.cjs`, pointing `E2E_URL` at a
 running `yarn start` instance.
 
+Accessibility is checked automatically by `e2e/a11y.cjs`, part of
+`yarn test:e2e`: it drives the keyboard ring, runs axe over every dialog and
+panel, and asserts every interactive control has an accessible name. The manual
+half a tree read cannot replace — a person driving the app with Orca or NVDA —
+is scripted in
+[docs/screen-reader-test-plan.md](docs/screen-reader-test-plan.md), and the
+**Test Builds (screen-reader evaluation)** GitHub Action produces unsigned
+Windows and macOS builds for it from the Actions tab.
+
 `e2e/screenshots.cjs` renders the running app at a fixed 1280x800 viewport and
 pixel-diffs the main editor and the Find dialog against the committed baselines
 in `e2e/baselines/`. A styling regression fails CI, and the failure artifact

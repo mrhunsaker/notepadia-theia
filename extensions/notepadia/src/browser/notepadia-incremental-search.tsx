@@ -31,15 +31,15 @@ export namespace NotepadiaIncrementalSearchCommands {
 /** The input's error red: Notepad++ paints the whole field when nothing matches. */
 const STYLE_TEXT = `
 .notepadia-incremental-search { display: flex; align-items: center; gap: 6px; padding: 3px 8px; font-size: var(--theia-ui-font-size1); }
-.notepadia-incremental-search-label { color: var(--theia-descriptionForeground); flex: none; font-weight: 600; }
+.notepadia-incremental-search-label { color: var(--theia-foreground); flex: none; font-weight: 600; }
 .notepadia-incremental-search-term { flex: 0 1 200px; min-width: 120px; }
 .notepadia-incremental-search.no-match .notepadia-incremental-search-term {
   background-color: var(--theia-inputValidation-errorBackground, #f48771);
   color: var(--theia-inputValidation-errorForeground, #a1260d);
 }
 .notepadia-incremental-search-nav { flex: none; min-width: 22px; padding: 1px 6px; }
-.notepadia-incremental-search-option { display: flex; align-items: center; gap: 4px; color: var(--theia-descriptionForeground); user-select: none; }
-.notepadia-incremental-search-live { min-width: 60px; color: var(--theia-descriptionForeground); font-size: var(--theia-ui-font-size0, 11px); }
+.notepadia-incremental-search-option { display: flex; align-items: center; gap: 4px; color: var(--theia-foreground); user-select: none; }
+.notepadia-incremental-search-live { min-width: 60px; color: var(--theia-foreground); font-size: var(--theia-ui-font-size0, 11px); }
 .notepadia-incremental-search.no-match .notepadia-incremental-search-live { color: var(--theia-inputValidation-errorForeground, #a1260d); }
 .notepadia-incremental-highlight { background-color: var(--theia-editor-findMatchHighlightBackground); }
 `;

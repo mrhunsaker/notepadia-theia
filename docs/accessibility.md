@@ -41,13 +41,32 @@ Verified automatically against the accessibility tree:
 - Menu bar items, toolbar buttons, document tabs and the status bar all carry
   accessible names.
 - Menus, tab bars and the status bar report their roles correctly.
+- Every interactive control in the Search Results window, Incremental Search,
+  Function List, the Run dialog, the Column Editor, the Summary dialog, the
+  Windows dialog and the customized Date & Time box has a non-empty accessible
+  name, read through `page.accessibility.snapshot()`, the way the ring stops
+  are. A control that gains a name-less label again fails CI.
 
-**Not yet verified with a real screen reader.** NVDA on Windows and Orca on
-Linux both need a human, a synthesised speech mode and a session that also
-reads the packaged desktop app; none of that can be faked from a headless
-browser run. Until someone records a session, treat screen reader support as
-"structurally correct, unconfirmed in practice". If you run one, please open an
-issue with what you found.
+**Not yet verified with a real screen reader.** A tree read is not a screen
+reader: it cannot tell you whether an announcement is *usable*, only that a name
+exists. [docs/screen-reader-test-plan.md](screen-reader-test-plan.md) is the
+repeatable script for the run that can — Run A with Orca on Linux against the
+browser build, Run B with NVDA on Windows against the packaged build. Until
+someone records a session and fills in its version table, treat screen reader
+support as "structurally correct, unconfirmed in practice", and do not read the
+automated pass as a substitute.
+
+The expanded automated pass has already paid for itself: it found and fixed four
+defects a tree read can see but that no one had looked for. The Column Editor's
+field labels were not associated with their controls, so focusing one announced
+an unnamed edit; each label now carries `for`. The customized Date & Time box's
+format label had the same gap. The Windows dialog marked its visual column
+header `role="row"` with no grid around it, which axe reports as critical
+`aria-required-children` and `aria-required-parent`; the header is now a
+presentational legend and each row announces its own Name, Path and Type. The
+Incremental Search bar's labels used the hint colour and failed the contrast
+check; they now use the primary foreground. Each fix is guarded in
+`e2e/a11y.cjs`.
 
 Monaco's own accessibility help, <kbd>Alt</kbd>+<kbd>F1</kbd>, is **not**
 available. Theia 1.75 does not register the command, so pressing it does
@@ -61,8 +80,12 @@ being assumed to work.
 
 - any serious or critical [axe-core](https://github.com/dequelabs/axe-core)
   violation in the default layout, with a menu open, with the Find dialog open,
-  and with each of the four panels (Document Map, Document List, Character
-  Panel, Clipboard History) open;
+  with each of the four panels (Document Map, Document List, Character Panel,
+  Clipboard History) open, and on each of the surfaces added since: the Search
+  Results window, Incremental Search, the Function List, and the Run, Column
+  Editor, Summary, Windows and customized Date & Time dialogs, each scoped so a
+  finding names the surface it is in;
+- a control inside any of those surfaces that has no accessible name;
 - a stop in the tab ring that has no accessible name;
 - the editor becoming a keyboard trap;
 - Tab failing to indent in the editor, which is the behaviour Escape+Tab must
@@ -102,7 +125,9 @@ an enabled button.
 
 The Find dialog's field labels and fieldset legends used
 `--theia-descriptionForeground`, which is a hint colour and lands under 4.5:1.
-They now use the normal foreground, because a form label is primary text.
+They now use the normal foreground, because a form label is primary text. The
+Incremental Search bar's label, option labels and result count had the same
+problem and were changed the same way.
 
 ### High contrast
 

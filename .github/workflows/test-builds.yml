@@ -1,0 +1,101 @@
+name: Test Builds (screen-reader evaluation)
+
+# Unsigned Windows and macOS desktop builds for a human to install and drive with
+# a screen reader (WS-H / H2). These are throwaway evaluation builds, not
+# releases: nothing is published, and the version is the date-based build
+# version so an installed test copy is distinguishable from a released one.
+#
+# Run it from the Actions tab: "Test Builds (screen-reader evaluation)" ->
+# "Run workflow", then download the per-platform artifact and follow
+# docs/screen-reader-test-plan.md (Run B) against the installed app.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to stamp on the test builds (YYYY.M.D); blank uses today"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-2022
+            targets: --win
+          - platform: macos
+            os: macos-15
+            targets: --mac
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn Classic
+        run: corepack prepare yarn@1.22.22 --activate
+
+      - name: Verify environment
+        run: yarn verify
+
+      - name: Install
+        run: yarn install --frozen-lockfile
+
+      - name: Build extensions
+        run: yarn build:extensions
+
+      # Rebuild native modules for the Electron ABI. node-pty is excluded for the
+      # same reason as in release.yml: its N-API prebuilds already match the
+      # Electron ABI and a from-source rebuild fails with MSB8040 on Windows.
+      - name: Rebuild native modules for Electron
+        run: yarn --cwd applications/electron rebuild --modules=drivelist,keytar,native-keymap,find-git-repositories
+
+      - name: Build Electron application
+        run: yarn --cwd applications/electron build:prod
+
+      # package-electron.mjs stamps the date-based version, packages with
+      # identity=null / --publish never, then restores package.json, so the
+      # checkout is never left dirty. macOS unsigned builds must also skip the
+      # keychain certificate search, or electron-builder hangs on it.
+      - name: Package (${{ matrix.platform }}), unsigned
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          EXTRA=""
+          if [ -n "${{ inputs.version }}" ]; then
+            EXTRA="--version ${{ inputs.version }}"
+          fi
+          node scripts/package-electron.mjs ${{ matrix.targets }} $EXTRA
+
+      # Failing here keeps a broken artifact out of the run, so no one installs a
+      # build that will not launch to test it.
+      - name: Smoke test packaged app
+        run: node scripts/electron-smoke.mjs
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: notepadia-test-${{ matrix.platform }}
+          path: |
+            applications/electron/dist/*.exe
+            applications/electron/dist/*.dmg
+            applications/electron/dist/*.zip
+            applications/electron/dist/*.blockmap
+            applications/electron/dist/*.yml
+          if-no-files-found: error

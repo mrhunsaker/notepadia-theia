@@ -129,6 +129,7 @@ class NotepadiaDateTimeFormatDialog extends AbstractDialog<string | undefined> {
 
         this.input = document.createElement('input');
         this.input.type = 'text';
+        this.input.id = 'notepadia-date-time-format';
         this.input.value = initialFormat;
         this.input.style.width = '100%';
         // The base class validates on open and on accept, but a plain `<input>`
@@ -140,6 +141,9 @@ class NotepadiaDateTimeFormatDialog extends AbstractDialog<string | undefined> {
 
         const label = document.createElement('label');
         label.textContent = 'Date & time format';
+        // Associate the label with the input, or a screen reader focusing the
+        // field announces an unnamed edit box with no hint of what it holds.
+        label.htmlFor = this.input.id;
         label.style.display = 'block';
         label.style.marginBottom = '4px';
 

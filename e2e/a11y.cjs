@@ -14,7 +14,7 @@
 // NVDA/Orca results a human still has to produce.
 
 const { assert, finish, sleep, launchPage, goto, openFile,
-    openMenuBar, clickByLabel, closeMenus } = require('./lib.js');
+    openMenuBar, clickByLabel, closeMenus, clickMenuPath, clickToolbarButton } = require('./lib.js');
 const { openFindDialog, closeDialog } = require('./dialog-helpers.cjs');
 
 const AXE = require.resolve('axe-core');
@@ -42,10 +42,23 @@ const focusInfo = () => {
     };
 };
 
-/** Serious and critical axe violations only: the bar F1 sets for the app. */
-async function blockingViolations(page) {
-    return page.evaluate(async () => {
-        const result = await window.axe.run(document, { resultTypes: ['violations'] });
+/**
+ * Serious and critical axe violations only: the bar F1 sets for the app.
+ *
+ * With `rootSelector` the scan is scoped to one surface, which is how a modal
+ * dialog is measured: the background behind it is not this dialog's markup, and
+ * a finding against it would name the wrong thing.
+ */
+async function blockingViolations(page, rootSelector) {
+    return page.evaluate(async sel => {
+        let context = document;
+        if (sel) {
+            context = document.querySelector(sel);
+            if (!context) {
+                return [{ id: 'surface-not-found', impact: 'critical', nodes: 0, target: sel, help: 'the surface was not open' }];
+            }
+        }
+        const result = await window.axe.run(context, { resultTypes: ['violations'] });
         return result.violations
             .filter(violation => violation.impact === 'serious' || violation.impact === 'critical')
             .map(violation => ({
@@ -53,9 +66,46 @@ async function blockingViolations(page) {
                 impact: violation.impact,
                 nodes: violation.nodes.length,
                 target: (violation.nodes[0].target || []).join(' '),
+                targets: violation.nodes.map(node => (node.target || []).join(' ')),
                 help: violation.help
             }));
-    });
+    }, rootSelector || null);
+}
+
+// The roles a user has to be able to name before operating them. A control with
+// text but none of this is announced as a bare "button"/"edit" and is unusable.
+const INTERACTIVE_ROLES = new Set([
+    'button', 'checkbox', 'combobox', 'gridcell', 'link', 'listbox', 'menuitem',
+    'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'searchbox', 'slider',
+    'spinbutton', 'switch', 'tab', 'textbox', 'treeitem'
+]);
+
+/**
+ * The interactive controls inside one surface whose Chromium-computed
+ * accessible name is empty. This is what a screen reader actually announces, so
+ * it catches a control that has a look-alike sibling label but no real name.
+ */
+async function unnamedInteractive(page, rootSelector) {
+    const handle = await page.$(rootSelector);
+    if (!handle) {
+        return { missing: true, names: [] };
+    }
+    const snapshot = await page.accessibility.snapshot({ root: handle });
+    const names = [];
+    const walk = node => {
+        if (!node) {
+            return;
+        }
+        if (node.role && INTERACTIVE_ROLES.has(node.role) && !(node.name || '').trim()) {
+            names.push(node.role);
+        }
+        for (const child of node.children || []) {
+            walk(child);
+        }
+    };
+    walk(snapshot);
+    await handle.dispose();
+    return { missing: false, names };
 }
 
 async function injectAxe(page) {
@@ -255,6 +305,57 @@ const firstIndexOf = (stops, predicate) => stops.findIndex(predicate);
         await clickByLabel(page, label);
         await sleep(800);
     }
+
+    // ---- 5b. Every remaining v8 dialog and panel, measured in isolation.
+    // Section 5 answered "does this surface violate axe"; this answers the
+    // other half of the same question - does every control inside it announce a
+    // name - for the surfaces a screen reader reaches after the chrome pass.
+    // Each is opened the way a user opens it, scoped-scanned, then closed.
+    const focusEditor = async () => {
+        await page.click('.monaco-editor .view-lines').catch(() => { });
+        await sleep(300);
+    };
+    const auditSurface = async (label, open, selector, close) => {
+        await open();
+        await sleep(900);
+        const unnamed = await unnamedInteractive(page, selector);
+        assert(`${label}: every interactive control has an accessible name`,
+            !unnamed.missing && unnamed.names.length === 0, JSON.stringify(unnamed));
+        const violations = await blockingViolations(page, selector);
+        assert(`${label}: no serious or critical axe violations`,
+            violations.length === 0, JSON.stringify(violations, null, 1));
+        await close();
+        await sleep(700);
+    };
+
+    await auditSurface('axe/NX: Search Results',
+        async () => { await focusEditor(); await page.keyboard.press('F7'); },
+        '[id="notepadia.searchResults"]',
+        async () => { await focusEditor(); await page.keyboard.press('F7'); });
+
+    await auditSurface('axe/NX: Incremental Search',
+        async () => { await openMenuBar(page, 'Search'); await clickByLabel(page, 'Incremental Search'); await closeMenus(page); },
+        '[id="notepadia.incrementalSearch"]',
+        async () => { await openMenuBar(page, 'Search'); await clickByLabel(page, 'Incremental Search'); await closeMenus(page); });
+
+    await auditSurface('axe/NX: Function List',
+        async () => { await clickToolbarButton(page, 'Function List'); },
+        '[id="notepadia.functionList"]',
+        async () => { await clickToolbarButton(page, 'Function List'); });
+
+    // Each dialog closes with Escape, the AbstractDialog shortcut, so no
+    // surface is closed by a button whose real job is something else.
+    const dialogSurface = (label, path) => auditSurface(label,
+        async () => { await clickMenuPath(page, path); },
+        '.dialogBlock',
+        async () => { await page.keyboard.press('Escape'); });
+
+    await dialogSurface('axe/NX: Run dialog', ['Run', 'Run...']);
+    await dialogSurface('axe/NX: Column Editor', ['Edit', 'Line Operations', 'Column Editor...']);
+    await dialogSurface('axe/NX: Summary dialog', ['View', 'Summary...']);
+    await dialogSurface('axe/NX: Windows dialog', ['Window', 'Windows...']);
+    await dialogSurface('axe/NX: Date & Time customized dialog',
+        ['Edit', 'Insert', 'Date & Time', 'Date & Time (customized)...']);
 
     // ---- 6. The gap this environment cannot close, recorded rather than assumed.
     const altF1 = await page.evaluate(() => {
