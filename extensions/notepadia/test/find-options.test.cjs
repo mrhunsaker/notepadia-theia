@@ -5,6 +5,7 @@ const {
     resolveSearch,
     describeMatchCount,
     addHistory,
+    workspaceRelativeDirectory,
     FIND_HISTORY_LIMIT,
     DEFAULT_FIND_OPTIONS
 } = require('../lib/common/find-options.js');
@@ -74,6 +75,30 @@ describe('addHistory - Find dialog history', () => {
         assert.equal(next.length, FIND_HISTORY_LIMIT);
         assert.equal(next[0], 'new');
         assert.equal(next.includes('e' + (FIND_HISTORY_LIMIT - 1)), false);
+    });
+});
+
+describe('workspaceRelativeDirectory - Find in Files prefill', () => {
+    it('expresses a nested folder relative to the workspace root', () => {
+        assert.equal(workspaceRelativeDirectory('/home/me/ws', '/home/me/ws/src/lib'), 'src/lib');
+    });
+    it('returns an empty string for the root itself', () => {
+        assert.equal(workspaceRelativeDirectory('/home/me/ws', '/home/me/ws'), '');
+    });
+    it('returns undefined when the selection is outside the root', () => {
+        assert.equal(workspaceRelativeDirectory('/home/me/ws', '/home/me/other'), undefined);
+        assert.equal(workspaceRelativeDirectory('/home/me/ws', '/home/me/ws2'), undefined);
+    });
+    it('does not treat a shared name prefix as a child', () => {
+        // '/home/me/ws2' starts with '/home/me/ws' but is not inside it.
+        assert.equal(workspaceRelativeDirectory('/home/me/ws/', '/home/me/ws2/x'), undefined);
+    });
+    it('ignores trailing slashes on either side', () => {
+        assert.equal(workspaceRelativeDirectory('/home/me/ws/', '/home/me/ws/src/'), 'src');
+    });
+    it('returns undefined without a root or a selection', () => {
+        assert.equal(workspaceRelativeDirectory('', '/home/me/ws'), undefined);
+        assert.equal(workspaceRelativeDirectory('/home/me/ws', ''), undefined);
     });
 });
 

@@ -5,6 +5,9 @@ import {
     CommandContribution,
     CommandRegistry
 } from '@theia/core/lib/common/command';
+import { SelectionService } from '@theia/core/lib/common/selection-service';
+import URI from '@theia/core/lib/common/uri';
+import { UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
 import { CommonCommands } from '@theia/core/lib/browser';
 import { NotepadiaCommands } from './notepadia-contribution';
 import { NotepadiaSearchMarkCommands } from './notepadia-search-mark';
@@ -20,6 +23,9 @@ export namespace NotepadiaFindCommands {
     export const OPEN: Command = { id: 'notepadia.find.open', label: 'Find...' };
     export const OPEN_REPLACE: Command = { id: 'notepadia.find.openReplace', label: 'Replace...' };
     export const OPEN_FILES: Command = { id: 'notepadia.find.openFiles', label: 'Find in Files' };
+    // Opened from a folder's context menu: like OPEN_FILES, but it carries the
+    // picked folder into the dialog's Directory field (E3 follow-up).
+    export const OPEN_FOLDER_FILES: Command = { id: 'notepadia.find.openFolderFiles', label: 'Find in Files in Folder' };
     export const OPEN_MARK: Command = { id: 'notepadia.find.openMark', label: 'Mark...' };
     export const CLOSE: Command = { id: 'notepadia.find.close', label: 'Close Find' };
 }
@@ -40,7 +46,8 @@ export class NotepadiaFindContribution implements CommandContribution {
     protected readonly toDispose = new DisposableCollection();
 
     constructor(
-        @inject(NotepadiaFindDialog) protected readonly dialog: NotepadiaFindDialog
+        @inject(NotepadiaFindDialog) protected readonly dialog: NotepadiaFindDialog,
+        @inject(SelectionService) protected readonly selectionService: SelectionService
     ) { }
 
     registerCommands(commands: CommandRegistry): void {
@@ -57,6 +64,13 @@ export class NotepadiaFindContribution implements CommandContribution {
         commands.registerCommand(NotepadiaFindCommands.OPEN_FILES, {
             execute: () => this.dialog.open('files')
         });
+        // The folder context menu's entry: same dialog and tab, but the picked
+        // folder is seeded into the Directory field. UriAwareCommandHandler
+        // reads the tree selection when the command is run without an argument.
+        commands.registerCommand(NotepadiaFindCommands.OPEN_FOLDER_FILES,
+            UriAwareCommandHandler.MonoSelect(this.selectionService, {
+                execute: (resource: URI) => this.dialog.openFolderFiles(resource)
+            }));
         commands.registerCommand(NotepadiaFindCommands.OPEN_MARK, {
             isEnabled: () => this.dialog.canFind(),
             execute: () => this.dialog.open('mark')

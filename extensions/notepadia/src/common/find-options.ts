@@ -92,3 +92,29 @@ export function addHistory(history: readonly string[], value: string): string[] 
     const without = history.filter(entry => entry !== trimmed);
     return [trimmed, ...without].slice(0, FIND_HISTORY_LIMIT);
 }
+
+/**
+ * Path for the Find in Files **Directory** field when the dialog is opened
+ * from a folder's context menu (E3 follow-up). The field is resolved against
+ * the workspace root, so the selected folder is expressed relative to that
+ * root - e.g. selected `<root>/src/lib` becomes `src/lib`, and the root itself
+ * becomes `''` (an empty field means "the whole workspace").
+ *
+ * Returns `undefined` when the selection is not inside the root, so callers
+ * leave the field untouched rather than seeding a path the backend cannot
+ * resolve.
+ */
+export function workspaceRelativeDirectory(rootPath: string, selectedPath: string): string | undefined {
+    const root = rootPath.replace(/\/+$/, '');
+    const selected = selectedPath.replace(/\/+$/, '');
+    if (!root || !selected) {
+        return undefined;
+    }
+    if (selected === root) {
+        return '';
+    }
+    if (selected.startsWith(root + '/')) {
+        return selected.slice(root.length + 1);
+    }
+    return undefined;
+}

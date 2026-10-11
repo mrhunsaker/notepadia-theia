@@ -24,6 +24,7 @@ a browser-compatible, minimal implementation built on Theia/Monaco.
 | **Document Map is preference-backed** | Mirrors `editor.minimap.enabled` and persists per profile; the code keeps it in sync across all editors. |
 | **Tab icons** | Red/blue floppy for saved/dirty, padlock for read-only; matches Notepad++'s visual language rather than VS Code's dot. |
 | **Show Wrap Symbol not offered** | Monaco 1.75 has no wrapping-indicator option the UI can bind. `Show All Characters` remains available from the toolbar and `View ▸ Show Symbol`. |
+| **Folding stops at level 7** | Notepad++ lists eight fold levels; Monaco registers folding actions only for levels 1-7, so `View ▸ Fold Level` offers `Alt+1..7` rather than binding an action that does not exist. `Fold All` / `Unfold All` (`Alt+0` / `Alt+Shift+0`) are unaffected. |
 
 ## Search, Find, Incremental Search
 
@@ -60,7 +61,7 @@ a browser-compatible, minimal implementation built on Theia/Monaco.
 
 | Difference | Rationale |
 | --- | --- |
-| **Browser-safe alternates for claimed chords** | `Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`, `F5`, `Ctrl+F5` are trapped by the browser. We provide `Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`, `Ctrl+Alt+D`, `Ctrl+Alt+Shift+D`. In the desktop app, the original chords work. |
+| **Browser-safe alternates for claimed chords** | `Ctrl+N`, `Ctrl+W`, `Ctrl+Shift+W`, `Ctrl+O`, `F5`, `Ctrl+F5` are trapped by the browser. We provide `Ctrl+Alt+N`, `Ctrl+F4`, `Ctrl+Alt+Shift+W`, `Ctrl+Alt+O`, `Ctrl+Alt+D`, `Ctrl+Alt+Shift+D`. In the desktop app, the original chords work - `Ctrl+N` and `F5` / `Ctrl+F5` are asserted over CDP in `scripts/electron-smoke.mjs`, which is the only place a browser-reserved chord can actually be delivered. |
 | **Editor zoom wins on editor focus** | `Ctrl+=` / `Ctrl+-` / `Ctrl+0` zoom the editor text when the editor has focus, leaving page zoom to the browser elsewhere. |
 | **File System Access API constraints** | Ctrl+S write-back to the same local file only works in Chromium with a secure context and a kept file handle. Firefox/Safari fall back to Save As/download. |
 

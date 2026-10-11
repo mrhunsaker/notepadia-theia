@@ -22,7 +22,8 @@ import {
     describeMatchCount,
     type FindOptions,
     type NotepadiaSearchMode,
-    resolveSearch
+    resolveSearch,
+    workspaceRelativeDirectory
 } from '../common/find-options';
 import { NotepadiaFindState } from './notepadia-find-state';
 import { MARK_STYLE_COUNT, NotepadiaSearchMarkContribution } from './notepadia-search-mark';
@@ -171,14 +172,21 @@ export class NotepadiaFindDialog extends ReactWidget {
 
     // --- public API -------------------------------------------------------
 
-    /** Opens the dialog, activating the given tab, and re-focuses editor after close. */
-    open(tab: NotepadiaFindTab = 'find', showReplace?: boolean): void {
+    /**
+     * Opens the dialog, activating the given tab, and re-focuses editor after close.
+     * When `directory` is given it seeds the Find in Files Directory field, so
+     * a caller (e.g. the folder context menu) can hand a folder over.
+     */
+    open(tab: NotepadiaFindTab = 'find', showReplace?: boolean, directory?: string): void {
         // Re-seed the term from the current selection only when the dialog was
         // closed and the user activated it again - matches Notepad++ seeding.
         if (!this.dialogVisible()) {
             this.seedTermFromSelection();
         }
         this.tab = tab;
+        if (directory !== undefined) {
+            this.filesDirectory = directory;
+        }
         this.showReplace = showReplace ?? (tab === 'replace');
         this.mode = this.searchMark.searchMode();
         if (this.node.parentElement !== document.body) {
@@ -188,6 +196,21 @@ export class NotepadiaFindDialog extends ReactWidget {
         this.hideInlineFindWidgets();
         this.update();
         this.activate();
+    }
+
+    /**
+     * Opens **Find in Files** on a folder picked from the workspace tree (E3
+     * follow-up): the folder's path relative to the workspace root is seeded
+     * into the Directory field, a real hand-off rather than a cosmetic default.
+     * Selecting the root itself (or a resource outside it) leaves the field
+     * empty, which already means "the whole workspace".
+     */
+    openFolderFiles(resource: URI): void {
+        const root = this.workspaceService.tryGetRoots()[0]?.resource;
+        const directory = root
+            ? workspaceRelativeDirectory(root.path.toString(), resource.path.toString())
+            : undefined;
+        this.open('files', undefined, directory);
     }
 
     /** Whether a document is open to search in. */

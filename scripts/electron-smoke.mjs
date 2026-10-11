@@ -5,8 +5,9 @@
 // the Chrome DevTools Protocol, that the window opened, the Notepadia toolbar
 // actually rendered, the freshly opened workspace is trusted by default (G5:
 // no workspace-trust dialog, no Restricted Mode), and that the native
-// Ctrl/Cmd+N keybinding from D2 opens a new document (which only works in
-// Electron, where the browser-reserved chords are delivered).
+// Ctrl/Cmd+N and F5 / Ctrl/Cmd+F5 keybindings from D2/G1 are delivered - the
+// latter only in Electron, where the browser never sees (and never reloads on)
+// the browser-reserved chords.
 //
 // Run it from the release workflow after electron-builder has produced the
 // app, and from `yarn smoke:electron` locally after `yarn package:preview`.
@@ -319,6 +320,51 @@ try {
     );
     const tabsAfter = await session.evaluate(`document.querySelectorAll('${tabSelector}').length`);
     console.log(`PASS native ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'}+N opened a new document (tabs ${tabsBefore} -> ${tabsAfter})`);
+
+    // G1/D2 parity for the Date & Time chords: F5 (short) and Ctrl/Cmd+F5
+    // (long) are browser reloads, so the browser suite can only cover their
+    // alternates (Ctrl+Alt+D / Ctrl+Alt+Shift+D). Electron delivers the native
+    // chords, and this is the one place that can prove it - the editor must be
+    // focused first, because both bindings are scoped to `editorTextFocus`.
+    const editorBox = await session.evaluate(`(function () {
+        var el = document.querySelector('.monaco-editor');
+        if (!el) { return null; }
+        var r = el.getBoundingClientRect();
+        return { x: r.x + 40, y: r.y + 20 };
+    })()`);
+    if (!editorBox) {
+        throw new Error('no editor found to focus for the Date & Time chord check');
+    }
+    await session.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: editorBox.x, y: editorBox.y, button: 'left', clickCount: 1 });
+    await session.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: editorBox.x, y: editorBox.y, button: 'left', clickCount: 1 });
+    await sleep(500);
+
+    const readEditorText = `(function () {
+        var el = document.querySelector('.monaco-editor .view-lines');
+        return el ? el.textContent.replace(/\\u00a0/g, ' ') : '';
+    })()`;
+    const pressChords = async (modifiers, key, code, vk) => {
+        await session.send('Input.dispatchKeyEvent', { type: 'keyDown', modifiers, key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+        await session.send('Input.dispatchKeyEvent', { type: 'keyUp', modifiers, key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
+    };
+
+    // F5 -> the short, numeric format "HH:mm:ss dd/MM/yyyy" (locale-independent).
+    await pressChords(0, 'F5', 'F5', 116);
+    await session.waitFor(
+        `/\\d{2}:\\d{2}:\\d{2} \\d{2}\\/\\d{2}\\/\\d{4}/.test(${readEditorText})`,
+        'F5 to insert the short Date & Time',
+        10000
+    );
+    console.log('PASS native F5 inserted the short Date & Time (G1/D2 parity)');
+
+    // Ctrl/Cmd+F5 -> the long format; assert the locale-stable "d, yyyy h:mm".
+    await pressChords(modifier, 'F5', 'F5', 116);
+    await session.waitFor(
+        `/\\d{1,2}, \\d{4} \\d{1,2}:\\d{2}/.test(${readEditorText})`,
+        `Ctrl/Cmd+F5 to insert the long Date & Time`,
+        10000
+    );
+    console.log(`PASS native ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'}+F5 inserted the long Date & Time (G1/D2 parity)`);
 
     const errors = session.consoleErrors;
     if (errors.length > 0) {

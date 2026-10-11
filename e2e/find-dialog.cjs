@@ -9,17 +9,23 @@
 const fs = require('fs');
 const path = require('path');
 const { WS, assert, finish, sleep, launchPage, goto, openFile, save,
-    currentLine, modelText } = require('./lib.js');
+    currentLine, modelText, openMenuBar, clickByLabel, waitFor } = require('./lib.js');
 const { openFindDialog, assertNoInlineWidget, clickDialogTab,
     clickDialogButton, setFindText, setReplaceText, setCheck, setMode,
     setStyleRadio, dialogStatus, closeDialog, markCountStyle,
     focusEditor } = require('./dialog-helpers.cjs');
 
 (async () => {
+    // A folder to pick from the workspace tree for the E3 prefill check, so the
+    // selected node is not the root (the root seeds an empty Directory field,
+    // which is the field's own default and would prove nothing).
+    const subFolder = 'find-sub';
+    fs.mkdirSync(path.join(WS, subFolder), { recursive: true });
+    fs.writeFileSync(path.join(WS, subFolder, 'inside.txt'), 'foo inside\n', 'utf8');
+
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     await goto(page);
     await openFile(page, 'search.txt');
-
     // Unified entry point: Ctrl+F opens the single tabbed dialog, no inline widget.
     await openFindDialog(page);
     await assertNoInlineWidget(page);
@@ -171,6 +177,47 @@ const { openFindDialog, assertNoInlineWidget, clickDialogTab,
     for (let i = 0; i < 5; i++) { await page.keyboard.down('Shift'); await page.keyboard.press('F3'); await page.keyboard.up('Shift'); await sleep(350); back.push(await currentLine(page)); }
     assert('Shift+F3 walks backward through the same matches',
         JSON.stringify([...new Set(back)].sort()) === JSON.stringify([1, 2, 3]), JSON.stringify(back));
+
+    // E3 follow-up: "Find in Files..." from a folder's context menu hands the
+    // folder into the dialog's Directory field, instead of just opening the tab.
+    await closeDialog(page, false);
+    await openMenuBar(page, 'View');
+    await clickByLabel(page, 'Folder as Workspace');
+    await waitFor(page, '.theia-Files', 10000, 'file navigator');
+    await sleep(1200);
+
+    const folderNode = await page.evaluateHandle(name =>
+        Array.from(document.querySelectorAll('.theia-Files .theia-TreeNode'))
+            .find(el => (el.textContent || '').includes(name) && el.getBoundingClientRect().height > 0) || null,
+        subFolder);
+    const folderElement = folderNode.asElement();
+    assert('the folder to search is visible in the workspace tree', !!folderElement);
+    if (folderElement) {
+        const box = await folderElement.boundingBox();
+        await folderElement.click();
+        await sleep(300);
+        await page.mouse.move(box.x + Math.min(60, box.width / 2), box.y + box.height / 2);
+        // Lumino's context menu needs real mouse events (see chrome.cjs).
+        await page.mouse.down({ button: 'right' });
+        await sleep(120);
+        await page.mouse.up({ button: 'right' });
+        await sleep(1200);
+        await clickByLabel(page, 'Find in Files...');
+        await sleep(800);
+
+        const seeded = await page.evaluate(() => {
+            const el = document.querySelector('#notepadia-find-directory');
+            return el ? el.value : null;
+        });
+        assert('Find in Files from a folder prefills the Directory field with it',
+            seeded === subFolder, JSON.stringify(seeded));
+        const selectedTab = await page.evaluate(() => {
+            const el = document.querySelector('.notepadia-find-tab[aria-selected="true"]');
+            return el ? (el.textContent || '').trim() : null;
+        });
+        assert('the prefilled dialog opens on the Find in Files tab',
+            selectedTab === 'Find in Files', JSON.stringify(selectedTab));
+    }
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

@@ -30,6 +30,14 @@
   used last in this profile (a remembered handle kept in IndexedDB) and otherwise
   falls back to the browser default. Both the home-folder and the
   remembered-directory paths are asserted in `e2e/local-files.cjs`.
+- **`Find in Files...` from a folder now searches that folder.** Opening it from
+  the Folder as Workspace context menu seeds the picked folder (relative to the
+  workspace root) into the dialog's Directory field, a real hand-off rather than
+  a cosmetic default; `e2e/find-dialog.cjs` asserts the seeded path and the
+  Find in Files tab. The Electron smoke test now also proves the native
+  `F5` / `Ctrl+F5` Date & Time chords are delivered in the packaged app, where
+  the browser never sees them, and the not-offered C3 limits (Show Wrap Symbol,
+  folding past level 7) are stated in `docs/differences.md`.
 
 ## 2026.10.10 (Electron parity pass and first tagged release)
 

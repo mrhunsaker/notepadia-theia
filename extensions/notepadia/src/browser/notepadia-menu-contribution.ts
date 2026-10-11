@@ -150,10 +150,10 @@ export class NotepadiaMenuContribution implements MenuContribution {
         unregister('search-in-workspace.in-folder', NAVIGATOR_CONTEXT_MENU);
         // Notepad++'s Folder as Workspace can search the selected folder. The
         // Find in Files dialog is shared, so this entry opens it on the Find in
-        // Files tab; the selected folder is not prefilled into its directory
-        // field (the dialog owns that state), which the follow-up records.
+        // Files tab and the picked folder is seeded into the Directory field
+        // (E3 follow-up), a real hand-off rather than a cosmetic default.
         menus.registerMenuAction(NavigatorContextMenu.SEARCH, {
-            commandId: NotepadiaFindCommands.OPEN_FILES.id,
+            commandId: NotepadiaFindCommands.OPEN_FOLDER_FILES.id,
             label: 'Find in Files...',
             order: 'a'
         });
