@@ -1,6 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { assert, finish, sleep, launchPage, goto, waitFor,
     openMenuBar, clickMenuItem, closeMenus, editorLines, WS } = require('./lib.js');
 
@@ -82,6 +83,111 @@ async function pickViaHiddenInput(page, trigger, file) {
         trigger()
     ]);
     await chooser.accept([file]);
+}
+
+/**
+ * The folder a Theia file dialog is currently showing, read from its location
+ * breadcrumb. Empty string when no dialog is open.
+ */
+async function dialogLocation(page) {
+    const select = await page.$('.theia-LocationListPanel select.theia-LocationList');
+    if (!select) {
+        return '';
+    }
+    return page.$eval('.theia-LocationListPanel select.theia-LocationList', el => el.value);
+}
+
+/**
+ * I1: with the native route forced on, run `trigger` and assert the Theia
+ * dialog it opens roots itself at `homeUri` rather than at the workspace or
+ * the current selection. Always closes the dialog before returning.
+ */
+async function nativeDialogStartsAtHome(page, homeUri, trigger) {
+    await trigger();
+    const deadline = Date.now() + 15000;
+    let location = '';
+    while (Date.now() < deadline) {
+        location = await dialogLocation(page);
+        if (location) {
+            break;
+        }
+        await sleep(200);
+    }
+    await page.keyboard.press('Escape');
+    await sleep(800);
+    const normalize = value => value.replace(/\/+$/, '');
+    return Boolean(location) && normalize(location) === normalize(homeUri);
+}
+
+/** Replaces the File System Access pickers with recorders that capture options. */
+async function installPickerRecorder(page) {
+    return page.evaluate(() => {
+        window.__pickerCalls = [];
+        window.showOpenFilePicker = async options => {
+            window.__pickerCalls.push({ kind: 'open', options });
+            return [{
+                name: 'resumed.txt',
+                getFile: async () => new File(['resumed\n'], 'resumed.txt', { type: 'text/plain' })
+            }];
+        };
+        window.showSaveFilePicker = async options => {
+            window.__pickerCalls.push({ kind: 'save', options });
+            return {
+                name: (options && options.suggestedName) || 'resumed.txt',
+                createWritable: async () => ({ write: async () => { }, close: async () => { } })
+            };
+        };
+        return true;
+    });
+}
+
+async function lastPickerStartIn(page) {
+    return page.evaluate(() => {
+        const calls = window.__pickerCalls || [];
+        const last = calls[calls.length - 1];
+        return last ? last.options.startIn : undefined;
+    });
+}
+
+/** Removes the remembered directory, giving a page a clean-profile start. */
+async function clearRememberedPickerDirectory(page) {
+    await page.evaluate(() => new Promise((resolve, reject) => {
+        const rq = indexedDB.deleteDatabase('notepadia-picker-directory');
+        rq.onsuccess = () => resolve(true);
+        rq.onerror = () => reject(rq.error);
+        rq.onblocked = () => resolve(false);
+    }));
+}
+
+/** Writes a stand-in "remembered directory" under the store's own db/key. */
+async function seedRememberedPickerDirectory(page, value) {
+    return page.evaluate(async seed => {
+        await new Promise((resolve, reject) => {
+            const open = indexedDB.open('notepadia-picker-directory', 1);
+            open.onupgradeneeded = () => {
+                if (!open.result.objectStoreNames.contains('handles')) {
+                    open.result.createObjectStore('handles');
+                }
+            };
+            open.onsuccess = () => {
+                const tx = open.result.transaction('handles', 'readwrite');
+                tx.objectStore('handles').put(seed, 'last');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            };
+            open.onerror = () => reject(open.error);
+        });
+        return new Promise((resolve, reject) => {
+            const open = indexedDB.open('notepadia-picker-directory', 1);
+            open.onsuccess = () => {
+                const rq = open.result.transaction('handles', 'readonly').objectStore('handles').get('last');
+                rq.onsuccess = () => resolve(rq.result === undefined ? null : rq.result);
+                rq.onerror = () => reject(rq.error);
+            };
+            open.onerror = () => reject(open.error);
+        });
+    }, value);
 }
 
 (async () => {
@@ -208,6 +314,54 @@ async function pickViaHiddenInput(page, trigger, file) {
         assert('the uploaded copy carries the original text', uploaded === LOCAL_TEXT, JSON.stringify(uploaded));
     }
     await sleep(1500);
+
+    // --- WS-I / I1: native dialogs open at home, not the workspace --------
+    // The native route only runs under Electron, where Theia substitutes the
+    // OS dialogs; forcing the flag exercises the exact code path - and the web
+    // fallback dialog that stands in for it is where the default root shows.
+    const homeUri = pathToFileURL(os.homedir()).toString();
+    await page.evaluate(() => { window.electronTheiaCore = { useNativeElements: true }; });
+    assert('Save To This Computer... opens a Theia dialog at home, not the workspace',
+        await nativeDialogStartsAtHome(page, homeUri, () => clickMenuItem(page, 'File', 'Save To This Computer...')),
+        JSON.stringify(await dialogLocation(page)));
+    assert('Open from Computer opens a Theia dialog at home, not the workspace',
+        await nativeDialogStartsAtHome(page, homeUri, () => clickMenuItem(page, 'File', 'Open from Computer')),
+        JSON.stringify(await dialogLocation(page)));
+    assert('Upload to Workspace... opens a Theia dialog at home, not the workspace',
+        await nativeDialogStartsAtHome(page, homeUri, () => clickMenuItem(page, 'File', 'Upload to Workspace...')),
+        JSON.stringify(await dialogLocation(page)));
+    await page.evaluate(() => { delete window.electronTheiaCore; });
+    await closeMenus(page);
+
+    // --- WS-I / I2: browser pickers resume and fall back honestly ---------
+    // Run on fresh pages: the picker store keeps its IndexedDB connection for
+    // the life of a page, so a clean page is what a returning user gets. The
+    // remembered-handle branch seeds the store before the first pick; the
+    // fallback branch is a profile with nothing remembered.
+    const pickerPage = await browser.newPage();
+    await pickerPage.setViewport({ width: 1440, height: 1000 });
+    await goto(pickerPage);
+    await installPickerRecorder(pickerPage);
+    assert('the remembered directory can be written to the store',
+        (await seedRememberedPickerDirectory(pickerPage, { name: 'remembered-directory' })) !== null);
+    await clickMenuItem(pickerPage, 'File', 'Open from Computer');
+    await sleep(1500);
+    const resumedStartIn = await lastPickerStartIn(pickerPage);
+    assert('the browser pick resumes at the remembered directory handle',
+        resumedStartIn && resumedStartIn.name === 'remembered-directory', JSON.stringify(resumedStartIn));
+    await pickerPage.close();
+
+    const freshPage = await browser.newPage();
+    await freshPage.setViewport({ width: 1440, height: 1000 });
+    await goto(freshPage);
+    await installPickerRecorder(freshPage);
+    await clearRememberedPickerDirectory(freshPage);
+    await clickMenuItem(freshPage, 'File', 'Open from Computer');
+    await sleep(1500);
+    const firstStartIn = await lastPickerStartIn(freshPage);
+    assert('with nothing remembered the pick uses the documented fallback directory',
+        firstStartIn === 'documents', JSON.stringify(firstStartIn));
+    await freshPage.close();
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

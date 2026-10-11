@@ -10,6 +10,7 @@ import {
 import { BinaryBuffer } from '@theia/core/lib/common/buffer';
 import { UNTITLED_SCHEME, UntitledResourceResolver } from '@theia/core/lib/common/resource';
 import { URI } from '@theia/core/lib/common/uri';
+import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import {
     CommonCommands,
@@ -21,6 +22,7 @@ import { NavigatableWidget } from '@theia/core/lib/browser/navigatable-types';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
+import { FileStat } from '@theia/filesystem/lib/common/files';
 import { FileDialogService } from '@theia/filesystem/lib/browser/file-dialog';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import {
@@ -28,7 +30,9 @@ import {
     PickerOutcome,
     classifyPickerError,
     downloadText,
+    pickerStartIn,
     readFileAsText,
+    resolveDialogFolder,
     suggestedSaveName,
     uniqueName
 } from '../common/local-files';
@@ -77,6 +81,85 @@ interface FileSystemHandleLike {
 }
 
 const LOCAL_FILE_INPUT_ID = 'notepadia-local-file-input';
+
+const PICKER_DB_NAME = 'notepadia-picker-directory';
+const PICKER_DB_STORE = 'handles';
+const PICKER_LAST_DIRECTORY_KEY = 'last';
+
+/**
+ * Remembers the last handle the user picked so the next browser picker resumes
+ * in its directory (I2). Chromium keeps a `FileSystemHandle` in IndexedDB by
+ * structured clone, which is the closest the web platform offers to "their
+ * folder". Every operation is best-effort: a browser that refuses the write
+ * (private mode, storage denied) or exposes no IndexedDB still opens the
+ * picker at the documented fallback instead of failing the command.
+ */
+class LastDirectoryStore {
+    protected dbPromise?: Promise<IDBDatabase | undefined>;
+
+    protected open(): Promise<IDBDatabase | undefined> {
+        if (!this.dbPromise) {
+            this.dbPromise = new Promise(resolve => {
+                const indexedDB = (window as unknown as { indexedDB?: IDBFactory }).indexedDB;
+                if (!indexedDB) {
+                    resolve(undefined);
+                    return;
+                }
+                try {
+                    const request = indexedDB.open(PICKER_DB_NAME, 1);
+                    request.onupgradeneeded = () => {
+                        if (!request.result.objectStoreNames.contains(PICKER_DB_STORE)) {
+                            request.result.createObjectStore(PICKER_DB_STORE);
+                        }
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => resolve(undefined);
+                } catch {
+                    resolve(undefined);
+                }
+            });
+        }
+        return this.dbPromise;
+    }
+
+    async get(): Promise<unknown> {
+        const db = await this.open();
+        if (!db) {
+            return undefined;
+        }
+        return new Promise(resolve => {
+            try {
+                const request = db.transaction(PICKER_DB_STORE, 'readonly')
+                    .objectStore(PICKER_DB_STORE)
+                    .get(PICKER_LAST_DIRECTORY_KEY);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => resolve(undefined);
+            } catch {
+                resolve(undefined);
+            }
+        });
+    }
+
+    async set(handle: unknown): Promise<void> {
+        const db = await this.open();
+        if (!db) {
+            return;
+        }
+        return new Promise(resolve => {
+            try {
+                const tx = db.transaction(PICKER_DB_STORE, 'readwrite');
+                tx.objectStore(PICKER_DB_STORE).put(handle, PICKER_LAST_DIRECTORY_KEY);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+                tx.onabort = () => resolve();
+            } catch {
+                // A handle that cannot be cloned (or a storage refusal) leaves
+                // the previous value in place; the picker still opens.
+                resolve();
+            }
+        });
+    }
+}
 
 /**
  * True in the Electron app, where Theia substitutes the native OS dialogs for
@@ -127,6 +210,9 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
 
     protected readonly handles = new Map<string, FileSystemHandleLike>();
 
+    /** The last directory the browser picker resumed in (I2). */
+    protected readonly lastDirectory = new LastDirectoryStore();
+
     constructor(
         @inject(UntitledResourceResolver) protected readonly untitledResolver: UntitledResourceResolver,
         @inject(OpenerService) protected readonly openerService: OpenerService,
@@ -134,6 +220,7 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         @inject(FileService) protected readonly fileService: FileService,
         @inject(FileDialogService) protected readonly fileDialogService: FileDialogService,
         @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService,
+        @inject(EnvVariablesServer) protected readonly envVariablesServer: EnvVariablesServer,
         @inject(MessageService) protected readonly messageService: MessageService
     ) { }
 
@@ -194,6 +281,31 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         });
     }
 
+    // ----------------------------------------------------------------- dialogs
+
+    /**
+     * The folder a native/web Theia file dialog opens in (I1).
+     *
+     * An explicit folder wins, so a caller that already names a location is
+     * never redirected. Otherwise the user's home directory is resolved from
+     * `EnvVariablesServer.getHomeDirUri()` and passed as the dialog's root, so
+     * Open from Computer, Save To This Computer... and Upload to Workspace...
+     * all start at home no matter what is selected in the workspace. If the
+     * platform reports no home (or it cannot be resolved) the dialog keeps its
+     * own default rather than failing.
+     */
+    protected async dialogFolder(explicit?: FileStat): Promise<FileStat | undefined> {
+        if (explicit) {
+            return explicit;
+        }
+        try {
+            const uri = resolveDialogFolder(undefined, await this.envVariablesServer.getHomeDirUri());
+            return uri ? await this.fileService.resolve(new URI(uri)) : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
     // ------------------------------------------------------------------- open
 
     /**
@@ -245,7 +357,7 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             canSelectFiles: true,
             canSelectFolders: false,
             canSelectMany: true
-        });
+        }, await this.dialogFolder());
         if (!result) {
             return undefined;
         }
@@ -276,8 +388,15 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             try {
                 const handles = await picker.call(window, {
                     multiple: true,
-                    types: LOCAL_FILE_PICKER_TYPES
+                    types: LOCAL_FILE_PICKER_TYPES,
+                    ...pickerStartIn(await this.lastDirectory.get())
                 });
+                // Remember the first pick so the next open resumes in the same
+                // directory (I2); the platform withholds the folder, so the
+                // handle itself is the only durable pointer to it.
+                if (handles?.[0]) {
+                    await this.lastDirectory.set(handles[0]);
+                }
                 const files: Array<{ name: string; text: string; handle?: FileSystemHandleLike }> = [];
                 for (const handle of handles ?? []) {
                     const file = await handle.getFile();
@@ -412,7 +531,7 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         const uri = await this.fileDialogService.showSaveDialog({
             title: 'Save To This Computer...',
             inputValue: suggestedSaveName(target.name)
-        });
+        }, await this.dialogFolder());
         if (!uri) {
             return;
         }
@@ -439,7 +558,10 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             return 'unavailable';
         }
         try {
-            const handle = await picker.call(window, { suggestedName: suggested });
+            const handle = await picker.call(window, {
+                suggestedName: suggested,
+                ...pickerStartIn(await this.lastDirectory.get())
+            });
             if (!handle) {
                 return 'cancelled';
             }
@@ -447,6 +569,7 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             await writable.write(target.text);
             await writable.close();
             this.handles.set(target.uri.toString(), handle);
+            await this.lastDirectory.set(handle);
             return 'saved';
         } catch (error) {
             return classifyPickerError(error);
@@ -529,10 +652,15 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             const destination = first.resource.resolve(file.name);
             try {
                 if (await this.fileService.exists(destination)) {
+                    // The conflict Save As names a file INSIDE the server
+                    // workspace, so it passes that folder explicitly and is
+                    // deliberately not pulled back to home: letting the home
+                    // default win here would let an upload escape the
+                    // workspace it is meant to land in.
                     const confirmed = await this.fileDialogService.showSaveDialog({
                         title: `Upload ${file.name} to the workspace`,
                         inputValue: file.name
-                    }, first);
+                    }, await this.dialogFolder(first));
                     if (!confirmed) {
                         continue;
                     }

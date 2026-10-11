@@ -6,7 +6,10 @@ const {
     uniqueName,
     suggestedSaveName,
     classifyPickerError,
-    LOCAL_FILE_PICKER_TYPES
+    LOCAL_FILE_PICKER_TYPES,
+    DEFAULT_PICKER_START_DIRECTORY,
+    resolveDialogFolder,
+    pickerStartIn
 } = require('../lib/common/local-files.js');
 
 describe('splitName', () => {
@@ -92,5 +95,30 @@ describe('LOCAL_FILE_PICKER_TYPES', () => {
         assert.equal(LOCAL_FILE_PICKER_TYPES.length, 2);
         assert.ok(LOCAL_FILE_PICKER_TYPES[0].accept['text/plain'].includes('.txt'));
         assert.deepEqual(LOCAL_FILE_PICKER_TYPES[1].accept, { '*/*': ['.'] });
+    });
+});
+
+describe('resolveDialogFolder (I1)', () => {
+    it('falls back to home when the caller names no folder', () => {
+        assert.equal(resolveDialogFolder(undefined, 'file:///home/me'), 'file:///home/me');
+    });
+    it('keeps an explicit folder instead of redirecting it to home', () => {
+        assert.equal(resolveDialogFolder('file:///workspace', 'file:///home/me'), 'file:///workspace');
+    });
+    it('leaves the dialog default in place when home is unknown', () => {
+        assert.equal(resolveDialogFolder(undefined, undefined), undefined);
+    });
+});
+
+describe('pickerStartIn (I2)', () => {
+    it('resumes at the remembered handle when there is one', () => {
+        const remembered = { name: 'somewhere' };
+        assert.deepEqual(pickerStartIn(remembered), { startIn: remembered });
+    });
+    it('falls back to the documented well-known directory on a first run', () => {
+        assert.deepEqual(pickerStartIn(undefined), { startIn: DEFAULT_PICKER_START_DIRECTORY });
+        assert.equal(DEFAULT_PICKER_START_DIRECTORY, 'documents');
+        // A stored `null` is not a handle either; it must not leak through.
+        assert.deepEqual(pickerStartIn(null), { startIn: 'documents' });
     });
 });

@@ -99,6 +99,42 @@ export const LOCAL_FILE_PICKER_TYPES: ReadonlyArray<{
 ];
 
 /**
+ * The folder a file dialog opens in when the caller names none: the user's
+ * home directory (WS-I / I1).
+ *
+ * Notepad++'s Open and Save As start where the user lives. Theia's file
+ * dialogs, given no folder, instead resolve a working directory from whatever
+ * is selected in the workspace - a folder on the SERVER - so this rule pulls
+ * every dialog that passes nothing back to home. An explicit folder always
+ * wins, so a caller that already names a location (the upload conflict Save
+ * As, which targets the workspace) is never redirected.
+ *
+ * Pure so the rule is unit-tested; the contribution turns the returned URI
+ * into the `FileStat` the dialog service wants. `undefined` means "leave the
+ * dialog's own default in place", which is what an unset home degrades to.
+ */
+export function resolveDialogFolder(explicitFolderUri: string | undefined, homeUri: string | undefined): string | undefined {
+    return explicitFolderUri ?? homeUri;
+}
+
+/**
+ * The directory `showOpenFilePicker` / `showSaveFilePicker` resume in (WS-I /
+ * I2). Chromium's `startIn` accepts only a well-known directory name or a
+ * `FileSystemHandle`; there is deliberately no "home" value, so a pure-browser
+ * first run cannot be forced to `$HOME`. A remembered handle (the last file or
+ * directory the user picked, restored from IndexedDB) wins because Chromium
+ * opens the picker in that handle's own directory; with nothing remembered the
+ * picker opens at `documents`, a documented approximation of "where the user
+ * lives". The desktop build and the persisted handle are the routes to a
+ * literal home start.
+ */
+export const DEFAULT_PICKER_START_DIRECTORY = 'documents';
+
+export function pickerStartIn(remembered: unknown): { startIn: unknown } {
+    return { startIn: remembered ?? DEFAULT_PICKER_START_DIRECTORY };
+}
+
+/**
  * How a File System Access API call ended.
  *
  * - `cancelled` - the user dismissed the picker. Never report it; the spec is

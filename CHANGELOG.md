@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+- **Accessibility coverage now spans every dialog and panel added since the F1
+  pass; three defects it found are fixed.** `e2e/a11y.cjs` runs axe on the
+  Search Results window, Incremental Search, the Function List, and the Run,
+  Column Editor, Summary, Windows and customized Date & Time dialogs, and
+  asserts every interactive control in each has an accessible name, read through
+  Chromium's accessibility tree. That found and fixed: the Column Editor's field
+  labels were not associated with their controls (focusing them announced an
+  unnamed edit), the customized Date & Time box's format label had the same gap,
+  the Windows dialog marked its column header `role="row"` outside any grid
+  (a critical ARIA violation; it is now a presentational legend and each row
+  names its Name, Path and Type), and the Incremental Search bar's labels used a
+  hint colour that failed the contrast check and now use the primary foreground.
+  Each fix has a guard in the suite.
+- **A repeatable screen-reader test plan, and CI builds to run it against.**
+  `docs/screen-reader-test-plan.md` scripts the manual verification a tree read
+  cannot do, for Orca on Linux against the browser build and NVDA on Windows
+  against the packaged build, with a checklist and a version record a second
+  person can fill in. A new *Test Builds (screen-reader evaluation)* GitHub
+  Action (`workflow_dispatch`) builds unsigned Windows and macOS artifacts and
+  uploads them, so the Windows run no longer waits on a local machine.
+- **Local-file dialogs open where you expect.** `Open from Computer`,
+  `Save To This Computer...` and the upload conflict's `Save As` now start the
+  runtime's picker in the user's home folder in the desktop app, instead of
+  wherever the server workspace happened to be. A browser cannot address `$HOME`
+  through the File System Access API, so the browser picker reopens at the folder
+  used last in this profile (a remembered handle kept in IndexedDB) and otherwise
+  falls back to the browser default. Both the home-folder and the
+  remembered-directory paths are asserted in `e2e/local-files.cjs`.
+
 ## 2026.10.10 (Electron parity pass and first tagged release)
 
 - **Electron gets native routes for the browser-first work (G5); the first

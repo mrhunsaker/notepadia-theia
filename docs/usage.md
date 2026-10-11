@@ -190,6 +190,14 @@ A cancelled picker is never treated as an error: closing the dialog does
 nothing at all. If the browser refuses write permission, the message names the
 file that was not saved.
 
+**Where the picker opens.** In the desktop app, `Open from Computer`,
+`Save To This Computer...` and the upload conflict's `Save As` open in your home
+folder. A browser cannot point the File System Access API at `$HOME` (it takes
+only well-known folders or a file/directory handle), so the browser picker
+instead reopens at the folder you used last in this profile, and falls back to
+the browser's own default (`documents`) the first time. Cancelling the picker
+still does nothing.
+
 #### Browser support
 
 | Browser | Reading (`Open from Computer`) | Writing (`Save To This Computer...`) | Ctrl+S write-back |
