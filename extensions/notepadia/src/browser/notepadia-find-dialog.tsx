@@ -898,7 +898,12 @@ export class NotepadiaFindDialog extends ReactWidget {
                 onKeyDown={this.handleKeyDown}
             >
                 <div className="notepadia-find-titlebar" onMouseDown={this.handleMouseDown}>
-                    <div className="notepadia-find-tabs" role="tablist" aria-label="Find dialog tabs">
+                    <div
+                        className="notepadia-find-tabs"
+                        role="tablist"
+                        aria-label="Find dialog tabs"
+                        onKeyDown={this.handleTabKeyDown}
+                    >
                         {this.renderTab('find', 'Find')}
                         {this.renderTab('replace', 'Replace')}
                         {this.renderTab('files', 'Find in Files')}
@@ -941,10 +946,55 @@ export class NotepadiaFindDialog extends ReactWidget {
         );
     }
 
-    protected switchTab(tab: NotepadiaFindTab): void {
+    protected switchTab(tab: NotepadiaFindTab, focusPrimary = true): void {
         this.tab = tab;
         this.update();
-        this.focusPrimary();
+        if (focusPrimary) {
+            this.focusPrimary();
+        } else {
+            this.focusTab(tab);
+        }
+    }
+
+    /**
+     * WAI-ARIA tabs keyboard interaction. The tabs share one Tab stop (roving
+     * `tabIndex`), so Left/Right, Home and End are the only way a keyboard or
+     * screen-reader user can reach the non-selected tabs; without this handler
+     * only the active tab was ever focusable and the others could be opened
+     * with a mouse but not from the keyboard.
+     */
+    protected handleTabKeyDown = (event: React.KeyboardEvent<HTMLElement>): void => {
+        const order: NotepadiaFindTab[] = ['find', 'replace', 'files', 'mark'];
+        const current = order.indexOf(this.tab);
+        let next: number;
+        switch (event.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+                next = (current + 1) % order.length;
+                break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+                next = (current - 1 + order.length) % order.length;
+                break;
+            case 'Home':
+                next = 0;
+                break;
+            case 'End':
+                next = order.length - 1;
+                break;
+            default:
+                return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        this.switchTab(order[next], false);
+    };
+
+    /** Moves DOM focus onto a tab button without touching the field focus. */
+    protected focusTab(tab: NotepadiaFindTab): void {
+        window.requestAnimationFrame(() => {
+            this.node.querySelector<HTMLElement>(`#notepadia-find-tab-${tab}`)?.focus();
+        });
     }
 
     protected renderTabPanel(opts: FindOptions): React.ReactNode {

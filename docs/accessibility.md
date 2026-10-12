@@ -13,7 +13,7 @@ The workbench is reachable with Tab alone, in this order:
 
 | Stop | How it behaves |
 | --- | --- |
-| Menu bar | One stop for the whole bar, as in Notepad++. Left and Right move between `File`, `Edit`, … and Enter or Down opens the menu. |
+| Menu bar | One stop for the whole bar, as in Notepad++. Left and Right move between `File`, `Edit`, … and Enter or Down opens the menu. Both the open keys are verified in `e2e/a11y.cjs`. |
 | Toolbar | One stop, with Left and Right moving between buttons. A button that cannot act right now keeps `aria-disabled` and stays in the ring, so focus never skips past it. |
 | Document tabs | One stop for the open documents, with Left and Right moving between them. The current tab is the only stop in the ring; the others are reached with the arrow keys. |
 | Editor | The text itself. Tab inserts a tab, exactly as Notepad++ does. |
@@ -56,6 +56,16 @@ are **deferred to a dedicated multi-system pass** and are not yet recorded; unti
 one is completed and its version table filled in, treat screen reader support as
 "structurally correct, unconfirmed in practice", and do not read the automated
 pass as a substitute.
+
+### Known reader limitations
+
+Orca 48.0 on Linux cannot enter the menu bar: it announces the top-level names as
+the bar is crossed, but Space, Enter and Down do not open the menu, so the items
+inside are unreachable with Orca alone. The keyboard path itself is correct —
+`e2e/a11y.cjs` verifies that Down and Enter each open a focused top-level menu —
+and NVDA reads the same menus on the packaged Windows build, so this is recorded
+as an Orca limitation rather than an app defect. It is tracked in
+[the test plan](screen-reader-test-plan.md) and re-measured on each Orca run.
 
 The expanded automated pass has already paid for itself: it found and fixed four
 defects a tree read can see but that no one had looked for. The Column Editor's

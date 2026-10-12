@@ -144,6 +144,31 @@ async function closeDialog(page, focusEditorAfter = true) {
     }
 }
 
+/**
+ * The find dialog tabs the ARIA tabs pattern says must be keyboard-reachable:
+ * which tab is selected, which element holds DOM focus, and each tab's
+ * accessible name. Used to guard the Left/Right/Home/End navigation that is the
+ * only way to open a non-selected tab without a mouse.
+ */
+async function dialogTabState(page) {
+    return page.evaluate(() => {
+        const tabs = Array.from(document.querySelectorAll('.notepadia-find-tab'));
+        const focused = document.activeElement;
+        return {
+            selected: tabs.filter(el => el.getAttribute('aria-selected') === 'true')
+                .map(el => (el.textContent || '').trim()),
+            focused: focused instanceof HTMLElement ? focused.id : '',
+            focusedRole: focused instanceof HTMLElement ? (focused.getAttribute('role') || '') : '',
+            tabs: tabs.map(el => ({
+                label: (el.textContent || '').trim(),
+                role: el.getAttribute('role'),
+                selected: el.getAttribute('aria-selected') === 'true',
+                tabindex: el.getAttribute('tabindex')
+            }))
+        };
+    });
+}
+
 async function markCount(page) {
     return page.evaluate(() =>
         Array.from(document.querySelectorAll('.monaco-editor'))
@@ -164,5 +189,5 @@ module.exports = {
     focusEditor, openFindDialog, assertNoInlineWidget,
     setFindText, setReplaceText,
     clickDialogTab, clickDialogButton, setCheck, setMode, setStyleRadio,
-    dialogStatus, closeDialog, markCount, markCountStyle
+    dialogStatus, dialogTabState, closeDialog, markCount, markCountStyle
 };

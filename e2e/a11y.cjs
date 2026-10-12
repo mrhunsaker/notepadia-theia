@@ -15,7 +15,7 @@
 
 const { assert, finish, sleep, launchPage, goto, openFile,
     openMenuBar, clickByLabel, closeMenus, clickMenuPath, clickToolbarButton } = require('./lib.js');
-const { openFindDialog, closeDialog } = require('./dialog-helpers.cjs');
+const { openFindDialog, dialogTabState, closeDialog } = require('./dialog-helpers.cjs');
 
 const AXE = require.resolve('axe-core');
 
@@ -148,6 +148,27 @@ async function walkTabRing(page, limit = 8) {
 
 const firstIndexOf = (stops, predicate) => stops.findIndex(predicate);
 
+/**
+ * The menu open right now, or `null`. Lumino attaches a menu's `.lm-Menu-content`
+ * (role="menu") to the body when it opens and hides it on close, so the visible
+ * one is the open menu.
+ */
+const visibleMenu = () => {
+    const menus = Array.from(document.querySelectorAll('.lm-Menu-content'));
+    const menu = menus.find(m => {
+        const rect = m.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    });
+    if (!menu) {
+        return null;
+    }
+    return {
+        role: menu.getAttribute('role') || '',
+        items: menu.querySelectorAll('.lm-Menu-item[role="menuitem"]').length,
+        label: (menu.querySelector('.lm-Menu-itemLabel')?.textContent || '').trim().slice(0, 24)
+    };
+};
+
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     await goto(page);
@@ -182,6 +203,46 @@ const firstIndexOf = (stops, predicate) => stops.findIndex(predicate);
         && firstIndexOf(stops, s => s.tag === 'button') < firstIndexOf(stops, s => s.role === 'tab')
         && firstIndexOf(stops, s => s.role === 'tab') < firstIndexOf(stops, s => s.role === 'textbox'),
         JSON.stringify(summary));
+
+    // ---- 1b. The menu bar opens by keyboard. The docs claim Enter or Down
+    // opens a top-level menu; the 2026.10 Orca run could not open one at all.
+    // Measuring the plain-keyboard path here guards the claim and tells an
+    // Orca-only failure apart from a menu bar that genuinely cannot open.
+    // The ring above already proves Tab reaches the menu bar; focus its single
+    // tab stop directly so the key presses below land on it.
+    await page.evaluate(() => {
+        const item = document.querySelector('.lm-MenuBar-item[tabindex="0"]')
+            || document.querySelector('.lm-MenuBar-item');
+        item && item.focus();
+    });
+    await sleep(300);
+    const barFocused = await page.evaluate(focusInfo);
+    assert('the menu bar item takes keyboard focus', barFocused.role === 'menuitem',
+        JSON.stringify(barFocused));
+
+    await page.keyboard.press('ArrowDown');
+    await sleep(500);
+    const openedByDown = await page.evaluate(visibleMenu);
+    assert('Down Arrow opens the focused top-level menu',
+        !!openedByDown && openedByDown.role === 'menu' && openedByDown.items > 0,
+        JSON.stringify(openedByDown));
+    await page.keyboard.press('Escape');
+    await sleep(400);
+
+    await page.evaluate(() => {
+        const item = document.querySelector('.lm-MenuBar-item[tabindex="0"]')
+            || document.querySelector('.lm-MenuBar-item');
+        item && item.focus();
+    });
+    await sleep(300);
+    await page.keyboard.press('Enter');
+    await sleep(500);
+    const openedByEnter = await page.evaluate(visibleMenu);
+    assert('Enter opens the focused top-level menu',
+        !!openedByEnter && openedByEnter.role === 'menu' && openedByEnter.items > 0,
+        JSON.stringify(openedByEnter));
+    await page.keyboard.press('Escape');
+    await sleep(400);
 
     // ---- 2. The editor is not a keyboard trap.
     await page.evaluate(() => {
@@ -289,6 +350,40 @@ const firstIndexOf = (stops, predicate) => stops.findIndex(predicate);
     const findState = await blockingViolations(page);
     assert('axe: the find dialog has no serious or critical violations',
         findState.length === 0, JSON.stringify(findState, null, 1));
+
+    // The find tabs follow the ARIA tabs pattern: one Tab stop for the group, a
+    // roving tabindex, and Left/Right/Home/End to open the others. A mouse could
+    // always switch them, so only a keyboard walk proves the non-selected tabs
+    // are reachable - the exact failure both Orca and NVDA reported.
+    await page.evaluate(() => {
+        document.querySelector('.notepadia-find-tab[aria-selected="true"]')?.focus();
+    });
+    await sleep(200);
+    const tabStart = await dialogTabState(page);
+    assert('the find dialog exposes four named tabs with one roving stop',
+        tabStart.tabs.length === 4
+        && tabStart.tabs.every(tab => tab.role === 'tab' && tab.label.length > 0)
+        && tabStart.tabs.filter(tab => tab.tabindex === '0').length === 1,
+        JSON.stringify(tabStart));
+
+    const selectedByArrows = [];
+    for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('ArrowRight');
+        await sleep(250);
+        selectedByArrows.push(await dialogTabState(page));
+    }
+    assert('Left/Right arrows open every find dialog tab from the keyboard',
+        selectedByArrows.map(state => state.selected[0]).join(',') === 'Replace,Find in Files,Mark'
+        && selectedByArrows.every(state => state.focusedRole === 'tab'),
+        JSON.stringify(selectedByArrows));
+
+    await page.keyboard.press('Home');
+    await sleep(250);
+    const tabHome = await dialogTabState(page);
+    assert('Home returns to the first find dialog tab',
+        tabHome.selected[0] === 'Find' && tabHome.focused === 'notepadia-find-tab-find',
+        JSON.stringify(tabHome));
+
     await closeDialog(page);
     await sleep(400);
 
