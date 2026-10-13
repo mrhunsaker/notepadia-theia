@@ -379,11 +379,7 @@ behavior profile, tabbed Find dialog, menu completeness, browser-target
 correctness, accessibility pass and Electron parity are all done, and the first
 tagged release (**2026.10.10**) has shipped.
 
-One task remains: **G4, the updater proof** - an older *installed* desktop build
-discovering and installing a newer published release through `Help > Check for
-Updates...`. The updater code, the update manifests and a published release all
-exist; only the end-to-end upgrade of a real installation is still to be
-demonstrated.
+The Notepad++-experience program is feature-complete, with a production tagged release and end-to-end updater verification pending a multi-system install proof.
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
 for [about & goals](https://mrhunsaker.github.io/notepadia-theia/about/), the
