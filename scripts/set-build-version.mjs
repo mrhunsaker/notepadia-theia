@@ -46,24 +46,28 @@ function parseArgs(argv) {
     return { files, version, print };
 }
 
-const { files, version, print } = parseArgs(process.argv.slice(2));
-const resolved = version ?? buildVersionFromDate();
+const isMain = process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href;
 
-if (!isValidBuildVersion(resolved)) {
-    console.error(`Invalid build version: ${resolved} (expected YYYY.M.D, e.g. 2026.9.19)`);
-    process.exit(1);
-}
+if (isMain) {
+    const { files, version, print } = parseArgs(process.argv.slice(2));
+    const resolved = version ?? buildVersionFromDate();
 
-if (print || files.length === 0) {
-    console.log(resolved);
-    process.exit(0);
-}
+    if (!isValidBuildVersion(resolved)) {
+        console.error(`Invalid build version: ${resolved} (expected YYYY.M.D, e.g. 2026.9.19)`);
+        process.exit(1);
+    }
 
-for (const file of files) {
-    const pkg = JSON.parse(readFileSync(file, 'utf8'));
-    const before = pkg.version;
-    pkg.version = resolved;
-    writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n');
-    console.log(`${file}: ${before} -> ${resolved}`);
+    if (print || files.length === 0) {
+        console.log(resolved);
+        process.exit(0);
+    }
+
+    for (const file of files) {
+        const pkg = JSON.parse(readFileSync(file, 'utf8'));
+        const before = pkg.version;
+        pkg.version = resolved;
+        writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n');
+        console.log(`${file}: ${before} -> ${resolved}`);
+    }
+    console.log(`Build version: ${resolved}`);
 }
-console.log(`Build version: ${resolved}`);

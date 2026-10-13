@@ -181,6 +181,7 @@ mac:
       name: Notepadia YAML File
 
 linux:
+  syncDesktopName: true
   icon: build/icons
   target:
     - AppImage
