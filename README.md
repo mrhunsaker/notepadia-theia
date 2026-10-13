@@ -370,15 +370,6 @@ baselines deliberately with `E2E_UPDATE_BASELINES=1 E2E_SUITES=screenshots node
 e2e/run.cjs` and commit the rewritten PNGs. CI runs the suites as two
 interleaved matrix shards (`E2E_SHARD=1/2` and `2/2`) to stay under 20 minutes.
 
-## Project status
-
-Tracked in `pair_programming_prompt.json` and summarized on the
-[roadmap](https://mrhunsaker.github.io/notepadia-theia/roadmap/). The
-Notepad++-experience program is feature-complete: the visual identity, default
-behavior profile, tabbed Find dialog, menu completeness, browser-target
-correctness, accessibility pass and Electron parity are all done, and the first
-tagged release (**2026.10.10**) has shipped.
-
 The Notepad++-experience program is feature-complete, with a production tagged release and end-to-end updater verification pending a multi-system install proof.
 
 See the [documentation site](https://mrhunsaker.github.io/notepadia-theia/)
