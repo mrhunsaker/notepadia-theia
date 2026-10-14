@@ -7,6 +7,7 @@ const {
     createBackupRecord,
     isBackupWorthRestoring,
     decideBackupAction,
+    decideUnreadableBackupAction,
     selectBackupsToEvict,
     parseBackupRecord,
     parseBackupList,
@@ -303,5 +304,25 @@ describe('decideBackupAction', () => {
     });
     it('prefers the preference over dirtiness, since nothing should be written at all', () => {
         assert.equal(decide({ enabled: false, dirty: true, tooLarge: true }), 'skip');
+    });
+});
+
+describe('decideUnreadableBackupAction', () => {
+    const decide = (over) => decideUnreadableBackupAction({ enabled: true, dirty: false, backupMatchesFile: false, ...over });
+
+    it('clears a clean buffer whose snapshot equals the file on disk', () => {
+        assert.equal(decide({ backupMatchesFile: true }), 'clear');
+    });
+    it('keeps a clean buffer whose snapshot differs from the file', () => {
+        // The text could not be read, so a snapshot that does not match the
+        // file may still hold work the file never received.
+        assert.equal(decide(), 'skip');
+    });
+    it('always keeps a dirty buffer, since unreadable work is still work', () => {
+        assert.equal(decide({ dirty: true, backupMatchesFile: true }), 'skip');
+        assert.equal(decide({ dirty: true, backupMatchesFile: false }), 'skip');
+    });
+    it('does nothing when the feature is off', () => {
+        assert.equal(decide({ enabled: false, backupMatchesFile: true }), 'skip');
     });
 });

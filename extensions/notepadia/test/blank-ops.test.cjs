@@ -110,6 +110,11 @@ describe('wrapLine / splitLines', () => {
     it('emits remaining content after the last break', () => {
         assert.deepEqual(wrapLine('aa bb cc', 5), ['aa', 'bb cc']);
     });
+    it('falls back to the default column for a non-positive width', () => {
+        // A width of 0 used to loop forever (pushing '' and never advancing).
+        assert.deepEqual(wrapLine('hello', 0), ['hello']);
+        assert.deepEqual(wrapLine('hello', -5), ['hello']);
+    });
 });
 
 describe('removeConsecutiveDuplicateLines', () => {

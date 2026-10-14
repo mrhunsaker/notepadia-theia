@@ -35,7 +35,9 @@ export class NotepadiaRunServer implements NotepadiaRunService {
                 const child = spawn(command, { shell: true, cwd: cwd || undefined, windowsHide: true });
                 const collect = (chunk: unknown): void => {
                     if (output.length < MAX_OUTPUT) {
-                        output += String(chunk);
+                        // Clip to the cap: a whole chunk appended near the
+                        // boundary would otherwise push the buffer past it.
+                        output = (output + String(chunk)).slice(0, MAX_OUTPUT);
                     }
                 };
                 child.stdout?.on('data', collect);

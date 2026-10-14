@@ -30,7 +30,10 @@ export interface FunctionListLanguage {
      * Line-comment openers. A line starting with one of these is a comment,
      * not a declaration, and is skipped. Notepad++ has the same idea as
      * `ignoreComment`; without it a commented-out `function` would appear in
-     * the panel as though it were real.
+     * the panel as though it were real. The bare `'*'` marker is the C-style
+     * block-comment continuation and only counts when whitespace, `*` or `/`
+     * follows it, so a line of real code that begins with a dereference or a
+     * JS generator star is still matched.
      */
     readonly commentPrefixes: readonly string[];
 }
@@ -373,7 +376,23 @@ export function functionListLanguage(languageId: string): FunctionListLanguage |
 
 function isCommentLine(line: string, prefixes: readonly string[]): boolean {
     const trimmed = line.trimStart();
-    return prefixes.some(prefix => trimmed.startsWith(prefix));
+    return prefixes.some(prefix => matchesCommentPrefix(trimmed, prefix));
+}
+
+function matchesCommentPrefix(trimmed: string, prefix: string): boolean {
+    if (!trimmed.startsWith(prefix)) {
+        return false;
+    }
+    // A bare '*' is the C-style block-comment continuation marker, but a real
+    // line of C-family code can also begin with one (`*ptr = x;`, a JS
+    // generator `*gen() {}`). Only treat it as a comment when what follows is
+    // whitespace, another '*', or the closing '/', so ` * text`, `**/` and
+    // `*/` are skipped while `*ptr` and `*gen` are matched like any other line.
+    if (prefix === '*') {
+        const rest = trimmed.slice(1);
+        return rest === '' || rest.startsWith('*') || rest.startsWith('/') || /^\s/.test(rest);
+    }
+    return true;
 }
 
 /**

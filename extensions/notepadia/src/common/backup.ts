@@ -113,6 +113,28 @@ export function decideBackupAction(input: {
     return input.matchesBackup || input.matchesFile ? 'clear' : 'skip';
 }
 
+/**
+ * What to do with a buffer whose text cannot be read at all.
+ *
+ * `decideBackupAction` needs the on-screen text to justify a clear, so a widget
+ * with no Monaco control or model - a torn-down editor, or one still being
+ * built - cannot use it. The only evidence left is the snapshot against the
+ * file on disk: when the file already contains exactly what the snapshot holds,
+ * the saved work has superseded the snapshot and it can be dropped. Every other
+ * case is left alone, because unsaved work that cannot be read is still work;
+ * in particular a dirty buffer is always kept.
+ */
+export function decideUnreadableBackupAction(input: {
+    enabled: boolean;
+    dirty: boolean;
+    backupMatchesFile: boolean;
+}): BackupAction {
+    if (!input.enabled || input.dirty) {
+        return 'skip';
+    }
+    return input.backupMatchesFile ? 'clear' : 'skip';
+}
+
 /** Build the record for a dirty buffer. */
 export function createBackupRecord(input: {
     key: string;

@@ -92,17 +92,21 @@ export function removeUnnecessaryEol(lines: string[]): string[] {
  * is always emitted when the input is empty (a blank line is preserved).
  */
 export function wrapLine(line: string, width: number = SPLIT_COLUMN): string[] {
+    // A non-positive or non-finite width cannot advance the loop below - with
+    // width 0 the else branch would push '' and slice(0) forever - so it
+    // degrades to the default column rather than hanging.
+    const columns = width > 0 && Number.isFinite(width) ? Math.floor(width) : SPLIT_COLUMN;
     const out: string[] = [];
     let rest = line;
-    while (rest.length > width) {
-        const slice = rest.slice(0, width);
+    while (rest.length > columns) {
+        const slice = rest.slice(0, columns);
         const breakAt = slice.lastIndexOf(' ');
         if (breakAt > 0) {
             out.push(slice.slice(0, breakAt));
             rest = rest.slice(breakAt + 1);
         } else {
             out.push(slice);
-            rest = rest.slice(width);
+            rest = rest.slice(columns);
         }
     }
     if (rest.length > 0 || out.length === 0) {

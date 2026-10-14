@@ -24,28 +24,36 @@ export type RenameResolution =
  * deliberately: a `..` segment, and an absolute path. Both would take the file
  * out of the folder the user is looking at, which for a menu entry that says
  * "Rename" is a surprise with a lost file attached to it.
+ *
+ * Windows separators are normalized first, so `..\notes.txt` is refused the
+ * same way `../notes.txt` is, and a UNC path (`\\server\share`) counts as
+ * absolute rather than as a relative name.
  */
 export function resolveRenameTarget(currentPath: string, entered: string): RenameResolution {
     const typed = entered.trim();
     if (!typed) {
         return { ok: false, reason: 'Enter a name for the file.' };
     }
-    if (typed === '.' || typed === '..') {
+    // A backslash is a path separator on Windows, so normalize it before any
+    // check. Otherwise "..\evil.txt" is a single segment that no rule inspects,
+    // and "\\server\share" reads as a relative name rather than an absolute one.
+    const normalized = typed.replace(/\\/g, '/');
+    if (normalized === '.' || normalized === '..') {
         return { ok: false, reason: 'Enter a name for the file, not "." or "..".' };
     }
-    if (typed.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(typed)) {
+    if (normalized.startsWith('/') || /^[a-zA-Z]:\//.test(normalized)) {
         return { ok: false, reason: 'Enter a name relative to the file\'s folder, not an absolute path.' };
     }
     // "./b.txt" means the folder the file is already in, so a "." segment is
     // resolved away rather than treated as an error; a ".." segment is refused.
-    const segments = typed.split('/').filter(segment => segment !== '' && segment !== '.');
+    const segments = normalized.split('/').filter(segment => segment !== '' && segment !== '.');
     if (segments.includes('..')) {
         return { ok: false, reason: 'A rename cannot move a file out of its folder with "..".' };
     }
     if (segments.length === 0) {
         return { ok: false, reason: 'Enter a name for the file, not a folder.' };
     }
-    if (typed.endsWith('/')) {
+    if (normalized.endsWith('/')) {
         return { ok: false, reason: 'Enter a name for the file, not a folder.' };
     }
     // The parent keeps its trailing slash, so a file at the filesystem root

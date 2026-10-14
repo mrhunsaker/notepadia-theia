@@ -1,5 +1,6 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { CommandRegistry } from '@theia/core/lib/common';
+import { DisposableCollection } from '@theia/core/lib/common/disposable';
 import {
     CommonCommands,
     FrontendApplicationContribution
@@ -32,13 +33,25 @@ import { NotepadiaFindCommands } from './notepadia-find-contribution';
 @injectable()
 export class NotepadiaEditorKeybindingContribution implements FrontendApplicationContribution {
 
+    /**
+     * How many times to wait one second for Monaco's standalone keybinding
+     * service to appear before giving up. The service is normally ready almost
+     * immediately; the cap only stops a missing service from spinning a timer
+     * for the life of the page.
+     */
+    protected static readonly MAX_REGISTER_ATTEMPTS = 30;
+
+    protected readonly toDispose = new DisposableCollection();
+    protected registerAttempts = 0;
+    protected retryTimer: ReturnType<typeof setTimeout> | undefined;
+
     constructor(
         @inject(CommandRegistry) protected readonly commandRegistry: CommandRegistry,
         @inject(EditorManager) protected readonly editorManager: EditorManager
     ) { }
 
     onStart(): void {
-        this.editorManager.onCurrentEditorChanged(editor => {
+        this.toDispose.push(this.editorManager.onCurrentEditorChanged(editor => {
             if (editor && editor.editor instanceof MonacoEditor) {
                 const control = editor.editor.getControl();
                 if (control) {
@@ -49,15 +62,66 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
                     }
                 }
             }
-        });
-        setTimeout(() => this.registerEditorKeybindings(), 1000);
+        }));
+        this.installFindKeyInterceptor();
+        this.scheduleRegisterEditorKeybindings();
+    }
+
+    onStop(): void {
+        if (this.retryTimer !== undefined) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = undefined;
+        }
+        this.toDispose.dispose();
+    }
+
+    protected scheduleRegisterEditorKeybindings(): void {
+        if (this.registerAttempts >= NotepadiaEditorKeybindingContribution.MAX_REGISTER_ATTEMPTS) {
+            return;
+        }
+        this.registerAttempts++;
+        if (this.retryTimer !== undefined) {
+            clearTimeout(this.retryTimer);
+        }
+        this.retryTimer = setTimeout(() => {
+            this.retryTimer = undefined;
+            this.registerEditorKeybindings();
+        }, 1000);
+    }
+
+    /**
+     * Install the capture-phase Ctrl+F / Ctrl+H interceptor exactly once.
+     *
+     * See registerEditorKeybindings() for why these two chords cannot go
+     * through a dynamic keybinding rule. Registering here (rather than inside
+     * the retried keybinding setup) means the listener is never added twice and
+     * is removed again on stop.
+     */
+    protected installFindKeyInterceptor(): void {
+        const handler = (event: KeyboardEvent): void => {
+            if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+                return;
+            }
+            const key = event.key.toLowerCase();
+            if (key === 'f' && !event.shiftKey) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.commandRegistry.executeCommand(CommonCommands.FIND.id);
+            } else if (key === 'h' && !event.shiftKey) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.commandRegistry.executeCommand(CommonCommands.REPLACE.id);
+            }
+        };
+        document.addEventListener('keydown', handler, true);
+        this.toDispose.push({ dispose: () => document.removeEventListener('keydown', handler, true) });
     }
 
     protected registerEditorKeybindings(): void {
         try {
             const keybindingService = StandaloneServices.get(IKeybindingService);
             if (!(keybindingService instanceof StandaloneKeybindingService)) {
-                setTimeout(() => this.registerEditorKeybindings(), 1000);
+                this.scheduleRegisterEditorKeybindings();
                 return;
             }
             const add = (command: string, keybinding: number) => {
@@ -104,23 +168,9 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             // overridden to open the dialog. Both chords are intercepted
             // globally (Notepad++ semantics): from an editor, from one of the
             // dialog's own inputs, or from anywhere else in the workbench.
-            // Ctrl+Shift+F and Ctrl+M have no competing native binding, so a
-            // plain dynamic rule suffices there.
-            document.addEventListener('keydown', (event) => {
-                if (!(event.ctrlKey || event.metaKey) || event.altKey) {
-                    return;
-                }
-                const key = event.key.toLowerCase();
-                if (key === 'f' && !event.shiftKey) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    this.commandRegistry.executeCommand(CommonCommands.FIND.id);
-                } else if (key === 'h' && !event.shiftKey) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    this.commandRegistry.executeCommand(CommonCommands.REPLACE.id);
-                }
-            }, true);
+            // The interceptor itself is installed once, in
+            // installFindKeyInterceptor(). Ctrl+Shift+F and Ctrl+M have no
+            // competing native binding, so a plain dynamic rule suffices there.
             alias('notepadia.keybinding.findInFiles', NotepadiaFindCommands.OPEN_FILES.id, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF);
             alias('notepadia.keybinding.mark', NotepadiaFindCommands.OPEN_MARK.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM);
             add(NotepadiaCommands.ZOOM_IN.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal);
@@ -128,7 +178,7 @@ export class NotepadiaEditorKeybindingContribution implements FrontendApplicatio
             add(NotepadiaCommands.ZOOM_OUT.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus);
             add(NotepadiaCommands.ZOOM_RESET.id, monaco.KeyMod.CtrlCmd | monaco.KeyCode.Digit0);
         } catch {
-            setTimeout(() => this.registerEditorKeybindings(), 1000);
+            this.scheduleRegisterEditorKeybindings();
         }
     }
 }

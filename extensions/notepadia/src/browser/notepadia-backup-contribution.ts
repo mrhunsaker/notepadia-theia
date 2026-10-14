@@ -21,6 +21,7 @@ import {
     DEFAULT_MAX_BACKUP_BYTES,
     createBackupRecord,
     decideBackupAction,
+    decideUnreadableBackupAction,
     describeRecovery,
     isBackupableSize,
     isBackupWorthRestoring,
@@ -238,9 +239,16 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
         const model = control?.getModel();
         const dirty = Saveable.isDirty(widget);
         if (!control || !model) {
-            // A widget we cannot read is a widget we cannot judge, so the
-            // cheaper part of the policy still applies: a clean one is done.
-            if (decideBackupAction({ enabled: this.isEnabled(), dirty, tooLarge: false }) === 'clear') {
+            // A widget we cannot read cannot be compared with its snapshot, so
+            // the only evidence left is the snapshot against the file on disk:
+            // equal means the save already landed and the snapshot is obsolete.
+            // See decideUnreadableBackupAction for why a dirty buffer is kept.
+            const stored = await this.read(key);
+            if (stored && decideUnreadableBackupAction({
+                enabled: this.isEnabled(),
+                dirty,
+                backupMatchesFile: (await this.readFileText(widget)) === stored.content
+            }) === 'clear') {
                 await this.remove(key);
             }
             return;
@@ -283,17 +291,26 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
         if (stored && stored.content === content) {
             return { matchesBackup: true };
         }
+        const text = await this.readFileText(widget);
+        return { matchesFile: text !== undefined && text === content };
+    }
+
+    /**
+     * The file's text, or `undefined` when the widget has no file behind it or
+     * the file cannot be read. A file the editor opened as binary is read as
+     * text here; guessing at an encoding would be worse than not clearing, but
+     * the comparison is against the editor's own text, so a mismatch simply
+     * leaves the backup in place.
+     */
+    protected async readFileText(widget: EditorWidget): Promise<string | undefined> {
         const uri = NavigatableWidget.getUri(widget);
         if (!uri || uri.scheme === 'untitled') {
-            return {};
+            return undefined;
         }
         try {
-            const file = await this.fileService.readFile(uri);
-            // A file the editor opened as binary has no text to compare, and
-            // guessing at an encoding here would be worse than not clearing.
-            return { matchesFile: typeof file.value === 'string' && file.value === content };
+            return (await this.fileService.read(uri)).value;
         } catch {
-            return {};
+            return undefined;
         }
     }
 

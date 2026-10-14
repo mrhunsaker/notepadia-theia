@@ -61,10 +61,30 @@ describe('resolveRenameTarget', () => {
         assert.equal(resolveRenameTarget('/ws/a.txt', 'C:\\Windows\\a.txt').ok, false);
     });
 
+    it('refuses a UNC path', () => {
+        const result = resolveRenameTarget('/ws/a.txt', '\\\\server\\share\\a.txt');
+        assert.equal(result.ok, false);
+        assert.match(result.reason, /absolute path/);
+    });
+
     it('refuses to climb out of the file\'s folder', () => {
         const result = resolveRenameTarget('/ws/a.txt', '../a.txt');
         assert.equal(result.ok, false);
         assert.match(result.reason, /"\.\."/);
+    });
+
+    it('refuses a backslash ".." that would climb out of the folder', () => {
+        const result = resolveRenameTarget('/ws/a.txt', '..\\evil.txt');
+        assert.equal(result.ok, false);
+        assert.match(result.reason, /"\.\."/);
+    });
+
+    it('moves into a subfolder when Windows separators are used', () => {
+        assert.deepEqual(resolveRenameTarget('/ws/a.txt', 'sub\\a.txt'), { ok: true, path: '/ws/sub/a.txt' });
+    });
+
+    it('refuses a backslash ".." buried in the middle of the path', () => {
+        assert.equal(resolveRenameTarget('/ws/a.txt', 'sub\\..\\..\\a.txt').ok, false);
     });
 
     it('refuses a .. buried in the middle of the path', () => {
