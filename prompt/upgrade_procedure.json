@@ -1,0 +1,223 @@
+{
+  "name": "notepadia-theia-upgrade-procedure",
+  "version": "1.0.0",
+  "date": "2026-10-14",
+  "repository": "https://github.com/mrhunsaker/notepadia-theia",
+  "purpose": "A deterministic, prompt-executable procedure for moving Notepadia from one Eclipse Theia release line to a newer one. It is written to be handed to an agent: every step names the exact files, commands, and gates, and it assumes no knowledge beyond this repository. Run it whole; do not skip gates.",
+  "whenToRun": [
+    "A new stable Eclipse Theia release exists and is newer than the pinned baseline.",
+    "A Theia security fix or Electron/runtime compatibility fix is required.",
+    "The upstream @theia/monaco-editor-core Monaco version moves and the editor integration must be re-validated.",
+    "NOT for: adding a Theia package that was not already in use (treat that as a feature, not an upgrade), or a Notepadia-only change."
+  ],
+  "baseline": {
+    "recordedRef": "main @ f800ff7",
+    "theia": "1.75.0",
+    "node": ">=24",
+    "nodePinned": "24.21.0 (volta)",
+    "packageManager": "Yarn Classic 1.22.22 (>=1.7.0 <2)",
+    "electron": "42.10.0",
+    "electronBuilder": "26.15.3",
+    "react": "^19.2.8",
+    "runtime": "browser (http://localhost:3000) is the shipping target; Electron is packaging",
+    "configFolder": ".notepadia"
+  },
+  "inputs": {
+    "targetTheiaVersion": "Required. Exact version string, e.g. \"1.76.0\". No ranges, no caret/tilde.",
+    "reason": "Required. One line: why the upgrade is being taken.",
+    "electronTargetVersion": "Optional. Only if the upgrade forces an Electron bump; otherwise keep 42.10.0.",
+    "runElectronPackaging": "Optional boolean, default false. Whether to also produce installers in this procedure.",
+    "allowBreakingChanges": "Optional boolean, default false. Must be explicitly true to accept a compile break that requires product code changes."
+  },
+  "allTheiaPackages": [
+    "@theia/cli",
+    "@theia/core",
+    "@theia/editor",
+    "@theia/editor-preview",
+    "@theia/electron",
+    "@theia/file-search",
+    "@theia/filesystem",
+    "@theia/keymaps",
+    "@theia/markers",
+    "@theia/messages",
+    "@theia/monaco",
+    "@theia/navigator",
+    "@theia/preferences",
+    "@theia/process",
+    "@theia/search-in-workspace",
+    "@theia/workspace"
+  ],
+  "manifestTouchPoints": [
+    { "file": "applications/browser/package.json", "role": "browser app; @theia deps + devDep @theia/cli" },
+    { "file": "applications/electron/package.json", "role": "electron app; @theia deps + @theia/electron + devDep @theia/cli" },
+    { "file": "extensions/notepadia/package.json", "role": "product extension; @theia deps only, no @theia/cli" },
+    { "file": "yarn.lock", "role": "single lockfile for the whole workspace; regenerate via yarn, never hand-edit" }
+  ],
+  "fragileIntegrationPoints": [
+    { "file": "extensions/notepadia/src/browser/notepadia-editor-keybinding-contribution.ts", "risk": "HIGH", "why": "Imports internal, non-public Monaco ESM paths ('@theia/monaco-editor-core/esm/vs/editor/standalone/browser/standaloneServices', '/esm/vs/platform/keybinding/common/keybinding') and StandaloneKeybindingService. These paths are unversioned internals and are the most likely thing to move.", "watch": "Does the module still export StandaloneServices/StandaloneKeybindingService at the same path? Do editor chunks still resolve?" },
+    { "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx", "risk": "HIGH", "why": "Overrides Monaco's find widget handler and depends on monaco.editor.FindMatch, ICodeEditor.getOption(wordSeparators), EditorOption names, and model.findMatches signature.", "watch": "monaco.editor.EditorOption.wordSeparators, findMatches arg list, ICodeEditor option APIs." },
+    { "file": "extensions/notepadia/src/browser/notepadia-contribution.ts", "risk": "MEDIUM", "why": "Central command/menu registration against @theia/core menu ids and CommandRegistry." },
+    { "file": "extensions/notepadia/src/browser/notepadia-status-bar-contribution.ts", "risk": "MEDIUM", "why": "Uses StatusBar API (addElement/removeElement) whose surface has changed across Theia releases." },
+    { "file": "extensions/notepadia/src/browser/notepadia-view-contribution.ts", "risk": "MEDIUM", "why": "Editor/widget option wiring (renderWhitespace, glyphMargin, etc.) and preference names." },
+    { "file": "extensions/notepadia/src/electron-main/*.ts", "risk": "MEDIUM", "why": "Electron main module, updater (electron-updater), and IPC bootstrap must match @theia/electron expectations." },
+    { "file": "applications/browser/esbuild.mjs, applications/browser/gen-esbuild.*.mjs", "risk": "MEDIUM", "why": "Build pipeline glue; Theia has changed whether webpack or esbuild is the supported path." }
+  ],
+  "procedure": {
+    "phase0_preflight": {
+      "goal": "Start from a known-clean, builds-green baseline so a later failure is attributable.",
+      "steps": [
+        { "id": "P0.1", "action": "Confirm a clean tree.", "command": "git status --porcelain", "expect": "empty output" },
+        { "id": "P0.2", "action": "Record the current green baseline.", "command": "git rev-parse --short HEAD", "expect": "note the hash" },
+        { "id": "P0.3", "action": "Verify the toolchain matches the baseline.", "command": "yarn verify", "expect": "node 24.x, yarn 1.x, no missing native deps" },
+        { "id": "P0.4", "action": "Confirm the baseline builds and tests pass BEFORE any change.", "command": "yarn build && yarn test", "expect": "build succeeds; all extension tests pass" }
+      ]
+    },
+    "phase1_discover": {
+      "goal": "Choose a target version that is real, stable, and internally consistent.",
+      "steps": [
+        { "id": "P1.1", "action": "Read the target version's npm dist-tags and the GitHub release notes for @theia/cli.", "command": "npm view @theia/cli dist-tags --json", "expect": "target version exists as 'latest' or an explicit stable tag" },
+        { "id": "P1.2", "action": "Confirm every package in allTheiaPackages publishes the SAME target version (Theia is released in lock-step).", "command": "npm view <pkg>@<target> version for each pkg", "expect": "all equal; if any is missing, STOP - do not mix release lines" },
+        { "id": "P1.3", "action": "Read the release notes/CHANGELOG for the target and every version in between. Capture every 'breaking', 'removed API', 'Monaco', 'Electron', and 'engines' note into the upgrade report.", "expect": "a written list of breaking changes" },
+        { "id": "P1.4", "action": "Check the target's Node engines requirement and its @theia/monaco-editor-core (Monaco) version.", "command": "npm view @theia/core@<target> engines dependencies.monaco-editor-core", "expect": "node requirement is satisfied by 24.x; note the Monaco version delta" },
+        { "id": "P1.5", "action": "Re-check the highest-risk item: do the internal Monaco paths in fragileIntegrationPoints still exist in the target?", "command": "inspect node_modules/@theia/monaco-editor-core after install, or the @theia/monaco source for the target", "expect": "either the paths exist, or plan the P4 fix now" }
+      ]
+    },
+    "phase2_branch": {
+      "goal": "Isolate the upgrade.",
+      "steps": [
+        { "id": "P2.1", "action": "Create a branch named for the target.", "command": "git switch -c chore/theia-<target>" }
+      ]
+    },
+    "phase3_bump": {
+      "goal": "Move every Theia pin to exactly the target, in one commit.",
+      "steps": [
+        { "id": "P3.1", "action": "In applications/browser/package.json, set @theia/* deps and devDep @theia/cli to the exact target version. Keep any @theia package OUT if it was not already present.", "expect": "no caret/tilde on @theia versions" },
+        { "id": "P3.2", "action": "In applications/electron/package.json, set @theia/* deps INCLUDING @theia/electron, and devDep @theia/cli, to the target.", "expect": "same exact version as browser" },
+        { "id": "P3.3", "action": "In extensions/notepadia/package.json, set its @theia/* dependencies to the target. Do NOT add @theia/cli here.", "expect": "same exact version" },
+        { "id": "P3.4", "action": "Only if P1.4 requires it, bump Electron/electron-builder in applications/electron. Otherwise leave them.", "expect": "changed only when justified" },
+        { "id": "P3.5", "action": "Sweep for any straggler @theia pins at the old version.", "command": "rg -n '\"@theia/' --glob 'package.json'", "expect": "every hit reads the target version" }
+      ]
+    },
+    "phase4_install_rebuild": {
+      "goal": "Reproduce the dependency tree and native/prebuild artifacts.",
+      "steps": [
+        { "id": "P4.1", "action": "Install with the repo's lockfile conventions (do not change .yarnrc).", "command": "yarn install", "expect": "lockfile updated to the target; no peer-dep failure" },
+        { "id": "P4.2", "action": "Rebuild browser prebuilds.", "command": "yarn --cwd applications/browser rebuild", "expect": "succeeds" },
+        { "id": "P4.3", "action": "Rebuild electron prebuilds (desktop).", "command": "yarn --cwd applications/electron rebuild", "expect": "succeeds" },
+        { "id": "P4.4", "action": "If a native module refuses to rebuild, clean and reinstall before debugging anything else.", "command": "yarn clean && yarn install", "expect": "as above" }
+      ]
+    },
+    "phase5_build": {
+      "goal": "Compile all TypeScript and bundle all targets.",
+      "steps": [
+        { "id": "P5.1", "action": "Build the extension first - it fails fastest and pinpoints API moves.", "command": "yarn build:extensions", "expect": "0 TypeScript errors" },
+        { "id": "P5.2", "action": "Build the browser app.", "command": "yarn build:browser", "expect": "esbuild completes; no unresolved @theia internals" },
+        { "id": "P5.3", "action": "Build the electron app.", "command": "yarn build:electron", "expect": "completes" },
+        { "id": "P5.4", "action": "If P5.x fails, classify each error before touching code: (a) moved/renamed public API, (b) moved internal Monaco path, (c) Node/engines mismatch, (d) genuine product regression. Do not paper over (d).", "expect": "a written classification per error" }
+      ]
+    },
+    "phase6_fix": {
+      "goal": "Repair only what the upgrade actually broke, at the smallest correct scope.",
+      "steps": [
+        { "id": "P6.1", "action": "Fix public-API moves by following the release notes' replacement. Keep behavior identical unless allowBreakingChanges is true." },
+        { "id": "P6.2", "action": "Fix moved internal Monaco paths in notepadia-editor-keybinding-contribution.ts (and anywhere else) against the installed @theia/monaco-editor-core. Prefer a public seam if one exists; if none exists, isolate the internal import behind a single small module so the next upgrade touches one file." },
+        { "id": "P6.3", "action": "Re-run Phase 5 until all three builds are green." },
+        { "id": "P6.4", "action": "Do not silently drop a Notepad++ behavior to make a build pass; if a behavior cannot survive the upgrade, record it as an explicit finding and stop for a decision when allowBreakingChanges is false." }
+      ]
+    },
+    "phase7_test": {
+      "goal": "Prove the upgrade on the same gates the project already trusts.",
+      "steps": [
+        { "id": "P7.1", "action": "Unit tests (extension).", "command": "yarn test", "expect": "all pass; the pure-logic contract is unchanged unless intentionally changed" },
+        { "id": "P7.2", "action": "Lint.", "command": "yarn lint", "expect": "0 errors" },
+        { "id": "P7.3", "action": "Preference-default guard.", "command": "yarn check:prefs", "expect": "passes" },
+        { "id": "P7.4", "action": "Browser smoke.", "command": "yarn smoke", "expect": "passes" },
+        { "id": "P7.5", "action": "End-to-end.", "command": "yarn test:e2e", "expect": "passes" },
+        { "id": "P7.6", "action": "Electron smoke (when desktop is in scope).", "command": "yarn smoke:electron", "expect": "passes" }
+      ]
+    },
+    "phase8_manual_acceptance": {
+      "goal": "The automated suites do not cover the Notepad++ surface; a human-or-agent pass must.",
+      "steps": [
+        { "id": "P8.1", "action": "Start the browser app.", "command": "yarn start" },
+        { "id": "P8.2", "action": "Walk the acceptanceCriteria list below at http://localhost:3000." },
+        { "id": "P8.3", "action": "Specifically re-test the fragileIntegrationPoints: Ctrl+F / Ctrl+H open the Notepadia dialog (not Monaco's widget); Find Next/Prev, regex, whole-word, selection-only; the File/Edit/View menus and their keybindings; status bar fields; word wrap; zoom chords." }
+      ]
+    },
+    "phase9_package": {
+      "goal": "Only when runElectronPackaging is true.",
+      "steps": [
+        { "id": "P9.1", "action": "Set the build version.", "command": "yarn build:version" },
+        { "id": "P9.2", "action": "Package per platform.", "command": "yarn package:win | yarn package:linux | yarn package:mac", "expect": "installer/portable artifacts produced" },
+        { "id": "P9.3", "action": "Launch the packaged app once and confirm it reaches the workbench and opens a file." }
+      ]
+    },
+    "phase10_document": {
+      "goal": "Leave the repo self-describing at the new baseline.",
+      "steps": [
+        { "id": "P10.1", "action": "Update the baseline in prompt/notepadia-generation-prompt.json and prompt/pair_programming_prompt_v8.1.0.json (or its successor) to the target version." },
+        { "id": "P10.2", "action": "Update README.md and docs/*.md where the Theia version or build pipeline is stated." },
+        { "id": "P10.3", "action": "Add a CHANGELOG.md entry recording from-version, to-version, breaking changes handled, and anything intentionally deferred." },
+        { "id": "P10.4", "action": "Produce the upgrade report (see deliverables)." }
+      ]
+    },
+    "phase11_commit": {
+      "goal": "One reviewable change.",
+      "steps": [
+        { "id": "P11.1", "action": "Stage only the upgrade files; inspect the diff.", "command": "git add -A && git diff --cached --stat" },
+        { "id": "P11.2", "action": "Commit with a conventional message.", "expect": "e.g. \"chore(deps): upgrade Theia 1.75.0 -> <target>\"" },
+        { "id": "P11.3", "action": "Open a PR whose description contains the upgrade report from Phase 10 / deliverables." }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Every @theia package across all three manifests reads the same exact target version; no caret/tilde remains on any @theia entry.",
+    "yarn build:extensions, yarn build:browser, and yarn build:electron all succeed from a clean checkout.",
+    "yarn test, yarn lint, yarn check:prefs, yarn smoke, and yarn test:e2e all pass.",
+    "Ctrl+F and Ctrl+H open the Notepadia Find dialog, not Monaco's inline widget.",
+    "Find Next / Find Previous / regex / match-case / whole-word / wrap-around / selection-only behave as before.",
+    "The Notepad++ menu bar, toolbar, tab bar, and status bar render and respond as before.",
+    "Opening, editing, saving, and closing a real file round-trips; no Monaco option regressions (tab size, insert spaces, word wrap, whitespace rendering).",
+    "No new console errors or unhandled promise rejections on startup.",
+    "The recorded baseline versions in the prompt JSON files and docs match the target."
+  ],
+  "rollback": {
+    "trigger": "A gate fails and the fix is not small and safe.",
+    "steps": [
+      "git switch -c the original branch and discard the upgrade branch, OR reset the three manifests and yarn.lock to the recordedRef and re-run yarn install.",
+      "yarn --cwd applications/browser rebuild && yarn --cwd applications/electron rebuild",
+      "yarn build && yarn test to confirm the baseline is green again."
+    ],
+    "note": "Prefer reverting the whole upgrade commit over partially reverting individual Theia packages; mixing release lines is the one state that must never be committed."
+  },
+  "guardrails": [
+    "Never mix @theia package versions across release lines, even temporarily.",
+    "Never hand-edit yarn.lock; change manifests and run yarn.",
+    "Never introduce a standalone monaco-editor dependency; use Theia's Monaco integration only.",
+    "Do not add webpack if the target uses the esbuild pipeline; do not remove esbuild if it does.",
+    "Keep product-specific behavior in extensions/notepadia; do not fork @theia source into the repo.",
+    "Do not claim success without a green build and the test gates above.",
+    "If allowBreakingChanges is false, any required product-code behavior change is a STOP-and-ask, not a fix.",
+    "Preserve .yarnrc, the lockfile, and Yarn Classic conventions."
+  ],
+  "deliverables": [
+    "The three updated manifests and the regenerated yarn.lock.",
+    "Any product-code fixes required by the upgrade, each minimal and explained.",
+    "An upgrade report (JSON or Markdown) with: from/to versions, the breaking-changes list from P1.3, per-error classification from P5.4, the exact commands run and their outcomes, and anything deferred.",
+    "Updated docs and prompt baselines at the new version.",
+    "A CHANGELOG.md entry.",
+    "One conventional-commit commit and a PR description carrying the report."
+  ],
+  "outOfScope": [
+    "Adding Theia features that were not already present.",
+    "Refactoring Notepadia code unrelated to the upgrade.",
+    "Changing the product version/calver unless packaging is in scope.",
+    "Bumping React, ESLint, TypeScript, or other non-Theia dependencies unless the upgrade strictly requires it."
+  ],
+  "notesForTheAgent": [
+    "Treat the fragileIntegrationPoints list as the primary risk register: re-verify each item explicitly and say so in the report.",
+    "The browser target is the shipping product; if time is short, validate browser fully and note electron as unverified rather than implying it passed.",
+    "When an internal Monaco path moves, wrap it in one small adapter module so the next upgrade is a one-file change.",
+    "Keep each phase's evidence (command output) to paste into the report; a gate with no evidence is not passed."
+  ]
+}

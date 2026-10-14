@@ -1,0 +1,82 @@
+{
+  "name": "notepadia-bug-report",
+  "version": "1.0.0",
+  "date": "2026-10-14",
+  "repository": "https://github.com/mrhunsaker/notepadia-theia",
+  "auditedRef": "main @ f800ff7 (\"feat(updater): offer updates in a Check for Updates dialog\")",
+  "auditMethod": "Static read of extensions/notepadia/src (browser, common, electron-main) plus the unit tests in extensions/notepadia/test, targeting only untested or weakly-tested paths. Item BUG-001 was additionally reproduced by executing the compiled module from lib/common under Node.",
+  "scope": "extensions/notepadia/src (product-specific Notepadia code). Theia / @theia packages are treated as third party and out of scope.",
+  "baseline": {
+    "theia": "1.75.0",
+    "node": ">=24",
+    "packageManager": "Yarn Classic 1.x",
+    "extension": "extensions/notepadia"
+  },
+  "schema": {
+    "bug": "What is wrong and what the user-visible consequence is.",
+    "priority": "high | medium | low",
+    "line_number": "1-based line in `file` where the defect lives.",
+    "proposed_fix": "The concrete code change that removes the defect."
+  },
+  "priorityLevels": {
+    "high": "Wrong or unsafe behavior on a normal path; data loss, path escape, or a crash.",
+    "medium": "Wrong behavior on an edge or failure path, or a resource/leak that grows over time.",
+    "low": "Latent defect guarded by lucky defaults, a cosmetic mismatch, or a heuristic that is acceptable for now."
+  },
+  "bugs": [
+    {
+      "id": "BUG-001",
+      "bug": "resolveRenameTarget misses backslash path traversal. The `..` guard splits the typed name on '/' only, so on Windows a name like `..\\evil.txt` survives as a single segment and is accepted. The result is a rename that moves the file OUT of its own folder while File > Rename claims it cannot. A UNC path (`\\\\server\\share\\a.txt`) is also accepted because the absolute-path check only rejects a leading '/' and drive letters. Reproduced: resolveRenameTarget('/ws/a.txt', '..\\\\evil.txt') -> {ok:true, path:'/ws/..\\evil.txt'}.",
+      "priority": "high",
+      "file": "extensions/notepadia/src/common/file-operations.ts",
+      "line_number": 41,
+      "proposed_fix": "Normalize separators before parsing and refuse a leading backslash: `const normalized = typed.replace(/\\\\/g, '/');` then reject `normalized.startsWith('/')` (covering UNC and root) and run the existing empty/'.'/'..'/segment logic on `normalized`. Update the '/ws/a.txt' + '..\\evil.txt' and UNC cases in test/file-operations.test.cjs to assert ok:false.",
+      "evidence": "Runtime: node -e \"require('./lib/common/file-operations.js').resolveRenameTarget('/ws/a.txt','..\\\\evil.txt')\" -> {\"ok\":true,\"path\":\"/ws/..\\\\evil.txt\"}."
+    },
+    {
+      "id": "BUG-002",
+      "bug": "The Ctrl+F / Ctrl+H document keydown listener is registered inside registerEditorKeybindings(), which is retried from its own catch block (and from onStart). Every retry that gets past the StandaloneKeybindingService check adds ANOTHER capture-phase 'keydown' listener on document with no removeEventListener guard, so a failure part-way through the body causes Ctrl+F / Ctrl+H to execute the find/replace command once per accumulated listener. The listener is also never disposed, so it leaks for the life of the page.",
+      "priority": "medium",
+      "file": "extensions/notepadia/src/browser/notepadia-editor-keybinding-contribution.ts",
+      "line_number": 109,
+      "proposed_fix": "Register the document listener exactly once. Hoist a `protected documentReloadHandler?: (e: KeyboardEvent) => void;` guard, add it at most once (e.g. at the top of onStart, or guard with `if (!this.documentReloadHandler)`), store the handler, and remove it in a `dispose()`/`onStop()` via `document.removeEventListener('keydown', handler, true)`. Also cap the readiness retry (a fixed number of attempts or an exponential backoff with a stop) so a missing StandaloneKeybindingService cannot spin a 1s timer forever.",
+      "evidence": "Code path: line 60 and line 131 both re-enter registerEditorKeybindings; the listener at line 109 is added on every successful entry; no removeEventListener exists in the file."
+    },
+    {
+      "id": "BUG-003",
+      "bug": "Backup capture never clears a stale backup for a widget it cannot read. In the `!control || !model` branch the code asks decideBackupAction({enabled:true, dirty, tooLarge:false}), but with matchesBackup/matchesFile omitted that function returns 'skip' when the buffer is clean and 'snapshot' when it is dirty - it can never return 'clear'. So the `=== 'clear'` branch is dead, and a saved-but-unreadable widget (or one whose editor was torn down) keeps its old snapshot indefinitely, which can then be restored over newer content.",
+      "priority": "medium",
+      "file": "extensions/notepadia/src/browser/notepadia-backup-contribution.ts",
+      "line_number": 243,
+      "proposed_fix": "Decide explicitly for the unreadable case instead of calling the full policy: if the widget is clean, `await this.remove(key)` (drop the stale snapshot) and return; if it is dirty, keep the existing snapshot (leave it in place) and return. Drop the always-false `decideBackupAction(...) === 'clear'` condition, and add a unit-tested helper (e.g. clearUnreadableBackup(dirty)) to backup.ts so the rule is covered.",
+      "evidence": "common/backup.ts:107-114 - with matchesBackup/matchesFile undefined the only returns are 'skip' (clean) and 'snapshot'/'clear' from the dirty branch, and tooLarge is hard-coded false."
+    },
+    {
+      "id": "BUG-004",
+      "bug": "wrapLine loops forever (and then throws) when width <= 0. With width 0, `rest.length > 0` is true, slice(0,0) is '', lastIndexOf(' ') is -1, and the else branch pushes '' then sets rest = rest.slice(0) = rest, so the loop never advances; the out array grows until V8 throws 'Invalid array length'. Verified. The default is 80 and the UI passes 80, so this only fires if a caller ever forwards 0 or a negative wrap width.",
+      "priority": "low",
+      "file": "extensions/notepadia/src/common/blank-ops.ts",
+      "line_number": 97,
+      "proposed_fix": "Guard the width at the top of wrapLine: `const columns = width > 0 ? Math.floor(width) : SPLIT_COLUMN;` and use `columns` throughout, so a non-positive width degrades to the default instead of looping. Add a test asserting wrapLine('hello', 0) does not hang.",
+      "evidence": "Runtime: require('./lib/common/blank-ops.js').wrapLine('hello', 0) throws 'Invalid array length'."
+    },
+    {
+      "id": "BUG-005",
+      "bug": "The Run output cap can overshoot MAX_OUTPUT. `if (output.length < MAX_OUTPUT) output += String(chunk);` appends a whole chunk whenever the buffer is currently under the cap, so a single large chunk (or the chunk that crosses the boundary) can push output past 64 KB by up to the chunk size. The buffer is meant to be a hard 64 KB cap.",
+      "priority": "low",
+      "file": "extensions/notepadia/src/electron-main/notepadia-run-server.ts",
+      "line_number": 37,
+      "proposed_fix": "Clip to the cap: `if (output.length < MAX_OUTPUT) { output += String(chunk); if (output.length > MAX_OUTPUT) { output = output.slice(0, MAX_OUTPUT); } }` (or compute the remaining budget and slice the chunk). Consider appending a '\\n… output truncated' marker once.",
+      "evidence": "MAX_OUTPUT = 64 * 1024 at line 5; the guard is a pre-check only."
+    },
+    {
+      "id": "BUG-006",
+      "bug": "The '*' entry in C_HASH_COMMENTS makes isCommentLine skip ANY line whose first non-space character is '*'. For C/C++/JavaScript/TypeScript that also skips real code such as a continued pointer expression or a line beginning with a dereference (`*ptr = foo;`), and for JS a generator method header (`*gen() {}`). It is a copying of Notepad++'s block-comment heuristic; the failure is silent (a symbol simply does not appear in the Function List).",
+      "priority": "low",
+      "file": "extensions/notepadia/src/common/function-list-rules.ts",
+      "line_number": 263,
+      "proposed_fix": "Only treat a leading '*' as a comment when the document is actually inside a block comment. Either track a simple `/* ... */` open/close state across lines in parseFunctionList and consult it, or narrow the prefix to '*/' and a line that is exactly '*'/'* ' (i.e. require the '*' to be followed by whitespace), rather than every line beginning with '*'. Amend the parser comment to state the chosen rule.",
+      "evidence": "C_HASH_COMMENTS = ['//', '/*', '*'] at line 263; isCommentLine (lines 374-377) tests trimmed.startsWith('*')."
+    }
+  ]
+}
