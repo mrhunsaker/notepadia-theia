@@ -13,6 +13,7 @@
 //   node scripts/set-build-version.mjs <package.json> [VERSION] # inject into one or more files
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const VERSION_RE = /^\d+\.\d+\.\d+$/;
 
@@ -46,7 +47,14 @@ function parseArgs(argv) {
     return { files, version, print };
 }
 
-const isMain = process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href;
+// Detect "run as a script" cross-platform. Comparing `import.meta.url` against
+// `new URL(process.argv[1], 'file:')` silently fails on Windows: argv[1] is a
+// drive-letter path (`D:\a\...`), which `new URL` parses as the `d:` scheme, so
+// the two never match and the inject block below was skipped on Windows only -
+// leaving the committed version (e.g. 2026.10.13) in place, which made
+// electron-builder publish the Windows x64 installers to the *wrong* release.
+// `pathToFileURL` produces the same `file:///D:/...` form as `import.meta.url`.
+const isMain = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMain) {
     const { files, version, print } = parseArgs(process.argv.slice(2));
