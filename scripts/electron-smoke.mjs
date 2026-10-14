@@ -327,9 +327,17 @@ try {
     }
 
     // D2 parity: in Electron the native Ctrl/Cmd+N chord opens a new document.
-    const tabSelector = `.p-TabBar-tab`;
+    //
+    // Tabs are rendered by lumino's TabBar, whose class is `lm-TabBar-tab`
+    // (the app's own code uses it too, e.g. notepadia-shell-contribution.ts).
+    // The legacy Phosphor/Theia class `p-TabBar-tab` is gone in @lumino 2.x, so
+    // querying it matches zero tabs and made this assertion fail even when the
+    // chord worked - hence the explicit selector comment.
+    const tabSelector = `.lm-TabBar-tab`;
     const tabsBefore = await session.evaluate(`document.querySelectorAll('${tabSelector}').length`);
     const modifier = process.platform === 'darwin' ? 4 : 2; // Meta on macOS, Ctrl elsewhere
+    // Keep the window focused so the synthesized chord is delivered to the page.
+    try { await session.send('Page.bringToFront'); } catch { /* optional */ }
     await session.send('Input.dispatchKeyEvent', {
         type: 'keyDown',
         modifiers: modifier,
