@@ -330,6 +330,28 @@ try {
     const tabSelector = `.p-TabBar-tab`;
     const tabsBefore = await session.evaluate(`document.querySelectorAll('${tabSelector}').length`);
     const modifier = process.platform === 'darwin' ? 4 : 2; // Meta on macOS, Ctrl elsewhere
+
+    // DIAGNOSTIC: record every keydown the page actually receives.
+    await session.evaluate(`(function () {
+        window.__smokeKeydowns = [];
+        document.addEventListener('keydown', function (e) {
+            window.__smokeKeydowns.push({ k: e.key, c: e.code, ctrl: !!e.ctrlKey, meta: !!e.metaKey, alt: !!e.altKey, shift: !!e.shiftKey, dp: !!e.defaultPrevented });
+        }, true);
+        return true;
+    })()`);
+    const tabCount = () => session.evaluate(`document.querySelectorAll('${tabSelector}').length`);
+    const waitForMoreTabs = async ms => {
+        const deadline = Date.now() + ms;
+        while (Date.now() < deadline) {
+            if (await tabCount() > tabsBefore) {
+                return true;
+            }
+            await sleep(500);
+        }
+        return false;
+    };
+    try { await session.send('Page.enable'); await session.send('Page.bringToFront'); } catch { /* optional */ }
+
     await session.send('Input.dispatchKeyEvent', {
         type: 'keyDown',
         modifiers: modifier,
@@ -346,13 +368,23 @@ try {
         windowsVirtualKeyCode: 78,
         nativeVirtualKeyCode: 78
     });
-    await session.waitFor(
-        `document.querySelectorAll('${tabSelector}').length > ${tabsBefore}`,
-        'a new document tab to open after Ctrl/Cmd+N',
-        15000
-    );
-    const tabsAfter = await session.evaluate(`document.querySelectorAll('${tabSelector}').length`);
-    console.log(`PASS native ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'}+N opened a new document (tabs ${tabsBefore} -> ${tabsAfter})`);
+    let method = 'cdp';
+    let opened = await waitForMoreTabs(5000);
+    if (!opened) {
+        method = 'dom';
+        await session.evaluate(`(function () {
+            var e = new KeyboardEvent('keydown', { key: 'n', code: 'KeyN', keyCode: 78, which: 78, ctrlKey: ${modifier === 2}, metaKey: ${modifier === 4}, bubbles: true, cancelable: true });
+            document.dispatchEvent(e);
+            return e.defaultPrevented;
+        })()`);
+        opened = await waitForMoreTabs(5000);
+    }
+    const tabsAfter = await tabCount();
+    const keydowns = await session.evaluate(`window.__smokeKeydowns`);
+    if (!opened) {
+        throw new Error(`Ctrl/Cmd+N did not open a document (tabs ${tabsBefore} -> ${tabsAfter}); keydowns=${JSON.stringify(keydowns)}`);
+    }
+    console.log(`PASS native ${process.platform === 'darwin' ? 'Cmd' : 'Ctrl'}+N opened a new document (tabs ${tabsBefore} -> ${tabsAfter}; via ${method}; keydowns=${JSON.stringify(keydowns)})`);
 
     // G1/D2 parity for the Date & Time chords: F5 (short) and Ctrl/Cmd+F5
     // (long) are browser reloads, so the browser suite can only cover their

@@ -117,12 +117,13 @@ jobs:
           - platform: windows
             os: windows-2022
             targets: --win
-          - platform: linux
-            os: ubuntu-22.04
-            targets: --linux
-          - platform: macos
-            os: macos-15
-            targets: --mac
+          # DIAG BRANCH ONLY: linux/macos temporarily disabled to shorten the loop.
+          # - platform: linux
+          #   os: ubuntu-22.04
+          #   targets: --linux
+          # - platform: macos
+          #   os: macos-15
+          #   targets: --mac
     steps:
       - uses: actions/checkout@v4
         with:
