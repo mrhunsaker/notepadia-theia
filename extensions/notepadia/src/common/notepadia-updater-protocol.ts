@@ -27,5 +27,6 @@ export const NotepadiaUpdaterService = Symbol('NotepadiaUpdaterService');
 
 export interface NotepadiaUpdaterService extends RpcServer<NotepadiaUpdaterClient> {
     checkForUpdates(): Promise<NotepadiaUpdateStatus>;
+    downloadUpdate(): Promise<NotepadiaUpdateStatus>;
     quitAndInstall(): void;
 }

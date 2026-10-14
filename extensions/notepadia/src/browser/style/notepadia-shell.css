@@ -383,6 +383,27 @@ body.notepadia-chrome .lm-DockPanel.lm-main .lm-DockPanel-separator {
 }
 
 /*
+ * Help > Check for Updates...
+ */
+.notepadia-update {
+  display: flex;
+  flex-direction: column;
+  min-width: 420px;
+  max-width: 520px;
+  gap: 6px;
+}
+
+.notepadia-update-message {
+  font-weight: 600;
+}
+
+.notepadia-update-detail {
+  font-size: 90%;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/*
  * E3 - Folder as Workspace.
  *
  * The Theia navigator presents as VS Code's Explorer: 22px rows with a

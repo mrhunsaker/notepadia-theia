@@ -964,8 +964,11 @@ them. Use `Save` for anything you cannot afford to lose.
 ## Automatic updates (desktop)
 
 Installed desktop builds check GitHub Releases for updates on startup and on
-`Help ▸ Check for Updates...`. When an update is found it downloads in the
-background and prompts to restart and install.
+`Help ▸ Check for Updates...`. Choosing the menu item opens a dialog that either
+confirms Notepad is up to date or names the newer version and offers to download
+and install it; the download only starts when you accept, then the dialog offers
+to restart and apply it. The startup check is quiet and never downloads or
+installs on its own.
 
 !!! warning "Windows installer"
     Updates apply only to the **default installation directory**. The

@@ -20,6 +20,7 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
 
     protected client?: NotepadiaUpdaterClient;
     protected status: NotepadiaUpdateStatus = { state: 'checking' };
+    protected availableVersion?: string;
 
     constructor(@inject(ILogger) protected readonly logger: ILogger) { }
 
@@ -62,6 +63,28 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
         return Promise.resolve(this.status);
     }
 
+    downloadUpdate(): Promise<NotepadiaUpdateStatus> {
+        if (!app.isPackaged) {
+            this.setStatus({ state: 'disabled', message: DISABLED_MESSAGE });
+            return Promise.resolve(this.status);
+        }
+        try {
+            autoUpdater.downloadUpdate().catch(error =>
+                this.setStatus({
+                    state: 'error',
+                    currentVersion: app.getVersion(),
+                    message: this.toMessage(error)
+                }));
+        } catch (error) {
+            this.setStatus({
+                state: 'error',
+                currentVersion: app.getVersion(),
+                message: this.toMessage(error)
+            });
+        }
+        return Promise.resolve(this.status);
+    }
+
     quitAndInstall(): void {
         if (app.isPackaged) {
             autoUpdater.quitAndInstall();
@@ -69,7 +92,10 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
     }
 
     protected configureAutoUpdater(): void {
-        autoUpdater.autoDownload = true;
+        // The download is offered in the Check for Updates dialog rather than
+        // started unseen in the background, so `autoDownload` is off and the
+        // frontend calls `downloadUpdate` when the user accepts the update.
+        autoUpdater.autoDownload = false;
         autoUpdater.autoInstallOnAppQuit = true;
         autoUpdater.logger = {
             info: message => this.logger.info(this.toMessage(message)),
@@ -82,12 +108,14 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
             ({ state, currentVersion: app.getVersion(), ...extra });
 
         autoUpdater.on('checking-for-update', () => this.setStatus(status('checking')));
-        autoUpdater.on('update-available', info =>
-            this.setStatus(status('update-available', { nextVersion: info.version })));
+        autoUpdater.on('update-available', info => {
+            this.availableVersion = info.version;
+            this.setStatus(status('update-available', { nextVersion: info.version }));
+        });
         autoUpdater.on('update-not-available', info =>
             this.setStatus(status('update-not-available', { nextVersion: info.version })));
         autoUpdater.on('download-progress', progress =>
-            this.setStatus(status('download-progress', { percent: progress.percent })));
+            this.setStatus(status('download-progress', { nextVersion: this.availableVersion, percent: progress.percent })));
         autoUpdater.on('update-downloaded', info =>
             this.setStatus(status('update-downloaded', { nextVersion: info.version })));
         autoUpdater.on('error', error =>

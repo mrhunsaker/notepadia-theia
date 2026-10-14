@@ -392,16 +392,17 @@ The desktop app uses `electron-updater` fed by GitHub Releases
   the `NotepadiaUpdaterService` interface (RPC, proxied over the Electron IPC).
 - `extensions/notepadia/src/electron-main/notepadia-updater.ts` implements the
   service in the electron-main process. It configures `autoUpdater`
-  (`autoDownload: true`, `autoInstallOnAppQuit: true`) when
+  (`autoDownload: false`, `autoInstallOnAppQuit: true`) when
   `app.isPackaged`; otherwise it reports a `disabled` status. All
   `autoUpdater` events (checking, available, not-available, download-progress,
-  downloaded, error) are forwarded to the connected frontend client.
+  downloaded, error) are forwarded to the connected frontend client, and
+  `downloadUpdate()` starts the download the dialog asks for.
 - `extensions/notepadia/src/browser/notepadia-updater-contribution.ts` is the
   frontend half: it resolves the proxy from `ElectronIpcConnectionProvider`
   **only when `ElectronMainConnectionProvider` is bound** (i.e. in the Electron
   app, never in the browser app), auto-checks on start, exposes
-  `Help ▸ Check for Updates...`, and prompts to restart once an update is
-  downloaded.
+  `Help ▸ Check for Updates...`, and opens a dialog that reports the result and,
+  when an update exists, offers to download and then to restart and install.
 - The electron-main module binds the service plus an
   `ElectronConnectionHandler` (`RpcConnectionHandler`) at `NotepadiaUpdaterPath`.
 
