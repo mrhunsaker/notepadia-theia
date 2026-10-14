@@ -162,6 +162,22 @@ jobs:
       - name: Rebuild native modules for Electron
         run: yarn --cwd applications/electron rebuild --modules=drivelist,keytar,native-keymap,find-git-repositories
 
+      # `theia rebuild:electron` builds its electron-rebuild command as
+      # `-w=<list> -o=<list>`. electron-rebuild's CLI parses options with Node's
+      # `util.parseArgs`, which does not strip the `=` after a short option, so
+      # the FIRST entry of the list is read as "=<name>" and silently skipped.
+      # `drivelist` is listed first and was therefore never rebuilt for the
+      # Electron ABI: `node_modules/drivelist/build/Release/drivelist.node` was
+      # absent when esbuild ran, the bundler fell back to a bare
+      # `require('drivelist/build/Release/drivelist.node')`, and the packaged app
+      # crashed on launch ("Cannot find module 'drivelist/build/Release/drivelist.node'").
+      # Rebuild it explicitly here using the long option names, which parseArgs
+      # handles correctly. Runs after the step above so the `.browser_modules`
+      # cache (and thus `build:prod`'s no-op rebuild) is already in place.
+      - name: Rebuild drivelist for Electron
+        working-directory: applications/electron
+        run: npx --no-install electron-rebuild -f --which-module=drivelist --only=drivelist
+
       # `build:prod` re-runs `rebuild` internally; it is a no-op here because
       # the step above already created the `.browser_modules` cache.
       - name: Build Electron application

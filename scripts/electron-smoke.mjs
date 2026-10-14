@@ -34,54 +34,87 @@ const CDP_PORT = Number(process.env.SMOKE_CDP_PORT || '9235');
 const SCREENSHOT = process.env.SMOKE_SCREENSHOT;
 const CDP_URL = `http://127.0.0.1:${CDP_PORT}`;
 
+const APP_PACKAGE_JSON = path.join(ROOT, 'applications', 'electron', 'package.json');
+const PRODUCT_NAME = (() => {
+    try {
+        return JSON.parse(fs.readFileSync(APP_PACKAGE_JSON, 'utf8')).productName || 'Notepadia';
+    } catch {
+        return 'Notepadia';
+    }
+})();
+
+// Chromium ships helper executables next to the app binary. They are executable
+// but are not the app: running `chrome-sandbox` only prints sandbox diagnostics
+// and exits, which made the Linux smoke test hang waiting for a CDP target that
+// the real binary never got a chance to open.
+const HELPER_BINARIES = new Set([
+    'chrome-sandbox',
+    'chrome_crashpad_handler',
+    'chrome_crashpad',
+    'chrome_crashpad_handler.exe'
+]);
+const NON_APP_EXTENSIONS = /\.(so|so\.\d+|pak|bin|dat|json|html|png|ico)$/i;
+
+// Return the app binary inside `dir`: prefer one named after the product, then
+// fall back to the first executable that is not a Chromium helper/shared object.
+function executableIn(dir, { extension } = {}) {
+    if (!fs.existsSync(dir)) {
+        return undefined;
+    }
+    const candidates = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isFile()) {
+            continue;
+        }
+        if (extension && !entry.name.endsWith(extension)) {
+            continue;
+        }
+        if (HELPER_BINARIES.has(entry.name) || NON_APP_EXTENSIONS.test(entry.name)) {
+            continue;
+        }
+        const full = path.join(dir, entry.name);
+        try {
+            fs.accessSync(full, fs.constants.X_OK);
+        } catch {
+            continue;
+        }
+        candidates.push({ name: entry.name, full });
+    }
+    const preferred = candidates.find(c => path.parse(c.name).name.toLowerCase() === PRODUCT_NAME.toLowerCase());
+    return (preferred || candidates[0])?.full;
+}
+
+// electron-builder writes `dist/mac[-<arch>]/Notepadia.app`; look through those
+// one level of nesting for the `.app` bundle.
+function findAppBundle(dir, depth = 2) {
+    if (depth < 0 || !fs.existsSync(dir)) {
+        return undefined;
+    }
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) {
+            continue;
+        }
+        if (entry.name.endsWith('.app')) {
+            return path.join(dir, entry.name);
+        }
+        const nested = findAppBundle(path.join(dir, entry.name), depth - 1);
+        if (nested) {
+            return nested;
+        }
+    }
+    return undefined;
+}
+
 function discoverBinary() {
     if (process.platform === 'linux') {
-        const unpacked = path.join(DIST, 'linux-unpacked');
-        if (!fs.existsSync(unpacked)) {
-            return undefined;
-        }
-        for (const entry of fs.readdirSync(unpacked, { withFileTypes: true })) {
-            if (!entry.isFile()) {
-                continue;
-            }
-            const full = path.join(unpacked, entry.name);
-            try {
-                fs.accessSync(full, fs.constants.X_OK);
-                return full;
-            } catch { /* skip non-executable */ }
-        }
-        return undefined;
+        return executableIn(path.join(DIST, 'linux-unpacked'));
     }
     if (process.platform === 'darwin') {
-        for (const appRoot of fs.readdirSync(DIST, { withFileTypes: true })) {
-            if (!appRoot.isDirectory() || !appRoot.name.includes('mac')) {
-                continue;
-            }
-            const binaries = path.join(DIST, appRoot.name, 'Contents', 'MacOS');
-            if (!fs.existsSync(binaries)) {
-                continue;
-            }
-            for (const entry of fs.readdirSync(binaries, { withFileTypes: true })) {
-                const full = path.join(binaries, entry.name);
-                try {
-                    fs.accessSync(full, fs.constants.X_OK);
-                    return full;
-                } catch { /* skip non-executable */ }
-            }
-        }
-        return undefined;
+        const bundle = findAppBundle(DIST);
+        return bundle ? executableIn(path.join(bundle, 'Contents', 'MacOS')) : undefined;
     }
     if (process.platform === 'win32') {
-        const unpacked = path.join(DIST, 'win-unpacked');
-        if (!fs.existsSync(unpacked)) {
-            return undefined;
-        }
-        for (const entry of fs.readdirSync(unpacked, { withFileTypes: true })) {
-            if (entry.isFile() && entry.name.endsWith('.exe')) {
-                return path.join(unpacked, entry.name);
-            }
-        }
-        return undefined;
+        return executableIn(path.join(DIST, 'win-unpacked'), { extension: '.exe' });
     }
     return undefined;
 }
