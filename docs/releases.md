@@ -14,10 +14,14 @@ Releases for a newer version:
 - on startup (a few seconds after launch), and
 - on demand via `Help ▸ Check for Updates...`.
 
-When an update is available it downloads in the background (progress is
-reported), and once complete the app prompts to **Restart** and install.
-Updates require a stable internet connection and a published release that
-contains the update manifest.
+`Help ▸ Check for Updates...` **always** opens a dialog showing the installed
+version and the outcome: up to date, or the newer version with a
+`Download and Update` button. The startup check opens that same dialog **only
+when an update is available** — when you are already up to date (or the check
+fails) it stays in the background. The download starts only after you accept,
+progress is reported, and once complete the app prompts to **Restart** and
+install. Updates require a stable internet connection and a published release
+that contains the update manifest.
 
 !!! warning "Windows installer constraint"
     Updates apply only when the app was installed into the **default**
@@ -176,7 +180,11 @@ milestone:
 
 1. Install the previous build (`v2026.10.9`) on Windows and on Linux and
    launch it.
-2. `Help ▸ Check for Updates...`, confirm the download and the restart prompt,
-   and confirm the app relaunches at `2026.10.10`.
+2. `Help ▸ Check for Updates...`, confirm the dialog names the installed
+   version, confirm the download and the restart prompt, and confirm the app
+   relaunches at `2026.10.10`.
+3. Relaunch the older build once more and confirm the **startup check** opens
+   the same offer on its own (a launch already at the latest version must stay
+   quiet).
 
 Record the exact versions tested here once that run is done.

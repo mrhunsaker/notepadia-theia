@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 2026.10.18 (Startup update offer and quality pass)
+
+- **Check for Updates always shows your version and the result, and an
+  available update now offers itself on launch.** `Help ▸ Check for Updates...`
+  opens its dialog seeded with the installed version, so even the first
+  "Checking for updates..." frame names what you have, and the startup check —
+  which used to discard its answer unless the dialog happened to be open — now
+  opens the same dialog when a newer GitHub release exists while staying quiet
+  when you are already up to date or the check fails (policy in
+  `extensions/notepadia/src/common/updater-policy.ts`, covered by
+  `test/updater-policy.test.cjs`). The duplicate electron-main startup timer is
+  gone, so a launch checks GitHub Releases once instead of twice, and the
+  backend pushes its current status to a newly connected frontend so the
+  version is known from the start. `docs/usage.md`, `docs/releases.md`,
+  `docs/architecture.md` and the README follow.
 - **Accessibility coverage now spans every dialog and panel added since the F1
   pass; three defects it found are fixed.** `e2e/a11y.cjs` runs axe on the
   Search Results window, Incremental Search, the Function List, and the Run,

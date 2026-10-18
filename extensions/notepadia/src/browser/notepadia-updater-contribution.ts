@@ -13,6 +13,7 @@ import {
     NotepadiaUpdaterClient,
     NotepadiaUpdaterService
 } from '../common/notepadia-updater-protocol';
+import { startupPopupDecision } from '../common/updater-policy';
 
 export namespace NotepadiaUpdaterCommands {
     export const CHECK_FOR_UPDATES: Command = {
@@ -27,11 +28,14 @@ interface UpdateDialogActions {
 }
 
 /**
- * The popup behind `Help ▸ Check for Updates...`. It opens as soon as the check
- * starts and then re-renders itself from each `NotepadiaUpdateStatus` the
- * backend pushes: a result the user reads (up to date, error) or an offer they
- * accept (download, then restart and install). Buttons are rebuilt per state,
- * so a state that has nothing to decide simply shows `Close`.
+ * The popup behind `Help ▸ Check for Updates...` and behind the automatic
+ * startup check when a newer GitHub release exists. It opens as soon as the
+ * check starts (seeded with the installed version, so the version number is
+ * on screen from the first frame) and then re-renders itself from each
+ * `NotepadiaUpdateStatus` the backend pushes: a result the user reads (up to
+ * date, error) or an offer they accept (download, then restart and install).
+ * Buttons are rebuilt per state, so a state that has nothing to decide simply
+ * shows `Close`.
  */
 class NotepadiaUpdateDialog extends AbstractDialog<undefined> {
 
@@ -89,7 +93,12 @@ class NotepadiaUpdateDialog extends AbstractDialog<undefined> {
 
         switch (status.state) {
             case 'checking':
-                this.setContent('Checking for updates...', 'Looking for a newer version of Notepadia.');
+                this.setContent(
+                    'Checking for updates...',
+                    status.currentVersion
+                        ? `You have Notepadia ${status.currentVersion}. Looking for a newer version.`
+                        : 'Looking for a newer version of Notepadia.'
+                );
                 this.button('Cancel', false, () => this.close());
                 break;
             case 'update-not-available':
@@ -125,7 +134,12 @@ class NotepadiaUpdateDialog extends AbstractDialog<undefined> {
                 this.primaryAction = () => this.actions.install();
                 break;
             case 'error':
-                this.setContent('Could not check for updates.', status.message ?? 'An unknown error occurred.');
+                this.setContent(
+                    'Could not check for updates.',
+                    status.currentVersion
+                        ? `You have Notepadia ${status.currentVersion}. ${status.message ?? 'An unknown error occurred.'}`
+                        : status.message ?? 'An unknown error occurred.'
+                );
                 this.button('Close', true, () => this.close());
                 this.primaryAction = () => this.close();
                 break;
@@ -151,6 +165,8 @@ class NotepadiaUpdateDialog extends AbstractDialog<undefined> {
 export class NotepadiaUpdaterContribution implements CommandContribution, MenuContribution, FrontendApplicationContribution {
 
     protected dialog: NotepadiaUpdateDialog | undefined;
+    protected lastStatus: NotepadiaUpdateStatus | undefined;
+    protected startupCheckPending = false;
 
     constructor(
         @inject(NotepadiaUpdaterService) @optional() protected readonly updater?: NotepadiaUpdaterService
@@ -164,7 +180,12 @@ export class NotepadiaUpdaterContribution implements CommandContribution, MenuCo
             notifyUpdateStatusChanged: status => this.handleUpdateStatus(status)
         };
         this.updater.setClient(client);
-        setTimeout(() => this.checkForUpdates(false), 3000);
+        this.startupCheckPending = true;
+        setTimeout(() => {
+            if (this.startupCheckPending) {
+                void this.checkForUpdates(false);
+            }
+        }, 3000);
     }
 
     registerCommands(commands: CommandRegistry): void {
@@ -185,14 +206,19 @@ export class NotepadiaUpdaterContribution implements CommandContribution, MenuCo
     }
 
     /**
-     * `manual` is the user pressing `Help ▸ Check for Updates...`. Only then is
-     * the dialog opened; the startup check runs quietly and merely records the
-     * result, so an available update is never downloaded or installed unseen.
+     * `manual` is the user pressing `Help ▸ Check for Updates...`, which **always**
+     * opens the dialog — seeded with the last known version so it shows the
+     * installed version even in the first `checking` frame. The startup check
+     * runs without a dialog and is surfaced by `handleUpdateStatus` only when
+     * a newer GitHub release exists (see `startupPopupDecision`); a manual
+     * check closes the startup window so cancelling it can never re-open a
+     * popup behind the user's back.
      */
     protected async checkForUpdates(manual: boolean): Promise<void> {
         if (manual) {
+            this.startupCheckPending = false;
             this.openDialog(this.updater
-                ? { state: 'checking' }
+                ? { state: 'checking', currentVersion: this.lastStatus?.currentVersion }
                 : { state: 'disabled' });
         }
         if (!this.updater) {
@@ -202,8 +228,15 @@ export class NotepadiaUpdaterContribution implements CommandContribution, MenuCo
     }
 
     protected handleUpdateStatus(status: NotepadiaUpdateStatus): void {
+        this.lastStatus = status;
+        const decision = startupPopupDecision(status.state, this.startupCheckPending);
+        this.startupCheckPending = decision.pending;
         if (this.dialog) {
             this.dialog.showStatus(status);
+            return;
+        }
+        if (decision.open) {
+            this.openDialog(status);
         }
     }
 

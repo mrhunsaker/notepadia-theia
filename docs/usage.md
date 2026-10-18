@@ -963,12 +963,15 @@ them. Use `Save` for anything you cannot afford to lose.
 
 ## Automatic updates (desktop)
 
-Installed desktop builds check GitHub Releases for updates on startup and on
-`Help ▸ Check for Updates...`. Choosing the menu item opens a dialog that either
-confirms Notepad is up to date or names the newer version and offers to download
-and install it; the download only starts when you accept, then the dialog offers
-to restart and apply it. The startup check is quiet and never downloads or
-installs on its own.
+Installed desktop builds check GitHub Releases for a newer version about three
+seconds after launch and on demand via `Help ▸ Check for Updates...`. The menu
+item **always** opens a dialog showing the installed version and the outcome of
+the check: either Notepadia is up to date, or the newer version is named and
+offered with a `Download and Update` button. The startup check opens the same
+dialog **only when an update is available** — a launch where you are already
+up to date, or one whose check fails, stays quiet and never interrupts you.
+The download only starts when you accept, then the dialog offers to restart
+and apply it; nothing downloads or installs on its own.
 
 !!! warning "Windows installer"
     Updates apply only to the **default installation directory**. The

@@ -393,16 +393,27 @@ The desktop app uses `electron-updater` fed by GitHub Releases
 - `extensions/notepadia/src/electron-main/notepadia-updater.ts` implements the
   service in the electron-main process. It configures `autoUpdater`
   (`autoDownload: false`, `autoInstallOnAppQuit: true`) when
-  `app.isPackaged`; otherwise it reports a `disabled` status. All
-  `autoUpdater` events (checking, available, not-available, download-progress,
-  downloaded, error) are forwarded to the connected frontend client, and
-  `downloadUpdate()` starts the download the dialog asks for.
+  `app.isPackaged`; otherwise it reports a `disabled` status. Every status it
+  caches or emits carries `app.getVersion()`, and it pushes its current status
+  to a newly connected frontend so the dialog knows the installed version from
+  the start. All `autoUpdater` events (checking, available, not-available,
+  download-progress, downloaded, error) are forwarded to the connected
+  frontend client, and `downloadUpdate()` starts the download the dialog asks
+  for.
 - `extensions/notepadia/src/browser/notepadia-updater-contribution.ts` is the
   frontend half: it resolves the proxy from `ElectronIpcConnectionProvider`
   **only when `ElectronMainConnectionProvider` is bound** (i.e. in the Electron
-  app, never in the browser app), auto-checks on start, exposes
-  `Help ▸ Check for Updates...`, and opens a dialog that reports the result and,
-  when an update exists, offers to download and then to restart and install.
+  app, never in the browser app), runs the single startup check (the
+  electron-main side no longer schedules a duplicate one), exposes
+  `Help ▸ Check for Updates...`, and opens a dialog that always shows the
+  installed version — even in the first `checking` frame, seeded from the last
+  pushed status — and the live result. The startup check opens that dialog
+  **only when an update is available**: the open/quiet decision is the
+  `startupPopupDecision` policy in
+  `extensions/notepadia/src/common/updater-policy.ts` (unit-tested in
+  `test/updater-policy.test.cjs`), so up-to-date results and errors stay
+  background while an available release offers to download and then to
+  restart and install.
 - The electron-main module binds the service plus an
   `ElectronConnectionHandler` (`RpcConnectionHandler`) at `NotepadiaUpdaterPath`.
 

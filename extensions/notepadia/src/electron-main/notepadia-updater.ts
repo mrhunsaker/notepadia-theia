@@ -19,31 +19,38 @@ const DISABLED_MESSAGE = 'Automatic updates are only available in packaged appli
 export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainApplicationContribution {
 
     protected client?: NotepadiaUpdaterClient;
-    protected status: NotepadiaUpdateStatus = { state: 'checking' };
+    protected status: NotepadiaUpdateStatus = { state: 'checking', currentVersion: app.getVersion() };
     protected availableVersion?: string;
 
     constructor(@inject(ILogger) protected readonly logger: ILogger) { }
 
     setClient(client: NotepadiaUpdaterClient | undefined): void {
         this.client = client;
+        if (client) {
+            client.notifyUpdateStatusChanged(this.status);
+        }
     }
 
     dispose(): void {
         this.client = undefined;
     }
 
+    /**
+     * The startup check belongs to the frontend: it schedules it (so the
+     * popup policy lives in one place) instead of this contribution running a
+     * second, duplicate check against GitHub Releases on every launch.
+     */
     onStart(_application: ElectronMainApplication): void {
         if (app.isPackaged) {
             this.configureAutoUpdater();
-            setTimeout(() => this.checkForUpdates(), 3000);
         } else {
-            this.setStatus({ state: 'disabled', message: DISABLED_MESSAGE });
+            this.setStatus(this.disabledStatus());
         }
     }
 
     checkForUpdates(): Promise<NotepadiaUpdateStatus> {
         if (!app.isPackaged) {
-            this.setStatus({ state: 'disabled', message: DISABLED_MESSAGE });
+            this.setStatus(this.disabledStatus());
             return Promise.resolve(this.status);
         }
         try {
@@ -65,7 +72,7 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
 
     downloadUpdate(): Promise<NotepadiaUpdateStatus> {
         if (!app.isPackaged) {
-            this.setStatus({ state: 'disabled', message: DISABLED_MESSAGE });
+            this.setStatus(this.disabledStatus());
             return Promise.resolve(this.status);
         }
         try {
@@ -120,6 +127,10 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
             this.setStatus(status('update-downloaded', { nextVersion: info.version })));
         autoUpdater.on('error', error =>
             this.setStatus(status('error', { message: this.toMessage(error) })));
+    }
+
+    protected disabledStatus(): NotepadiaUpdateStatus {
+        return { state: 'disabled', currentVersion: app.getVersion(), message: DISABLED_MESSAGE };
     }
 
     protected setStatus(status: NotepadiaUpdateStatus): void {
