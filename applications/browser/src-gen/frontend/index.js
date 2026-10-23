@@ -11,7 +11,7 @@ FrontendApplicationConfigProvider.set({
         "light": "light",
         "dark": "dark"
     },
-    "defaultIconTheme": "theia-file-icons",
+    "defaultIconTheme": "none",
     "electron": {
         "windowOptions": {},
         "showWindowEarly": true,

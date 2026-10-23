@@ -13,6 +13,7 @@ import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { URI } from '@theia/core/lib/common/uri';
 import { MessageService } from '@theia/core/lib/common/message-service';
+import { LocalStorageService } from '@theia/core/lib/browser/storage-service';
 import {
     BACKUP_DB_NAME,
     BACKUP_DB_VERSION,
@@ -29,6 +30,11 @@ import {
     parseBackupRecord,
     selectBackupsToEvict
 } from '../common/backup';
+import {
+    NOTEPADIA_DISCARDED_BACKUPS_KEY,
+    NOTEPADIA_DISCARDED_LAYOUT_KEY,
+    notepadiaWidgetKey
+} from './notepadia-session-layout';
 
 export const NOTEPADIA_BACKUP_ENABLED_PREFERENCE = 'notepadia.backup.enabled';
 export const NOTEPADIA_BACKUP_INTERVAL_PREFERENCE = 'notepadia.backup.intervalSeconds';
@@ -70,7 +76,8 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
         @inject(EditorManager) protected readonly editorManager: EditorManager,
         @inject(PreferenceService) protected readonly preferences: PreferenceService,
         @inject(FileService) protected readonly fileService: FileService,
-        @inject(MessageService) protected readonly messageService: MessageService
+        @inject(MessageService) protected readonly messageService: MessageService,
+        @inject(LocalStorageService) protected readonly storage: LocalStorageService
     ) { }
 
     onStart(): void {
@@ -90,6 +97,25 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
     }
 
     onStop(): void {
+        // `storeLayout` has already run, so the dirty tabs that the user
+        // abandoned with Don't Save may still be in the stored layout. Record
+        // them synchronously (localStorage writes are synchronous) for the
+        // layout transformer and backup recovery on the next launch. This is
+        // deliberately `LocalStorageService`: the layout is global, so its
+        // discard list must not be prefixed by the workspace URI.
+        const discarded = Array.from(new Set(this.shell.widgets
+            .filter(widget => Saveable.isDirty(widget))
+            .map(notepadiaWidgetKey)
+            .filter(key => !!key)));
+        if (discarded.length > 0) {
+            void this.storage.setData(NOTEPADIA_DISCARDED_LAYOUT_KEY, discarded);
+            void this.storage.setData(NOTEPADIA_DISCARDED_BACKUPS_KEY, discarded);
+        } else {
+            // A clean shutdown supersedes any stale layout discard list. The
+            // backup list is left alone: it may still belong to a previous
+            // discard that happened while backups were disabled.
+            void this.storage.setData(NOTEPADIA_DISCARDED_LAYOUT_KEY, undefined);
+        }
         for (const handle of this.pendingWrites.values()) {
             clearTimeout(handle);
         }
@@ -349,17 +375,22 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
             // A tab closed while still dirty will never fire another content
             // change, so its last snapshot is taken here. Closing *with* a save
             // flips `dirty` first, so the save still wins the race and clears
-            // the backup instead of writing it.
+            // the backup instead of writing it. Closing with Don't Save
+            // reverts the buffer first, so a clean removal must discard any
+            // snapshot that was written before the user rejected the changes.
+            const key = this.keyFor(widget as EditorWidget);
+            if (!key) {
+                return;
+            }
             if (Saveable.isDirty(widget)) {
                 void this.capture(widget as EditorWidget);
+            } else {
+                void this.remove(key);
             }
-            const key = this.keyFor(widget as EditorWidget);
-            if (key) {
-                const handle = this.pendingWrites.get(key);
-                if (handle) {
-                    clearTimeout(handle);
-                    this.pendingWrites.delete(key);
-                }
+            const handle = this.pendingWrites.get(key);
+            if (handle) {
+                clearTimeout(handle);
+                this.pendingWrites.delete(key);
             }
         }));
     }
@@ -397,6 +428,7 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
         if (!this.isEnabled()) {
             return;
         }
+        await this.discardRememberedBackups();
         const all = await this.readAll();
         if (all.length === 0) {
             return;
@@ -422,6 +454,22 @@ export class NotepadiaBackupContribution implements FrontendApplicationContribut
             this.onDidRestoreEmitter.fire(restored);
             void this.messageService.info(describeRecovery(restored.map(r => r.label)));
         }
+    }
+
+    /**
+     * Delete backups for tabs the user rejected at shutdown. The list is
+     * written synchronously in `onStop`, before the renderer goes away, so it
+     * survives even when the IndexedDB delete below does not get to finish.
+     */
+    protected async discardRememberedBackups(): Promise<void> {
+        const keys = await this.storage.getData<string[]>(NOTEPADIA_DISCARDED_BACKUPS_KEY);
+        if (!keys?.length) {
+            return;
+        }
+        for (const key of keys) {
+            await this.remove(key);
+        }
+        await this.storage.setData(NOTEPADIA_DISCARDED_BACKUPS_KEY, undefined);
     }
 
     protected uriFor(backup: BackupRecord): URI | undefined {

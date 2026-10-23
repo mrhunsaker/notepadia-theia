@@ -56,7 +56,11 @@ async function waitFor(page, sel, timeout = 30000, msg) {
 }
 
 async function launchPage(opts = {}) {
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+    const browser = await puppeteer.launch({
+        headless: true,
+        userDataDir: opts.userDataDir,
+        args: ['--no-sandbox', '--disable-dev-shm-usage']
+    });
     const page = await browser.newPage();
     page.setDefaultTimeout(30000);
     if (opts.viewport) await page.setViewport(opts.viewport);

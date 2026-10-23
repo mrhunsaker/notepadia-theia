@@ -55,6 +55,7 @@ import { NotepadiaLocalFilesContribution } from './notepadia-local-files-contrib
 import { NotepadiaThemeContribution } from './notepadia-theme-contribution';
 import { NotepadiaAccessibilityContribution } from './notepadia-accessibility-contribution';
 import { NotepadiaShellContribution } from './notepadia-shell-contribution';
+import { NotepadiaShellLayoutRestorer, NotepadiaSessionLayoutTransformer } from './notepadia-session-layout';
 import { NotepadiaFileOperationsContribution } from './notepadia-file-operations-contribution';
 import {
     NotepadiaBackupContribution,
@@ -71,6 +72,7 @@ import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator
 import { NotepadiaToolbarWidget } from './notepadia-toolbar-widget';
 import { NotepadiaToolbarContribution } from './notepadia-toolbar-contribution';
 import { PreferenceContribution } from '@theia/core/lib/common/preferences';
+import { ShellLayoutRestorer, ShellLayoutTransformer } from '@theia/core/lib/browser/shell/shell-layout-restorer';
 import { UntitledResourceResolver } from '@theia/core/lib/common/resource';
 import { NotepadiaUpdaterPath, NotepadiaUpdaterService } from '../common/notepadia-updater-protocol';
 import { NotepadiaRunPath, NotepadiaRunService } from '../common/notepadia-run-protocol';
@@ -282,6 +284,13 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(FrontendApplicationContribution).toService(NotepadiaShellContribution);
     bind(CommandContribution).toService(NotepadiaShellContribution);
     bind(MenuContribution).toService(NotepadiaShellContribution);
+
+    // Session restore is global, not per-workspace, and is controlled by
+    // `notepadia.session.restore` (A2). Rebinding the restorer also makes the
+    // "Reset Workbench Layout" command operate on the global key.
+    bind(NotepadiaSessionLayoutTransformer).toSelf().inSingletonScope();
+    bind(ShellLayoutTransformer).toService(NotepadiaSessionLayoutTransformer);
+    rebind(ShellLayoutRestorer).to(NotepadiaShellLayoutRestorer).inSingletonScope();
 
     // A4 - Notepad++ tab bar: state icons and the tab context menu.
     bind(NotepadiaTabDecorator).toSelf().inSingletonScope();

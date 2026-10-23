@@ -52,7 +52,7 @@ const schema: PreferenceSchema = {
         [NOTEPADIA_SESSION_RESTORE_PREFERENCE]: {
             type: 'boolean',
             description: 'Whether the files that were open the last time Notepad was quit are reopened when it starts again.',
-            default: false
+            default: true
         },
         [NOTEPADIA_SEARCH_EXTENDED_MODE_PREFERENCE]: {
             type: 'boolean',

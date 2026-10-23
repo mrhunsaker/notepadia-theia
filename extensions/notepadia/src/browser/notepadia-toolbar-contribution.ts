@@ -1,7 +1,7 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { FrontendApplication, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
-import { BoxPanel } from '@theia/core/shared/@lumino/widgets';
+import { BoxLayout, BoxPanel } from '@theia/core/shared/@lumino/widgets';
 import { PreferenceService } from '@theia/core/lib/common/preferences';
 import { NotepadiaToolbarWidget } from './notepadia-toolbar-widget';
 import { NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE } from './notepadia-shell-contribution';
@@ -16,23 +16,17 @@ export const NOTEPADIA_TOOLBAR_HIDDEN_CLASS = 'notepadia-toolbar-hidden';
 const TOOLBAR_STRIP_HEIGHT = 26;
 
 /**
- * Mounts the Notepad++ toolbar (A3) into the shell's top area and keeps it in
- * sync with `notepadia.toolbar.visible`.
+ * Mounts the Notepad++ toolbar (A3) into the shell's root layout and keeps it
+ * in sync with `notepadia.toolbar.visible`.
  *
  * The widget is added in `onDidInitializeLayout` rather than `onStart` on
  * purpose. Theia runs every contribution's `onStart` before the layout is
  * initialised, and `BrowserMenuBarContribution` adds the menu bar during that
- * phase. Theia 1.75 lays the top area out as a flex *row*, so a second widget
- * would otherwise sit beside the menu bar; the wrapping rules in
- * `style/notepadia-toolbar.css` (`#theia-top-panel { flex-wrap: wrap }`, the
- * toolbar at `flex: 0 0 100%`) turn it into its own strip below the menu bar.
- *
- * Lumino hard-sizes the top panel to its fit minimum (the menu bar row), so
- * no CSS can grow it enough for a second row. The contribution instead raises
- * the panel's box-layout size basis — the value the shell layout uses for the
- * panel's height — by exactly one toolbar strip, and lowers it again when the
- * toolbar is hidden. Without this the editor area would sit directly under
- * the menu bar and cover the toolbar.
+ * phase. The toolbar is inserted directly after the shell's top panel in the
+ * root vertical box layout, so it always forms its own row below the menu bar.
+ * Adding it to the `top` area would put it inside the menu bar's flex row,
+ * which is also hidden as a whole by `ElectronMenuContribution` when the
+ * native menu bar is used.
  *
  * The command and the preference themselves are owned by
  * `NotepadiaShellContribution` (A2), which already registers
@@ -43,9 +37,6 @@ const TOOLBAR_STRIP_HEIGHT = 26;
 @injectable()
 export class NotepadiaToolbarContribution implements FrontendApplicationContribution {
 
-    /** The top panel's height before the toolbar strip is added. */
-    protected baseTopPanelHeight = TOOLBAR_STRIP_HEIGHT;
-
     constructor(
         @inject(ApplicationShell) protected readonly shell: ApplicationShell,
         @inject(NotepadiaToolbarWidget) protected readonly toolbar: NotepadiaToolbarWidget,
@@ -53,11 +44,28 @@ export class NotepadiaToolbarContribution implements FrontendApplicationContribu
     ) { }
 
     async onDidInitializeLayout(_app: FrontendApplication): Promise<void> {
-        await this.shell.addWidget(this.toolbar, { area: 'top' });
-
-        // The menu bar is added during `onStart`, so the panel should already
-        // be measured. Guard against a pre-layout zero just in case.
-        this.baseTopPanelHeight = this.shell.topPanel.node.offsetHeight || TOOLBAR_STRIP_HEIGHT;
+        const layout = this.shell.layout;
+        if (layout instanceof BoxLayout) {
+            const topPanelIndex = layout.widgets.indexOf(this.shell.topPanel);
+            const toolbarIndex = topPanelIndex + 1;
+            layout.insertWidget(toolbarIndex, this.toolbar);
+            // Lumino's BoxLayout appends a newly attached widget to the parent
+            // node instead of inserting it before the widget at `toolbarIndex`.
+            // That leaves the visual order right but puts the toolbar last in
+            // keyboard/tab order, after the status bar. Move the node to match
+            // the layout's widget order.
+            const reference = this.shell.node.children[toolbarIndex];
+            if (reference && reference !== this.toolbar.node) {
+                this.shell.node.insertBefore(this.toolbar.node, reference);
+            }
+            BoxPanel.setStretch(this.toolbar, 0);
+            BoxPanel.setSizeBasis(this.toolbar, TOOLBAR_STRIP_HEIGHT);
+        } else {
+            // The shell layout is a root BoxLayout in Theia 1.75. Keep a
+            // graceful fallback for a future shell implementation rather than
+            // losing the toolbar entirely.
+            await this.shell.addWidget(this.toolbar, { area: 'top' });
+        }
 
         await this.preferenceService.ready;
         this.applyVisibility();
@@ -73,9 +81,8 @@ export class NotepadiaToolbarContribution implements FrontendApplicationContribu
         const visible = this.preferenceService.get<boolean>(NOTEPADIA_TOOLBAR_VISIBLE_PREFERENCE, true);
         this.toolbar.setHidden(!visible);
         document.body.classList.toggle(NOTEPADIA_TOOLBAR_HIDDEN_CLASS, !visible);
-        BoxPanel.setSizeBasis(this.shell.topPanel, this.baseTopPanelHeight + (visible ? TOOLBAR_STRIP_HEIGHT : 0));
-        // Hiding a child of the top panel changes the panel's height, and the
-        // editor below it will not resize on its own.
+        // Hiding a root-layout child changes the space available to the editor,
+        // and the editor below it will not resize on its own.
         this.shell.update();
     }
 }

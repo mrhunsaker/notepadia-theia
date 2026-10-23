@@ -145,13 +145,14 @@ body.notepadia-chrome .lm-TabBar .lm-TabBar-tab.notepadia-tab-readonly .lm-TabBa
  * the close glyph on every tab, matching Notepad++; without the class the
  * glyph appears only on the active tab.
  */
-body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable:not(.lm-mod-current) > .lm-TabBar-tabCloseIcon,
-body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable:not(.lm-mod-current):hover > .lm-TabBar-tabCloseIcon {
-  display: none;
+body.notepadia-chrome .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable:not(.lm-mod-current) > .lm-TabBar-tabCloseIcon {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 body.notepadia-chrome.notepadia-tabclose-all .lm-TabBar.theia-app-centers .lm-TabBar-tab.lm-mod-closable > .lm-TabBar-tabCloseIcon {
-  display: inline-block;
+  visibility: visible;
+  pointer-events: auto;
 }
 /*
  * C3 - View > Show Symbol > Show End of Line.

@@ -6,29 +6,11 @@
  * set of rules.
  */
 
-/*
- * Theia 1.75 keeps the menu bar in `#theia-top-panel`, which is a `display:
- * flex` row. A second widget added to the top area therefore lands *beside*
- * the menu bar, not below it. Wrapping the row lets the toolbar take a full
- * width of its own and become its own 26px strip underneath the menu bar;
- * hiding the widget collapses the panel back to the menu bar alone.
- */
-body.notepadia-chrome #theia-top-panel {
-    flex-wrap: wrap;
-    align-content: flex-start;
-}
-
-body.notepadia-chrome .notepadia-toolbar {
-    flex: 0 0 100%;
-    order: 2;
-}
-
 .notepadia-toolbar {
     /* Notepad++ ships a 26px toolbar strip. */
     min-height: 26px;
     height: 26px;
     max-height: 26px;
-    flex: 0 0 26px;
     overflow: hidden;
     background: var(--theia-menu-background, var(--theia-editor-background));
     color: var(--theia-menu-foreground, var(--theia-foreground));

@@ -1,6 +1,8 @@
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { assert, finish, sleep, waitFor, launchPage, goto, openFile, save,
-    modelText: rawModelText, WS } = require('./lib.js');
+    acceptUnloadPrompts, modelText: rawModelText, WS } = require('./lib.js');
 
 // Monaco paints spaces as U+00A0 in the rendered lines, so the view text has to
 // be normalised before it can be compared with what was typed or stored.
@@ -63,26 +65,28 @@ async function waitForText(page, needle, timeout = 20000) {
     return text;
 }
 
-// A dirty buffer raises Theia's own beforeunload prompt (verified in the
-// menus-shortcuts suite), so a reload has to accept it.
-async function reloadAcceptingPrompt(page) {
-    const dialogs = [];
-    const handler = async dialog => {
-        dialogs.push(dialog.type());
-        await dialog.accept().catch(() => { });
-    };
-    page.on('dialog', handler);
-    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => { });
-    await sleep(1500);
-    page.off('dialog', handler);
-    return dialogs;
+// Kill the whole browser instead of reloading. A reload is a user-initiated
+// shutdown and, with Don't Save, intentionally discards both the layout entry
+// and the backup; crash recovery must only be exercised through a real crash,
+// where no unload handlers run. The persistent profile keeps IndexedDB (the
+// backup store) and localStorage (the layout) across the crash.
+async function crashAndReopen(browser, userDataDir) {
+    const proc = browser.process();
+    if (!proc) throw new Error('browser process unavailable');
+    const exited = new Promise(resolve => proc.once('exit', resolve));
+    proc.kill('SIGKILL');
+    await Promise.race([exited, sleep(5000)]);
+    const launched = await launchPage({ viewport: { width: 1440, height: 1000 }, userDataDir });
+    await goto(launched.page);
+    return launched;
 }
 
 (async () => {
     const UNSAVED = 'RECOVERED UNSAVED TEXT';
     fs.writeFileSync(WS + '/backup.txt', 'on disk\n');
 
-    const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'notepadia-crash-'));
+    let { browser, page } = await launchPage({ viewport: { width: 1440, height: 1000 }, userDataDir });
     await goto(page);
     await waitFor(page, '#theia-app-shell', 60000);
     await sleep(2000);
@@ -110,14 +114,11 @@ async function reloadAcceptingPrompt(page) {
         !backupTexts(captured).some(t => t.includes(UNSAVED) && t !== UNSAVED),
         JSON.stringify(backupTexts(captured)));
 
-    // --- and comes back after a reload ---------------------------------
-    const prompted = await reloadAcceptingPrompt(page);
-    assert('Theia asks before discarding the dirty buffer on reload',
-        prompted.includes('beforeunload'),
-        JSON.stringify(prompted));
+    // --- and comes back after a crash ----------------------------------
+    ({ browser, page } = await crashAndReopen(browser, userDataDir));
     await sleep(4000);
     const tabs = await editorTabs(page);
-    assert('the unsaved tab is recovered after the reload',
+    assert('the unsaved tab is recovered after the crash',
         tabs.some(t => /new \d+/.test(t)),
         JSON.stringify(tabs));
     assert('the recovered tab is marked dirty, because the text is not on disk yet',
@@ -163,9 +164,7 @@ async function reloadAcceptingPrompt(page) {
         JSON.stringify(await dirtyTabs(page)));
 
     // --- and a saved buffer is not recovered ---------------------------
-    // The still-unsaved untitled buffer is what raises the prompt this time;
-    // what matters here is that the saved file is never offered back.
-    await reloadAcceptingPrompt(page);
+    ({ browser, page } = await crashAndReopen(browser, userDataDir));
     await sleep(4000);
     const finalBackups = await readBackups(page);
     assert('the saved file is not offered for recovery',
@@ -180,6 +179,27 @@ async function reloadAcceptingPrompt(page) {
     assert('recovery did not resurrect the saved file as an unsaved tab',
         !finalTabs.some(t => t.includes('backup.txt') && t.includes('*')),
         JSON.stringify(finalTabs));
+
+    // --- Don't Save drops the layout entry and the backup --------------
+    // The recovered buffer is still dirty, so a reload raises the prompt. This
+    // is the user saying the unsaved work should not come back: the tab must be
+    // gone on the next load and the backup must be deleted, not replayed.
+    const dialogs = acceptUnloadPrompts(page);
+    await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => { });
+    await waitFor(page, '#theia-app-shell', 60000);
+    await waitFor(page, '.lm-MenuBar', 30000);
+    await sleep(4000);
+    assert("Don't Save asks before discarding the dirty buffer",
+        dialogs.includes('beforeunload'),
+        JSON.stringify(dialogs));
+    const dismissedTabs = await editorTabs(page);
+    assert("Don't Save does not reopen the discarded tab",
+        !dismissedTabs.some(t => /new \d+/.test(t)),
+        JSON.stringify(dismissedTabs));
+    const dismissedBackups = await readBackups(page);
+    assert("Don't Save clears the discarded backup",
+        backupTexts(dismissedBackups).length === 0,
+        JSON.stringify(backupTexts(dismissedBackups)));
 
     await finish(browser);
 })();

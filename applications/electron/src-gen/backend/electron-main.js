@@ -35,7 +35,7 @@ process.env.LC_NUMERIC = 'C';
         "light": "light",
         "dark": "dark"
     },
-    "defaultIconTheme": "theia-file-icons",
+    "defaultIconTheme": "none",
     "electron": {
         "windowOptions": {},
         "showWindowEarly": true,

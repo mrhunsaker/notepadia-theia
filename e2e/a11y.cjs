@@ -130,9 +130,14 @@ async function accessibilityName(page) {
  * assertions can look at the ring as a whole rather than at one hop.
  */
 async function walkTabRing(page, limit = 8) {
-    // A cold load leaves focus on <body>, and Tab from there enters the ring
-    // at the first stop.
-    await page.evaluate(() => document.body.focus());
+    // A previous interaction can leave focus on the status bar (which is
+    // focusable), and `body.focus()` alone does not blur it or reset Chromium's
+    // sequential-focus starting point. Making the body focusable and focusing
+    // it does both, so the walk starts at the first stop in document order.
+    await page.evaluate(() => {
+        document.body.tabIndex = -1;
+        document.body.focus();
+    });
     await sleep(300);
     const stops = [];
     for (let i = 0; i < limit; i++) {
@@ -288,7 +293,10 @@ const visibleMenu = () => {
     // ---- 3. The status bar is one reachable stop with a name.
     // The ring has to be walked to the editor and then out of it the accessible
     // way, because the editor holds focus until Escape says otherwise.
-    await page.evaluate(() => document.body.focus());
+    await page.evaluate(() => {
+        document.body.tabIndex = -1;
+        document.body.focus();
+    });
     await sleep(300);
     const ring = [];
     for (let i = 0; i < 8 && !ring.some(stop => stop.statusBar); i++) {

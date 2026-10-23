@@ -50,7 +50,8 @@
           "editor.scrollBeyondLastLine": false,
           "editor.roundedSelection": false,
           "editor.accessibilitySupport": "auto"
-        }
+        },
+        "defaultIconTheme": "none"
       }
     },
     "backend": {

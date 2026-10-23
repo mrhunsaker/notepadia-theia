@@ -45,6 +45,23 @@ async function activeTabLabel(page) {
     await sleep(300);
     const lineBefore = await currentLine(page);
 
+    // A file that the user closed cleanly must not reappear after a restart.
+    await openFile(page, 'recent-b.txt');
+    labels = await tabLabels(page);
+    assert('third editor tab open', labels.includes('recent-b.txt'), JSON.stringify(labels));
+    const recentB = await page.evaluate(() => {
+        const tab = Array.from(document.querySelectorAll('li.lm-TabBar-tab'))
+            .find(t => (t.textContent || '').includes('recent-b.txt'));
+        if (!tab) return null;
+        const r = tab.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    assert('closed tab has a hit target', recentB !== null, JSON.stringify(recentB));
+    await page.mouse.click(recentB.x, recentB.y, { button: 'middle' });
+    await sleep(1000);
+    labels = await tabLabels(page);
+    assert('closed tab is gone before reload', !labels.includes('recent-b.txt'), JSON.stringify(labels));
+
     // Reload the same page: Theia stores the shell layout on unload and
     // restores it from localStorage on startup.
     await page.reload({ waitUntil: 'networkidle2' });
@@ -55,6 +72,7 @@ async function activeTabLabel(page) {
     labels = await tabLabels(page);
     assert('editors restored after reload', labels.includes('sample.txt') && labels.includes('recent-a.txt'),
         JSON.stringify(labels));
+    assert('cleanly closed tab is not restored', !labels.includes('recent-b.txt'), JSON.stringify(labels));
     const active = await activeTabLabel(page);
     assert('last active editor restored and focused', active !== null, JSON.stringify(active));
 

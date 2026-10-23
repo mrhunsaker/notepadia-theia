@@ -27,15 +27,6 @@ export const NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE = 'notepadia.tabBar.drawClos
 export const FOLDER_AS_WORKSPACE_LABEL = 'Folder as Workspace';
 
 /**
- * E3 - the Theia icon theme preference. Notepad++'s Folder as Workspace has no
- * per-file language icons, so the shell selects the built-in `none` theme
- * unless the user has already chosen one.
- */
-export const NOTEPADIA_ICON_THEME_PREFERENCE = 'workbench.iconTheme';
-/** The id of the built-in Theia icon theme that draws no file icons. */
-export const NOTEPADIA_ICON_THEME_NONE = 'none';
-
-/**
  * Body classes owned by the shell layer. `notepadia-chrome` gates the
  * Notepad++-shaped chrome rules in style/notepadia-shell.css so the hidden
  * chrome can be brought back for debugging by dropping the class.
@@ -120,8 +111,6 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
                 this.applyFolderWorkspaceTitle(widget);
             }
         });
-        this.applyPlainIconTheme();
-
         // A4 - View > Tab Bar > Draw Close Button.
         this.applyDrawCloseButton(this.preferenceService.get<boolean>(NOTEPADIA_DRAW_CLOSE_BUTTON_PREFERENCE, true));
         this.preferenceService.onPreferenceChanged(event => {
@@ -256,22 +245,6 @@ export class NotepadiaShellContribution implements FrontendApplicationContributi
                 title.label = FOLDER_AS_WORKSPACE_LABEL;
             }
         });
-    }
-
-    /**
-     * E3 - Notepad++'s Folder as Workspace shows plain names, not a per-language
-     * icon theme. The built-in `none` theme draws no file icons; it is only
-     * selected when the user has not already chosen one, so an explicit
-     * preference is never overwritten.
-     */
-    protected applyPlainIconTheme(): void {
-        const inspection = this.preferenceService.inspect<string>(NOTEPADIA_ICON_THEME_PREFERENCE);
-        const userSet = !!inspection && (inspection.globalValue !== undefined
-            || inspection.workspaceValue !== undefined
-            || inspection.workspaceFolderValue !== undefined);
-        if (!userSet) {
-            this.preferenceService.set(NOTEPADIA_ICON_THEME_PREFERENCE, NOTEPADIA_ICON_THEME_NONE).catch(() => { });
-        }
     }
 
     registerCommands(commands: CommandRegistry): void {

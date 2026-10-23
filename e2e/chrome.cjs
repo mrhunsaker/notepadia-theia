@@ -1,4 +1,6 @@
-const { assert, finish, sleep, launchPage, goto, openMenuBar, clickByLabel, waitFor } = require('./lib.js');
+const fs = require('fs');
+const path = require('path');
+const { assert, finish, sleep, launchPage, goto, openMenuBar, clickByLabel, waitFor, WS } = require('./lib.js');
 
 /**
  * The shell chrome suite (A2, E3).
@@ -66,8 +68,31 @@ async function sizes(page, selectors) {
     });
     assert('tree rows use the tighter 20px height (E3)', rowHeight === 20, String(rowHeight));
 
+    const fileIcons = await page.evaluate(() =>
+        document.querySelectorAll('.theia-Files .file-icon').length);
+    assert('workspace tree draws no file icons (E3)', fileIcons === 0, String(fileIcons));
+
+    // E3 must not write the icon-theme choice into workspace preferences: in a
+    // single-file workspace that file can be the document itself.
+    const workspaceSettings = path.join(WS, '.theia', 'settings.json');
+    let workspacePrefs = {};
+    try {
+        workspacePrefs = JSON.parse(fs.readFileSync(workspaceSettings, 'utf8'));
+    } catch {
+        workspacePrefs = {};
+    }
+    assert('startup does not write the icon theme into workspace preferences (E3)',
+        workspacePrefs['workbench.iconTheme'] === undefined, JSON.stringify(workspacePrefs));
+    assert('startup leaves the .scad document byte-identical (E3)',
+        fs.readFileSync(path.join(WS, 'sketch.scad'), 'utf8') === 'cube([1, 2, 3]);\n',
+        JSON.stringify(fs.readFileSync(path.join(WS, 'sketch.scad'), 'utf8')));
+
     const node = await page.evaluateHandle(() =>
         Array.from(document.querySelectorAll('.theia-Files .theia-TreeNode'))
+            .find(el => el.classList.contains('theia-DirNode')
+                && (el.textContent || '').includes('sub')
+                && el.getBoundingClientRect().height > 0)
+        || Array.from(document.querySelectorAll('.theia-Files .theia-TreeNode'))
             .find(el => el.getBoundingClientRect().height > 0) || null);
     const element = node.asElement();
     assert('a tree node is available to right-click (E3)', !!element);
