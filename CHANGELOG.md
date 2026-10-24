@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Markdown single quotes no longer trigger string highlighting.** In the
+  curated language configuration for Markdown, apostrophes (common in US
+  English contractions like "don't" or "it's") are no longer treated as string
+  delimiters or auto-closed, so they don't grey out the rest of the text.
+
 ## 2026.10.18 (Startup update offer and quality pass)
 
 - **Check for Updates always shows your version and the result, and an

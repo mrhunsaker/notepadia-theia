@@ -183,7 +183,26 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
                 ...(entry.id === 'markdown' ? { filenames: ['README'] } : {})
             });
             monaco.languages.setMonarchTokensProvider(entry.id, this.monarchTokens(entry));
-            monaco.languages.setLanguageConfiguration(entry.id, {
+            monaco.languages.setLanguageConfiguration(entry.id, entry.id === 'markdown' ? {
+                brackets: [
+                    ['(', ')'],
+                    ['[', ']'],
+                    ['{', '}']
+                ],
+                autoClosingPairs: [
+                    { open: '(', close: ')' },
+                    { open: '[', close: ']' },
+                    { open: '{', close: '}' },
+                    { open: '"', close: '"' }
+                ],
+                surroundingPairs: [
+                    { open: '(', close: ')' },
+                    { open: '[', close: ']' },
+                    { open: '{', close: '}' },
+                    { open: '"', close: '"' },
+                    { open: "'", close: "'" }
+                ]
+            } : {
                 brackets: [
                     ['(', ')'],
                     ['[', ']'],
@@ -228,7 +247,7 @@ export class NotepadiaLanguageContribution implements CommandContribution, MenuC
         }
         root.push(
             [/"/, 'string', 'string.double'],
-            [/'/, 'string', 'string.single'],
+            ...(entry.id === 'markdown' ? [] : [[/'/, 'string', 'string.single'] as [RegExp, string, string]]),
             [/[a-zA-Z_\u00C0-\uFFFF][\w\u00C0-\uFFFF]*/, entry.keywords.length
                 ? { cases: { '@keywords': 'keyword', '@default': 'identifier' } }
                 : 'identifier'],
