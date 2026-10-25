@@ -104,6 +104,17 @@ export class NotepadiaUpdater implements NotepadiaUpdaterService, ElectronMainAp
         // frontend calls `downloadUpdate` when the user accepts the update.
         autoUpdater.autoDownload = false;
         autoUpdater.autoInstallOnAppQuit = true;
+        try {
+            // Ensure feed URL is set for GitHub Releases (in case electron-builder
+            // publish config isn't picked up in some environments)
+            autoUpdater.setFeedURL({
+                provider: 'github',
+                owner: 'mrhunsaker',
+                repo: 'notepadia-theia'
+            });
+        } catch (e) {
+            this.logger.warn('Failed to set autoUpdater feed URL: ' + this.toMessage(e));
+        }
         autoUpdater.logger = {
             info: message => this.logger.info(this.toMessage(message)),
             warn: message => this.logger.warn(this.toMessage(message)),
