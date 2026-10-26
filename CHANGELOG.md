@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Syntax highlighting now follows Alabaster's role model in every theme.**
+  Comments are red, strings green, numbers and constants mauve,
+  function/type definitions and tags blue, and punctuation grey, with
+  keywords and ordinary identifiers left as text. Classic uses Catppuccin
+  Latte, Classic Dark uses Mocha, and High Contrast uses Mocha's hues on black.
+  JSON keys and values, HTML/XML tags and attributes, CSS selectors and
+  properties, Markdown headings/links/code, YAML keys and scalars, and
+  PowerShell variables and constants each get dedicated Monarch rules.
+  `theme-tokens.test.cjs` guards the palette mapping and
+  `language-tokens.test.cjs` guards the generated tokenizers.
 - **Markdown single quotes no longer trigger string highlighting.** In the
   curated language configuration for Markdown, apostrophes (common in US
   English contractions like "don't" or "it's") are no longer treated as string

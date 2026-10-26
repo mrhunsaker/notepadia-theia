@@ -116,6 +116,13 @@ numbers, the status bar, the menu bar, tabs, menus, buttons, inputs, the focus
 outline, and the shown whitespace and arrows. Body text asks for AA (4.5:1) and
 meaningful graphics for non-text contrast (3:1).
 
+Syntax-token colours are checked separately by `theme-tokens.test.cjs`, which
+asserts that every token foreground comes from the theme's palette and that
+the Alabaster role mapping is consistent across the three themes. Token hues
+are not held to AA: Alabaster itself uses sub-4.5:1 colours for some roles
+(for example, the string green), so the contrast audit scopes AA to UI text
+and controls instead.
+
 ### Where Notepad++'s colours were changed
 
 The Notepad++ Classic palette fails WCAG AA in four places. Each was adjusted
@@ -124,8 +131,8 @@ to the nearest passing colour rather than dropped:
 | Colour | Notepad++ | Notepadia | Ratio |
 | --- | --- | --- | --- |
 | Inactive line numbers | `#808080` (3.95:1) | `#767676` | 4.54:1 |
-| Shown whitespace, light theme | `#A0A0A0` (2.62:1) | `#8A8A8A` | 3.45:1 |
-| Shown whitespace, dark theme | `#5A5A5A` (2.42:1) | `#6A6A6A` | 3.08:1 |
+| Shown whitespace, light theme | `#A0A0A0` (2.62:1) | `#B57EDC` | 3.01:1 |
+| Shown whitespace, dark theme | `#5A5A5A` (2.42:1) | `#E0B0FF` | 9.39:1 |
 | Button background | `#0078D7` (4.50:1, just under) | `#0072C6` | 4.97:1 |
 
 The disabled toolbar icons are dimmed with `opacity: 0.5` rather than a dimmer

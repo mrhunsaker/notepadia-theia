@@ -267,9 +267,18 @@ contribution):
   `jsonc` only), the contribution **registers the listed languages at startup**
   (`monaco.languages.register({ id, aliases, extensions })`) and attaches a
   lightweight Monarch tokenizer
-  (`monaco.languages.setMonarchTokensProvider`) built from each entry's
-  keyword/comment/string configuration. Registration is skipped for ids that
-  already exist, so core languages are never overridden.
+  (`monaco.languages.setMonarchTokensProvider`). Registration is skipped for
+  ids that already exist, so core languages are never overridden.
+- The tokenizer definitions live in `notepadia-language-tokens.ts`, a pure
+  module with no Theia runtime imports, so `language-tokens.test.cjs` can
+  inspect the generated Monarch rules directly. Each entry supplies
+  `keywords`, `constants`, `functionKeywords`, `typeKeywords` and comment
+  markers; JSON, PowerShell, HTML/XML, CSS, Markdown and YAML have dedicated
+  tokenizers for keys, here-strings, tags, selectors, headings and scalars.
+- Token roles follow Alabaster's scope model rather than stock Monaco:
+  keywords and ordinary identifiers stay text-coloured, comments are red,
+  strings green, numbers and constants mauve, function/type definitions and
+  tags blue, punctuation grey, and Markdown links are blue and underlined.
 - The extra extensions give Monaco file-type auto-detection for free
   (`.js` → JavaScript, `.sh` → Shell Script, ...). `notepadiaLanguageName(id)`
   provides the friendly alias for the status bar.
@@ -281,8 +290,9 @@ Enumeration caveat: Monaco's language service resolves a language by *id* only
 once it is registered (TextMate grammars come from `@theia/textmate-grammars`,
 which is not installed in this build). The built-in Monaco editor core ships no
 `vs/language` data, so without a grammar package the Monarch tokenizers above
-are the only real tokenization available; keyword/string/number tokens are
-emitted (`mtk*` classes) but the stock theme only colors strings and numbers.
+are the only real tokenization available. The three shipped themes override the
+inherited `vs`/`vs-dark` token rules so those scopes use the palette described
+above.
 
 ### Function List panel
 
@@ -492,7 +502,8 @@ The behavior described on this page is held in place by four layers:
 - **Unit tests** — pure logic lives in `extensions/notepadia/src/common/*.ts`
   and is covered by `node --test` suites in `extensions/notepadia/test/*.test.cjs`
   (wired into `yarn test`): search options, encoding, EOL, status fields, the
-  function-list rules, the toolbars' command ids, theme contrast, and more.
+  function-list rules, the toolbars' command ids, theme contrast and token
+  roles, the generated Monarch tokenizers, and more.
 - **End-to-end suites** — 41 Puppeteer suites in `e2e/` drive the real browser
   app and are registered in the `SUITES` array of `e2e/run.cjs`
   (`yarn test:e2e`). They cover the editor, menus, search, panels, the browser

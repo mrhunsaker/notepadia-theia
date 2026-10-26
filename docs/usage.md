@@ -673,6 +673,18 @@ collapses `utf8bom` to `utf8` at write time).
   Script, SQL, Plain Text) is registered at startup with lightweight Monarch
   tokenizers, and each entry is a menu action switching the editor language.
 - The status bar shows the friendly language name and is clickable.
+- Syntax highlighting follows Alabaster's role model: keywords and ordinary
+  identifiers stay text-coloured, comments are red, strings green, numbers and
+  constants mauve, function/type definitions and tags blue, and punctuation
+  grey. JSON keys stay text while values are green; HTML/XML tags are blue with
+  green attribute values; CSS class/id and pseudo selectors are blue; Markdown
+  headings are blue, links blue and underlined, inline code mauve, and fenced
+  code blocks stay plain; YAML keys are text, scalar values green and
+  booleans/null mauve; PowerShell constants (`$true`, `$false`, `$null`) are
+  mauve.
+- The Classic theme uses Catppuccin Latte for those roles, Classic Dark uses
+  Catppuccin Mocha, and High Contrast uses Mocha's hues on the black
+  background.
 
 ## Macros menu
 
