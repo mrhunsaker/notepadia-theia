@@ -40,6 +40,9 @@
       "frontend": "lib/browser/notepadia-frontend-module"
     },
     {
+      "backend": "lib/node/notepadia-backend-module"
+    },
+    {
       "electronMain": "lib/electron-main/notepadia-electron-main-module"
     }
   ]

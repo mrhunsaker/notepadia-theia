@@ -103,7 +103,9 @@ disk agree afterwards:
 
 **Open Folder as Workspace...** picks a directory as the workspace root. It is
 Theia's own folder chooser, kept in the menu under a name that says what it
-does.
+does. Notepadia remembers the most recent root, but only a directory or a
+`.theia-workspace` / `.code-workspace` file: opening a document on its own
+never makes that document the workspace on the next launch.
 
 ### Read-only documents
 

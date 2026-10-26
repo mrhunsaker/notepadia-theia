@@ -74,6 +74,7 @@ module.exports = async (port, host, argv) => {
         await load(require('@theia/preferences/lib/node/preference-backend-module'));
         await load(require('@theia/messages/lib/node/messages-backend-module'));
         await load(require('@theia/search-in-workspace/lib/node/search-in-workspace-backend-module'));
+        await load(require('notepadia/lib/node/notepadia-backend-module'));
         startupLog('modules loaded');
         return await start(port, host, argv);
     } catch (error) {

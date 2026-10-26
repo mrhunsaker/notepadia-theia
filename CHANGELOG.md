@@ -12,6 +12,15 @@
   PowerShell variables and constants each get dedicated Monarch rules.
   `theme-tokens.test.cjs` guards the palette mapping and
   `language-tokens.test.cjs` guards the generated tokenizers.
+- **A document can no longer become the workspace root.** Theia remembers the
+  last path it was asked to open, and a plain file passed by the desktop app or
+  a stale recent-workspace entry was restored as the workspace on the next
+  launch — showing "enclosure.scad (Workspace)" and reopening a file that had
+  already been closed. The backend now keeps only directories and real
+  `.theia-workspace` / `.code-workspace` files in the recent list and skips
+  anything else when choosing the startup root. `workspace-root.test.cjs`
+  covers the classification, and `e2e/show-symbol.cjs` now also guards the
+  whitespace-marker colour against the light theme.
 - **Markdown single quotes no longer trigger string highlighting.** In the
   curated language configuration for Markdown, apostrophes (common in US
   English contractions like "don't" or "it's") are no longer treated as string

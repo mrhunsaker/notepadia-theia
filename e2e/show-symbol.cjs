@@ -14,8 +14,19 @@
 //   - the end-of-line glyph is an empty `.notepadia-eol-glyph` span whose
 //     character comes from a `::after` rule in the Notepadia stylesheet,
 //   - indent guides are `.core-guide` elements.
+const fs = require('fs');
+const path = require('path');
 const { assert, finish, sleep, launchPage, goto, openFile,
     openMenuBar, hoverByLabel, clickByLabel, closeMenus } = require('./lib.js');
+
+const LIGHT_THEME = JSON.parse(fs.readFileSync(path.join(__dirname,
+    '../extensions/notepadia/src/browser/theme/notepadia-classic.color-theme.json'), 'utf8'));
+const WHITESPACE_COLOR = rgbFromHex(LIGHT_THEME.colors['editorWhitespace.foreground']);
+
+function rgbFromHex(hex) {
+    const value = hex.replace('#', '');
+    return `rgb(${parseInt(value.slice(0, 2), 16)}, ${parseInt(value.slice(2, 4), 16)}, ${parseInt(value.slice(4, 6), 16)})`;
+}
 
 /** The visible editor, so a second pane cannot satisfy an assertion. */
 const VISIBLE_EDITOR = `Array.from(document.querySelectorAll('.monaco-editor')).find(e => e.getBoundingClientRect().width > 0)`;
@@ -23,6 +34,15 @@ const VISIBLE_EDITOR = `Array.from(document.querySelectorAll('.monaco-editor')).
 /** Space and tab markers drawn in the visible editor. */
 function whitespaceMarkers(page) {
     return page.evaluate(`(() => { const ed = ${VISIBLE_EDITOR}; return ed ? ed.querySelectorAll('.mwh').length : -1; })()`);
+}
+
+/** Computed colour of the space/tab markers in the visible editor. */
+function whitespaceColor(page) {
+    return page.evaluate(`(() => {
+        const ed = ${VISIBLE_EDITOR};
+        const marker = ed && ed.querySelector('.mwh');
+        return marker ? getComputedStyle(marker).color : null;
+    })()`);
 }
 
 /** End-of-line glyph spans added by the Show End of Line decoration. */
@@ -63,6 +83,9 @@ async function toggle(page, label) {
     await toggle(page, 'Show Space and TAB');
     const markersOn = await whitespaceMarkers(page);
     assert('Show Space and TAB draws whitespace markers', markersOn > 0, 'markers=' + markersOn);
+    const markersColor = await whitespaceColor(page);
+    assert('Show Space and TAB colours whitespace markers from the light theme',
+        markersColor === WHITESPACE_COLOR, `colour=${markersColor} expected=${WHITESPACE_COLOR}`);
 
     await toggle(page, 'Show Space and TAB');
     assert('Show Space and TAB can be turned back off', await whitespaceMarkers(page) === 0,

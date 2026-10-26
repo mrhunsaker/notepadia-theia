@@ -7,14 +7,13 @@ import {
 import { TheiaRendererAPI } from '@theia/core/lib/electron-main/electron-api-main';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const WORKSPACE_FILE_EXTENSIONS = new Set(['.theia-workspace', '.code-workspace']);
+import { isWorkspaceFilePath } from '../common/workspace-root';
 
 @injectable()
 export class NotepadiaElectronMainApplication extends ElectronMainApplication {
 
     protected isWorkspaceFile(filePath: string): boolean {
-        return WORKSPACE_FILE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+        return isWorkspaceFilePath(filePath);
     }
 
     override async handleMainCommand(options: ElectronMainCommandOptions): Promise<void> {
