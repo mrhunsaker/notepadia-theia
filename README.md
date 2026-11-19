@@ -154,9 +154,11 @@ The Notepad++-style feature layer is implemented as the shared
   Theia's `StorageService` because in 1.75 that is localStorage, a small
   synchronous string store
 - search/replace in the active document (find next/previous, replace all,
-  regex, match case, whole word) through the tabbed Find dialog
-- find in files / replace in files via Theia's search-in-workspace, driven
-  from the Find in Files tab of that same dialog
+  regex, match case, whole word) through the tabbed Find dialog; regex
+  replacements expand `\1` / `$1`, `$2`, `${n}`, `$&` and named groups per match
+- find in files via Theia's search-in-workspace and replace in files with the
+  same per-match backreference rules, driven from the Find in Files tab of that
+  same dialog
 - encoding conversion (UTF-8, UTF-8 BOM, UTF-16 LE/BE, ANSI) with re-save,
   `Change File Encoding...` to reopen or save with any encoding Theia ships
   (the ISO-8859 family, KOI8-R, Big5, Shift JIS and the rest), `Reload as
@@ -186,8 +188,9 @@ The Notepad++-style feature layer is implemented as the shared
   Split Lines and Remove Consecutive Duplicate Lines
 - one modeless, Notepad++-style tabbed Find dialog (Ctrl+F / Ctrl+H /
   Ctrl+Shift+F / Ctrl+M) with Find, Replace, Find in Files and Mark tabs,
-  which replaces Monaco's inline find widget; the Mark controls also stay
-  reachable from a Search > Mark submenu
+  which replaces Monaco's inline find widget; the Replace field follows the
+  selected Search Mode (literal, Extended escapes or regex backreferences),
+  and the Mark controls also stay reachable from a Search > Mark submenu
 - a Search Results window (F7 / F4 / Shift+F4): a foot panel that keeps every
   Find All and Find-in-Files run's hits, with wrapping next/previous stepping
   and a tree that announces itself to screen readers
@@ -201,7 +204,8 @@ The Notepad++-style feature layer is implemented as the shared
   selection
 - extended search mode (Find dialog > Search Mode > Extended radio): Notepad++'s
   `\n`, `\r`, `\t`, `\0`, `\\`, `\xHH`, `\oOOO`, `\dDDD` and `\bBBBBBBBB`
-  escapes are expanded to literals before searching
+  escapes are expanded to literals before searching, and the same table is
+  applied to the Replace field when Extended mode is selected
 - Edit > Character Panel: a keyboard-accessible ASCII/symbol grid that inserts
   the picked character at the caret
 - Edit > Copy to Clipboard: current full file path, current filename and

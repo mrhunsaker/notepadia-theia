@@ -33,6 +33,7 @@ const SUITES = [
     'toolbar',
     'search',
     'find-dialog',
+    'find-replace-files',
     'incremental-search',
     'document-list',
     'spaces-tabs',
@@ -89,6 +90,15 @@ function seedWorkspace() {
     // the next suite the FOO left behind instead of the seeded text.
     write('replace-dialog.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
     write('replace-menu.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    // One fixture per backreference syntax so each destructive check starts
+    // from the original text even when a previous editor stayed dirty.
+    write('regex-replace-dollar.txt', Buffer.from('alice@example.com\nbob@test.org\ncarol@example.net\n', 'utf8'));
+    write('regex-replace-backslash.txt', Buffer.from('alice@example.com\nbob@test.org\ncarol@example.net\n', 'utf8'));
+    write('regex-replace-single.txt', Buffer.from('alice@example.com\nbob@test.org\n', 'utf8'));
+    write('extended-replace.txt', Buffer.from('alpha beta\n', 'utf8'));
+    fs.mkdirSync(path.join(WS, 'files-replace'));
+    write('files-replace/one.txt', Buffer.from('alice@example.com\nbob@test.org\n', 'utf8'));
+    write('files-replace/two.txt', Buffer.from('carol@example.net\n', 'utf8'));
     write('escape.txt', Buffer.from('alpha\tbeta\none\ttwo\nno tab here\nback\\slash\n(paren) more\n', 'utf8'));
     write('indent.txt', alpha);
 

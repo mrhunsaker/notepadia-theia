@@ -70,6 +70,19 @@ async function setReplaceText(page, text) {
     await sleep(400);
 }
 
+/** Replace the value of a plain text input in the dialog (Directory, Filters). */
+async function setField(page, id, text) {
+    await page.click('#' + id);
+    await sleep(150);
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyA');
+    await page.keyboard.up('Control');
+    await page.keyboard.press('Backspace');
+    await sleep(150);
+    await page.keyboard.type(text, { delay: 20 });
+    await sleep(300);
+}
+
 async function clickDialogTab(page, label) {
     const clicked = await page.evaluate(t => {
         const tab = Array.from(document.querySelectorAll('.notepadia-find-tab'))
@@ -187,7 +200,7 @@ async function markCountStyle(page, slot) {
 module.exports = {
     PANEL, FIND_INPUT, INLINE_WIDGET,
     focusEditor, openFindDialog, assertNoInlineWidget,
-    setFindText, setReplaceText,
+    setFindText, setReplaceText, setField,
     clickDialogTab, clickDialogButton, setCheck, setMode, setStyleRadio,
     dialogStatus, dialogTabState, closeDialog, markCount, markCountStyle
 };

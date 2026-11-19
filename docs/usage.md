@@ -440,13 +440,15 @@ match position, e.g. `2 of 4` or `4 results on current document`.
   every hit) and `Find All in All Opened Documents`. Both Find All actions also
   fill the [Search Results window](#search-results-window).
 - **Replace**: `Replace`, `Replace All` and `Replace All in All Opened
-  Documents`, all of which are ordinary undoable edits.
+  Documents`, all of which are ordinary undoable edits. In Regular expression
+  mode the **Replace with** field expands backreferences, and in Extended mode
+  it decodes escapes (see [Replacement patterns](#replacement-patterns)).
 - **Find in Files**: `Filters` and `Directory` narrow the workspace search,
   `In hidden folders` includes dot-folders, and `Find All` / `Replace All`
-  drive the existing search-in-workspace backend. `Find All` sends its results
-  to the [Search Results window](#search-results-window); `Replace All` stays
-  on Theia's search panel, because that is where the replacement machinery
-  lives.
+  drive the existing search-in-workspace backend. Both send their results to
+  the [Search Results window](#search-results-window). `Replace All` asks for
+  confirmation, then edits and saves each matching file itself so that the
+  same backreference rules apply as in the editor.
 - **Mark**: marks every occurrence in the current document in one of five
   styles, with `Mark All`, `Clear All Marks`, `Select and Find Next` and a
   `Purge for each search` option. The same actions remain available under
@@ -471,6 +473,27 @@ bar.
 
 There is no `Search ▸ Search Mode` menu: the radios live in the dialog where
 the search is typed.
+
+### Replacement patterns
+
+What the **Replace with** field inserts depends on the selected Search Mode:
+
+- **Normal**: the text is inserted exactly as typed, so `\1` is a backslash
+  followed by a `1`.
+- **Extended**: the same escape table as Extended search is decoded first, so
+  `A\tB` inserts `A`, a tab and `B`, and `\x41` inserts `A`.
+- **Regular expression**: captured groups are expanded per match. `\1` and
+  `$1` both insert the first group, `\2`/`$2` the second, and `${n}` works for
+  double-digit groups. `$0`, `$&` and `\0` insert the whole match, named groups
+  use `$<name>`, `${name}` or `\k<name>`, `$$` inserts a literal dollar sign and
+  `\\` a literal backslash. Groups that did not participate expand to nothing,
+  and unknown escapes pass through literally.
+
+The rules are identical in **Replace**, **Replace All**, **Replace All in All
+Opened Documents** and **Find in Files ▸ Replace All**. For example, with
+Regular expression search on, finding `(\w+)@(\w+)` and replacing with `$2-$1`
+turns `alice@example.com` into `example-alice.com` (the groups stop at the dot,
+which `\w` does not match).
 
 ### Incremental Search
 
@@ -502,7 +525,7 @@ last, and a group stays until you clear it:
 
 - `Find All in Current Document` and `Find All in All Opened Documents` from
   the Find tab,
-- `Find All` from the Find in Files tab.
+- `Find All` and `Replace All` from the Find in Files tab.
 
 The header reads `Search "foo" (12 hits in 3 files of 1 searched)`. Under it,
 one row per file with the file's name as a URI, and under that a row per hit

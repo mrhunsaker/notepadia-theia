@@ -1,14 +1,14 @@
 import * as React from '@theia/core/shared/react';
 import { inject, injectable } from '@theia/core/shared/inversify';
 import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
-import { Message } from '@theia/core/lib/browser/widgets/widget';
+import { Message, Widget } from '@theia/core/lib/browser/widgets/widget';
 import { StorageService } from '@theia/core/lib/browser/storage-service';
+import { ConfirmDialog } from '@theia/core/lib/browser';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
 import { WidgetManager } from '@theia/core/lib/browser/widget-manager';
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import * as monaco from '@theia/monaco-editor-core';
-import { SearchInWorkspaceWidget } from '@theia/search-in-workspace/lib/browser/search-in-workspace-widget';
 import { SearchInWorkspaceService } from '@theia/search-in-workspace/lib/browser/search-in-workspace-service';
 import {
     SearchInWorkspaceClient,
@@ -22,6 +22,8 @@ import {
     describeMatchCount,
     type FindOptions,
     type NotepadiaSearchMode,
+    type ReplacementContext,
+    resolveReplacement,
     resolveSearch,
     workspaceRelativeDirectory
 } from '../common/find-options';
@@ -90,9 +92,12 @@ export class NotepadiaFindDialog extends ReactWidget {
 
     static readonly ID = 'notepadia-find-dialog';
 
-    protected mode: NotepadiaSearchMode = 'normal';
+    /** The shared options are the single source of truth for the search mode. */
+    protected get mode(): NotepadiaSearchMode {
+        return this.findState.get().mode;
+    }
+
     protected tab: NotepadiaFindTab = 'find';
-    protected showReplace = false;
     protected markStyle = 0;
     protected purge = false;
 
@@ -130,7 +135,9 @@ export class NotepadiaFindDialog extends ReactWidget {
         this.node.classList.add('notepadia-find-host');
         this.toDispose.push(Disposable.create(() => this.node.remove()));
 
-        this.mode = this.searchMark.searchMode();
+        // The persisted mode is only the startup value; findState owns it from
+        // here on, so the dialog, Mark engine and F3 continuation all agree.
+        this.findState.set({ mode: this.searchMark.searchMode() });
         this.toDispose.push(this.findState.onDidChange(() => this.update()));
 
         // Monaco keeps reopening its inline find widget on Ctrl+F / Ctrl+H
@@ -177,7 +184,7 @@ export class NotepadiaFindDialog extends ReactWidget {
      * When `directory` is given it seeds the Find in Files Directory field, so
      * a caller (e.g. the folder context menu) can hand a folder over.
      */
-    open(tab: NotepadiaFindTab = 'find', showReplace?: boolean, directory?: string): void {
+    open(tab: NotepadiaFindTab = 'find', _showReplace?: boolean, directory?: string): void {
         // Re-seed the term from the current selection only when the dialog was
         // closed and the user activated it again - matches Notepad++ seeding.
         if (!this.dialogVisible()) {
@@ -187,8 +194,6 @@ export class NotepadiaFindDialog extends ReactWidget {
         if (directory !== undefined) {
             this.filesDirectory = directory;
         }
-        this.showReplace = showReplace ?? (tab === 'replace');
-        this.mode = this.searchMark.searchMode();
         if (this.node.parentElement !== document.body) {
             document.body.appendChild(this.node);
         }
@@ -606,6 +611,41 @@ export class NotepadiaFindDialog extends ReactWidget {
         return this.findState.get().caseSensitive ? text === term : text.toLowerCase() === term.toLowerCase();
     }
 
+    /**
+     * Capture groups for a range that is about to be replaced. Monaco returns
+     * them on `FindMatch.matches` when asked, but only for regex searches; for
+     * literal/extended searches the plain matched text is all a replacement
+     * pattern can refer to. The scope is widened to the whole line so `^`, `$`
+     * and lookarounds resolve exactly as they did during the original search.
+     */
+    protected replacementContext(range: monaco.IRange): ReplacementContext {
+        const model = this.currentModel();
+        if (!model) {
+            return { match: '', groups: [] };
+        }
+        const matched = model.getValueInRange(range as monaco.Range);
+        const { term, isRegex } = this.resolved();
+        if (!isRegex || !term) {
+            return { match: matched, groups: [] };
+        }
+        const line = range.startLineNumber;
+        const scope = new monaco.Range(line, 1, line, model.getLineMaxColumn(line));
+        const opts = this.findState.get();
+        const matches = model.findMatches(term, scope, true, opts.caseSensitive, this.wordSeparators(), true, 10000);
+        const match = matches.find(m =>
+            m.range.startLineNumber === range.startLineNumber &&
+            m.range.startColumn === range.startColumn &&
+            m.range.endColumn === range.endColumn
+        ) ?? matches.find(m =>
+            m.range.startLineNumber === range.startLineNumber &&
+            m.range.startColumn === range.startColumn
+        );
+        if (!match) {
+            return { match: matched, groups: [] };
+        }
+        return { match: model.getValueInRange(match.range), groups: match.matches ?? [] };
+    }
+
     /** Replace the next occurrence (or the current match, an Npp nuance). */
     protected replaceNext(): boolean {
         const control = this.currentControl();
@@ -624,12 +664,13 @@ export class NotepadiaFindDialog extends ReactWidget {
             }
             range = control.getSelection() as monaco.IRange;
         }
+        const text = resolveReplacement(opts.replace, this.mode, this.replacementContext(range));
         control.executeEdits('notepadia-replace', [{
             range,
-            text: opts.replace,
+            text,
             forceMoveMarkers: true
         }]);
-        this.setStatus(`${opts.replace.length} character${opts.replace.length === 1 ? '' : 's'} replaced`);
+        this.setStatus(`${text.length} character${text.length === 1 ? '' : 's'} replaced`);
         this.findNext(false);
         return true;
     }
@@ -658,15 +699,19 @@ export class NotepadiaFindDialog extends ReactWidget {
             if (!targetControl || !model) {
                 continue;
             }
-            const matches = model.findMatches(term, true, isRegex, opts.caseSensitive, wordSeparators, false, 10000);
+            const matches = model.findMatches(term, true, isRegex, opts.caseSensitive, wordSeparators, true, 10000);
             if (matches.length === 0) {
                 continue;
             }
-            // Execute the edits in one batch; Monaco applies them consistently
-            // across the model regardless of the order given.
+            // Expand backreferences per match. Monaco returns the capture
+            // groups on `FindMatch.matches` when captureMatches is on, so each
+            // edit gets the groups of the occurrence it replaces.
             const edits: monaco.editor.IIdentifiedSingleEditOperation[] = matches.map(match => ({
                 range: match.range,
-                text: opts.replace,
+                text: resolveReplacement(opts.replace, this.mode, {
+                    match: model.getValueInRange(match.range),
+                    groups: match.matches ?? []
+                }),
                 forceMoveMarkers: true
             }));
             targetControl.executeEdits('notepadia-replace-all', edits);
@@ -697,38 +742,11 @@ export class NotepadiaFindDialog extends ReactWidget {
         }
         this.setStatus(replace ? 'Replacing in files...' : 'Searching in files...');
         const run = async (): Promise<void> => {
-            if (!replace) {
+            if (replace) {
+                await this.replaceInFiles(globs);
+            } else {
                 await this.searchInFiles(opts, globs);
-                return;
             }
-            const widget = await this.widgetManager.getOrCreateWidget(SearchInWorkspaceWidget.ID);
-            const findWidget = widget as unknown as {
-                matchCaseState: { enabled: boolean };
-                wholeWordState: { enabled: boolean };
-                regExpState: { enabled: boolean };
-                searchInWorkspaceOptions: { include: string[]; includeIgnored: boolean };
-                replaceTerm: string;
-                showReplaceField: boolean;
-                updateSearchTerm(term: string, showReplaceField?: boolean): void;
-                performSearch(): void;
-                hasResultList(): boolean;
-                resultTreeWidget: { replace(preserveFocus?: boolean): void };
-                update(): void;
-            };
-            // Search mode maps onto the backend's own flags: extended mode is a
-            // literal search, regular expression turns the backend's regexp
-            // option on, and the checkbox column carries the rest.
-            findWidget.matchCaseState.enabled = opts.caseSensitive;
-            findWidget.wholeWordState.enabled = opts.wholeWord;
-            findWidget.regExpState.enabled = this.mode === 'regex';
-            findWidget.searchInWorkspaceOptions.include = globs;
-            findWidget.searchInWorkspaceOptions.includeIgnored = this.includeHidden;
-            findWidget.showReplaceField = this.showReplace || replace;
-            findWidget.replaceTerm = opts.replace;
-            findWidget.updateSearchTerm(opts.term, findWidget.showReplaceField);
-            findWidget.update();
-            await this.shell.activateWidget(SearchInWorkspaceWidget.ID);
-            await this.replaceInFiles(findWidget);
         };
         run().catch(error => this.setStatus(`Search failed: ${error.message}`));
     }
@@ -749,10 +767,13 @@ export class NotepadiaFindDialog extends ReactWidget {
             this.setStatus('No workspace folder is open');
             return;
         }
-        const files = await this.collectFileMatches(opts.term, roots, {
+        // Honour the selected search mode here too: Extended escapes must be
+        // decoded before the backend sees the term, exactly as in the editor.
+        const { term, isRegex } = this.resolved();
+        const files = await this.collectFileMatches(term, roots, {
             matchCase: opts.caseSensitive,
             matchWholeWord: opts.wholeWord,
-            useRegExp: this.mode === 'regex',
+            useRegExp: isRegex,
             include: globs,
             includeIgnored: this.includeHidden
         });
@@ -800,22 +821,114 @@ export class NotepadiaFindDialog extends ReactWidget {
     }
 
     /**
-     * Notepad++'s "Replace All" on the Find in Files tab replaces every hit of
-     * the current search. The backend replaces per search result, so the search
-     * is run first and the results tree is asked to replace once they land.
+     * Capture groups for one file-search hit. The backend reports the line
+     * text and the 1-based column of every hit, so re-running the resolved
+     * regex on that line recovers exactly the same groups Monaco would have
+     * given us for an in-editor match. This is what lets backreferences work
+     * in "Replace All" on the Find in Files tab too.
      */
-    protected async replaceInFiles(findWidget: { performSearch(): void; hasResultList(): boolean; resultTreeWidget: { replace(preserveFocus?: boolean): void } }): Promise<void> {
-        findWidget.performSearch();
-        const deadline = Date.now() + 15000;
-        while (Date.now() < deadline) {
-            if (findWidget.hasResultList()) {
-                findWidget.resultTreeWidget.replace(true);
-                this.setStatus('Replaced all occurrences in the search results');
-                return;
-            }
-            await new Promise(resolve => setTimeout(resolve, 200));
+    protected replacementContextInLine(
+        hit: NotepadiaSearchHitInput,
+        term: string,
+        isRegex: boolean,
+        caseSensitive: boolean
+    ): ReplacementContext {
+        const start = Math.max(0, hit.column - 1);
+        const matched = hit.text.slice(start, start + hit.length);
+        if (!isRegex || !term) {
+            return { match: matched, groups: [] };
         }
-        this.setStatus('No results to replace - run Find All first');
+        let regex: RegExp;
+        try {
+            regex = new RegExp(term, caseSensitive ? 'g' : 'gi');
+        } catch {
+            return { match: matched, groups: [] };
+        }
+        let probe: RegExpExecArray | null;
+        while ((probe = regex.exec(hit.text)) !== null) {
+            if (probe.index === start) {
+                return {
+                    match: probe[0],
+                    groups: probe,
+                    named: { ...(probe.groups ?? {}) }
+                };
+            }
+            if (probe[0].length === 0) {
+                regex.lastIndex += 1;
+            }
+        }
+        return { match: matched, groups: [] };
+    }
+
+    /**
+     * Notepad++'s "Replace All" on the Find in Files tab replaces every hit of
+     * the current search. Theia's own search widget inserts its replace field
+     * literally (and its preview disagrees, using `String.replace`), so the
+     * dialog performs the replacement itself: search through the same backend,
+     * expand each replacement with that hit's capture groups, then save each
+     * file. Editors that were opened only for the replacement are disposed.
+     */
+    protected async replaceInFiles(globs: string[]): Promise<void> {
+        const opts = this.findState.get();
+        const { term, isRegex } = this.resolved();
+        const roots = this.workspaceService.tryGetRoots().map(root => root.resource.toString());
+        if (roots.length === 0) {
+            this.setStatus('No workspace folder is open');
+            return;
+        }
+        const files = await this.collectFileMatches(term, roots, {
+            matchCase: opts.caseSensitive,
+            matchWholeWord: opts.wholeWord,
+            useRegExp: isRegex,
+            include: globs,
+            includeIgnored: this.includeHidden
+        });
+        const found = files.reduce((count, file) => count + file.hits.length, 0);
+        if (found === 0) {
+            this.setStatus('No results to replace - run Find All first');
+            return;
+        }
+        const confirmed = await new ConfirmDialog({
+            title: 'Replace All',
+            msg: `Replace ${found} occurrence${found === 1 ? '' : 's'} across ${files.length} file${files.length === 1 ? '' : 's'}?`
+        }).open();
+        if (!confirmed) {
+            this.setStatus('Replace cancelled');
+            return;
+        }
+        const previous = this.shell.currentWidget;
+        const temporary: Widget[] = [];
+        let replaced = 0;
+        for (const file of files) {
+            const existing = this.editorManager.all.find(widget => widget.editor.uri.toString() === file.uri);
+            const widget = existing ?? await this.editorManager.open(new URI(file.uri));
+            const control = MonacoEditor.get(widget)?.getControl();
+            if (!control) {
+                continue;
+            }
+            const edits = file.hits.map(hit => ({
+                range: new monaco.Range(hit.line, hit.column, hit.line, hit.column + hit.length),
+                text: resolveReplacement(opts.replace, this.mode,
+                    this.replacementContextInLine(hit, term, isRegex, opts.caseSensitive)),
+                forceMoveMarkers: true
+            }));
+            control.executeEdits('notepadia-replace-in-files', edits);
+            await widget.saveable.save();
+            replaced += edits.length;
+            if (!existing) {
+                temporary.push(widget);
+            }
+        }
+        // Restoring focus before disposal keeps the shell from briefly showing
+        // an editor with no position (which logs a status-bar exception).
+        if (previous && previous !== this && !previous.isDisposed) {
+            await this.shell.activateWidget(previous.id);
+        }
+        for (const widget of temporary) {
+            widget.dispose();
+        }
+        this.publishResults({ term: opts.term, scope: 'Files', files });
+        this.setStatus(`${replaced} replacement${replaced === 1 ? '' : 's'} made in ${files.length} file${files.length === 1 ? '' : 's'}`);
     }
 
     /**
@@ -880,7 +993,6 @@ export class NotepadiaFindDialog extends ReactWidget {
     }
 
     protected setMode(mode: NotepadiaSearchMode): void {
-        this.mode = mode;
         this.searchMark.setSearchMode(mode);
         this.setOptions({ mode });
     }

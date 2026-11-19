@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Regex Find & Replace now expands backreferences in the Replace field.**
+  `\1` / `$1`, `\2` / `$2`, `${n}`, `$0` / `$&` and named groups all insert the
+  captured text in `Replace`, `Replace All`, `Replace All in All Opened
+  Documents` and `Find in Files ▸ Replace All`; previously they were written
+  into the document literally. Replacement now follows the selected Search
+  Mode: Extended mode decodes `\n`, `\t`, `\xHH` and the rest of the escape
+  table, Normal mode stays literal, and Regex mode also accepts `\\`, `$$` and
+  control escapes. The Find in Files tab now uses the same per-match resolver
+  instead of Theia's literal replace (whose preview disagreed with its result),
+  publishes its hits to the Search Results window, and honours Extended-mode
+  escapes when searching too. Search mode now has one source of truth
+  (`NotepadiaFindState`) shared by the dialog, the Mark engine and F3.
+  `test/replace-pattern.test.cjs`, `e2e/find-dialog.cjs` and the new
+  `e2e/find-replace-files.cjs` cover the behaviour, with `docs/usage.md` and the
+  README updated.
 - **Syntax highlighting now follows Alabaster's role model in every theme.**
   Comments are red, strings green, numbers and constants mauve,
   function/type definitions and tags blue, and punctuation grey, with

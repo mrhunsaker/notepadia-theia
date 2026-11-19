@@ -210,9 +210,10 @@ the menu (>= ~640px) for hover/submenu interactions.
   `monacoToTheiaPosition`. Workspace hits come from
   `SearchInWorkspaceService.searchWithCallback`, which reports matches but never
   how many files it read, so those headers stop at `in N files`.
-- `Replace All` is deliberately not a producer: it runs on Theia's
-  `search-in-workspace` service, whose replace path is separate from the search
-  callback, and results would appear after the edits rather than drive them.
+- `Replace All` on the Find in Files tab is also a producer. The dialog searches
+  through `SearchInWorkspaceService.searchWithCallback`, expands each hit's
+  replacement from the reported line text and column, edits and saves each file,
+  then publishes the same hits so the window shows what was replaced.
 - The tree keeps one cursor, so F4 / Shift+F4 step through a flat list of
   visible hits and wrap; with no row chosen it starts from the editor's caret.
 

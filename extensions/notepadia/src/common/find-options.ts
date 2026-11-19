@@ -45,6 +45,17 @@ export interface ResolvedSearch {
 }
 
 /**
+ * One match's captured text, used to expand backreferences in a replacement
+ * pattern. `groups[0]` is the whole match and `groups[n]` is capture group `n`;
+ * a group that did not participate is `undefined` (and expands to '').
+ */
+export interface ReplacementContext {
+    readonly match: string;
+    readonly groups: readonly (string | undefined)[];
+    readonly named?: Readonly<Record<string, string | undefined>>;
+}
+
+/**
  * Resolve a raw dialog term through the selected search mode:
  *  - normal: used verbatim (literal search);
  *  - extended: decoded with the Notepad++ escape table, then searched with
@@ -61,6 +72,129 @@ export function resolveSearch(rawTerm: string, mode: NotepadiaSearchMode): Resol
         default:
             return { term: rawTerm, isRegex: false };
     }
+}
+
+/**
+ * Expand a "Replace with" field into the text actually inserted for one match.
+ *
+ *  - normal: used verbatim (a backslash or dollar sign is just a character);
+ *  - extended: decoded with the same escape table as the Find field, so `\n`,
+ *    `\t`, `\x41`, `\\` etc. insert the character rather than the escape text;
+ *  - regex: Notepad++-style backreferences are expanded from `context`:
+ *    `\0` / `$&` / `$0` = whole match, `\1`..`\9` / `$1`..`$9` / `${n}` = capture
+ *    groups, `\k<name>` / `$<name>` = named groups, `$$` = a literal `$`,
+ *    `\\` = a literal backslash, and `\n` / `\r` / `\t` = control characters.
+ *    Unknown escapes and groups that did not participate pass through / expand
+ *    to the empty string, matching Notepad++ rather than throwing.
+ */
+export function resolveReplacement(
+    replace: string,
+    mode: NotepadiaSearchMode,
+    context?: ReplacementContext
+): string {
+    switch (mode) {
+        case 'extended':
+            return extendedToLiteral(replace);
+        case 'regex':
+            return expandRegexReplacement(replace, context);
+        default:
+            return replace;
+    }
+}
+
+function expandRegexReplacement(pattern: string, context?: ReplacementContext): string {
+    const groups = context?.groups ?? [];
+    const named = context?.named ?? {};
+    const whole = context?.match ?? '';
+    let out = '';
+    let index = 0;
+    while (index < pattern.length) {
+        const ch = pattern[index];
+        if (ch === '\\' && index + 1 < pattern.length) {
+            const next = pattern[index + 1];
+            if (next === '\\') { out += '\\'; index += 2; continue; }
+            if (next === 'n') { out += '\n'; index += 2; continue; }
+            if (next === 'r') { out += '\r'; index += 2; continue; }
+            if (next === 't') { out += '\t'; index += 2; continue; }
+            if (next === '0') { out += whole; index += 2; continue; }
+            if (/[1-9]/.test(next)) {
+                let end = index + 2;
+                while (end < pattern.length && /[0-9]/.test(pattern[end])) {
+                    end += 1;
+                }
+                const digits = pattern.slice(index + 1, end);
+                const full = Number(digits);
+                // Prefer the longest group that exists (group 12 over group 1
+                // followed by '2'); otherwise fall back to the first digit.
+                out += groups[full] !== undefined
+                    ? (groups[full] ?? '')
+                    : (groups[Number(digits[0])] ?? '') + digits.slice(1);
+                index = end;
+                continue;
+            }
+            if (next === 'k' && pattern[index + 2] === '<') {
+                const end = pattern.indexOf('>', index + 3);
+                if (end !== -1) {
+                    out += named[pattern.slice(index + 3, end)] ?? '';
+                    index = end + 1;
+                    continue;
+                }
+            }
+            // Unknown escape: keep both characters, as Notepad++ does.
+            out += '\\' + next;
+            index += 2;
+            continue;
+        }
+        if (ch === '$' && index + 1 < pattern.length) {
+            const next = pattern[index + 1];
+            if (next === '$') { out += '$'; index += 2; continue; }
+            if (next === '&') { out += whole; index += 2; continue; }
+            if (next === '{') {
+                const end = pattern.indexOf('}', index + 2);
+                if (end !== -1) {
+                    const body = pattern.slice(index + 2, end);
+                    out += /^\d+$/.test(body)
+                        ? (Number(body) === 0 ? whole : (groups[Number(body)] ?? ''))
+                        : (named[body] ?? '');
+                    index = end + 1;
+                    continue;
+                }
+            }
+            if (next === '<') {
+                const end = pattern.indexOf('>', index + 2);
+                if (end !== -1) {
+                    out += named[pattern.slice(index + 2, end)] ?? '';
+                    index = end + 1;
+                    continue;
+                }
+            }
+            if (/[0-9]/.test(next)) {
+                // JavaScript's own replacement syntax uses at most two digits.
+                let end = index + 2;
+                while (end < pattern.length && /[0-9]/.test(pattern[end]) && end < index + 3) {
+                    end += 1;
+                }
+                const digits = pattern.slice(index + 1, end);
+                const full = Number(digits);
+                if (full === 0) {
+                    out += whole;
+                } else if (groups[full] !== undefined) {
+                    out += groups[full] ?? '';
+                } else {
+                    out += (groups[Number(digits[0])] ?? '') + digits.slice(1);
+                }
+                index = end;
+                continue;
+            }
+            // A `$` not followed by a recognised pattern is literal.
+            out += '$';
+            index += 1;
+            continue;
+        }
+        out += ch;
+        index += 1;
+    }
+    return out;
 }
 
 /**

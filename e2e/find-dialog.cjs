@@ -144,6 +144,66 @@ const { openFindDialog, assertNoInlineWidget, clickDialogTab,
     assert('Replace All persists to disk', onDisk.includes('FOO') && !onDisk.includes('foo'),
         JSON.stringify(onDisk));
 
+    // Regex Replace All expands backreferences. `$1`/`$2` and `\1`/`\2` use
+    // separate fixtures so each check starts from the seeded text.
+    await closeDialog(page, false);
+    await openFile(page, 'regex-replace-dollar.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Replace');
+    await setMode(page, 'regex');
+    await setFindText(page, '(\\w+)@(\\w+)');
+    await setReplaceText(page, '$2-$1');
+    await clickDialogButton(page, 'Replace All');
+    const swapped = await modelText(page);
+    assert('regex Replace All expands $1/$2 capture groups',
+        swapped === 'example-alice.com\ntest-bob.org\nexample-carol.net\n', JSON.stringify(swapped));
+
+    await closeDialog(page, false);
+    await openFile(page, 'regex-replace-backslash.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Replace');
+    await setMode(page, 'regex');
+    await setFindText(page, '(\\w+)@(\\w+)');
+    await setReplaceText(page, '[\\1]');
+    await clickDialogButton(page, 'Replace All');
+    const backreffed = await modelText(page);
+    assert('regex Replace All expands \\1 capture groups',
+        backreffed === '[alice].com\n[bob].org\n[carol].net\n', JSON.stringify(backreffed));
+
+    // Single Replace on the match already selected by Find Next uses the same
+    // expansion path, and must not leave a literal backreference behind.
+    await closeDialog(page, false);
+    await openFile(page, 'regex-replace-single.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Find');
+    await setMode(page, 'regex');
+    await setFindText(page, '(\\w+)@(\\w+)');
+    await clickDialogButton(page, 'Find Next');
+    await clickDialogTab(page, 'Replace');
+    await setReplaceText(page, '[\\1]');
+    await clickDialogButton(page, 'Replace');
+    const single = await modelText(page);
+    assert('single Replace expands backreferences on the selected match',
+        single.startsWith('[alice].com\n') && single.includes('bob@test.org') && !single.includes('\\1'),
+        JSON.stringify(single));
+
+    // Extended mode decodes escape sequences in the Replace field too.
+    await closeDialog(page, false);
+    await openFile(page, 'extended-replace.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Replace');
+    await setMode(page, 'extended');
+    await setFindText(page, 'alpha');
+    await setReplaceText(page, 'A\\tB');
+    await clickDialogButton(page, 'Replace All');
+    // `modelText` reads rendered text, where a tab becomes spaces; save and
+    // check the bytes on disk instead.
+    await closeDialog(page, false);
+    await save(page);
+    const extendedOnDisk = fs.readFileSync(path.join(WS, 'extended-replace.txt'), 'utf8');
+    assert('extended Replace All decodes \\t in the replacement',
+        extendedOnDisk === 'A\tB beta\n', JSON.stringify(extendedOnDisk));
+
     // Mark tab: explicit style selection marks with that style's slot only.
     // Back to the untouched fixture so the expected four "foo" are present.
     await closeDialog(page, false);
