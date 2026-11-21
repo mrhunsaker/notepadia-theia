@@ -1,7 +1,25 @@
-const { assert, finish, sleep, launchPage, goto, openFile } = require('./lib.js');
+const { assert, finish, sleep, launchPage, goto, openFile, waitFor } = require('./lib.js');
 const { openFindDialog, setFindText, clickDialogButton, clickDialogTab,
     setStyleRadio, markCount, markCountStyle, setMode,
-    closeDialog } = require('./dialog-helpers.cjs');
+    dialogStatus, closeDialog } = require('./dialog-helpers.cjs');
+
+/** Execute a registered command by its palette label (Mark modes live here). */
+async function runCommand(page, label) {
+    await page.keyboard.down('Control');
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('KeyP');
+    await page.keyboard.up('Shift');
+    await page.keyboard.up('Control');
+    await waitFor(page, '#quick-input-container input');
+    const input = await page.$('#quick-input-container input');
+    await input.type(label, { delay: 15 });
+    await page.waitForFunction(text => Array.from(
+        document.querySelectorAll('#quick-input-container .monaco-list .monaco-list-row'))
+        .some(r => (r.getAttribute('aria-label') || r.textContent || '').includes(text)),
+    { timeout: 10000 }, label);
+    await page.keyboard.press('Enter');
+    await sleep(600);
+}
 
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
@@ -51,6 +69,10 @@ const { openFindDialog, setFindText, clickDialogButton, clickDialogTab,
     await clickDialogButton(page, 'Select and Find Next');
     const second = await selCount();
     assert('Select and Find Next selects a further occurrence', second >= 2, 'selections=' + second);
+    await setFindText(page, 'definitely-absent');
+    await clickDialogButton(page, 'Select and Find Next');
+    assert('Select and Find Next reports no results for an absent term',
+        (await dialogStatus(page)) === 'No results', await dialogStatus(page));
 
     // Extended mode radio belongs to every tab's Search Mode group; confirm
     // it is live from the Mark tab (a \t literal marks the two real tabs).
@@ -64,6 +86,33 @@ const { openFindDialog, setFindText, clickDialogButton, clickDialogTab,
     await setMode(page, 'extended');
     await clickDialogButton(page, 'Mark All');
     assert('Mark All honors the Extended radio', await markCount(page) === 2,
+        'marks=' + await markCount(page));
+    await clickDialogButton(page, 'Clear All Marks');
+
+    // The Mark mode commands must drive the same shared state as the dialog
+    // radios: switching mode from the command palette updates the radio and
+    // changes how the Mark engine interprets the term.
+    await closeDialog(page, false);
+    await openFile(page, 'search.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Mark');
+    await setFindText(page, 'f.o');
+    const checkedMode = () => page.evaluate(() => {
+        const radio = document.querySelector('input[name="notepadia-find-mode"]:checked');
+        return radio ? radio.value : '';
+    });
+    await runCommand(page, 'Search Mode: Regular Expression');
+    assert('Mark mode command updates the Find dialog radio', await checkedMode() === 'regex',
+        'mode=' + await checkedMode());
+    await clickDialogButton(page, 'Mark All');
+    assert('Mark uses the mode selected by the command', await markCount(page) === 4,
+        'marks=' + await markCount(page));
+    await clickDialogButton(page, 'Clear All Marks');
+    await runCommand(page, 'Search Mode: Normal');
+    assert('Mark mode command switches the dialog back to Normal', await checkedMode() === 'normal',
+        'mode=' + await checkedMode());
+    await clickDialogButton(page, 'Mark All');
+    assert('Mark stops using regex after the command', await markCount(page) === 0,
         'marks=' + await markCount(page));
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));

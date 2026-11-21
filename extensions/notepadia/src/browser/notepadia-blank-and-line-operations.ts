@@ -114,13 +114,17 @@ export class NotepadiaBlankAndLineOperationsContribution implements CommandContr
         const lastLine = wholeDocument ? model.getLineCount() : selection.endLineNumber;
         const range = new monaco.Range(firstLine, 1, lastLine, model.getLineMaxColumn(lastLine));
         const original = model.getValueInRange(range);
-        const lines = original.split('\n');
+        // Monaco returns the model's own EOL, so a CRLF document must come
+        // apart on CRLF rather than leaving a stray '\r' on every line, and
+        // must be put back together with the same EOL.
+        const eol = original.includes('\r\n') ? '\r\n' : '\n';
+        const lines = original.split(/\r?\n/);
         const tabSize = model.getOptions().tabSize;
         const transformed = transform(lines, tabSize);
         if (transformed.length === 0) {
             return;
         }
-        const result = transformed.join('\n');
+        const result = transformed.join(eol);
         if (result === original) {
             return;
         }

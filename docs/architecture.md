@@ -206,10 +206,11 @@ the menu (>= ~640px) for hover/submenu interactions.
   only user of that DI binding in the extension) so the dialog publishes to the
   window rather than calling it directly, which keeps widget construction in the
   binding container.
-- Document hits come from Monaco's own search, so positions are converted with
-  `monacoToTheiaPosition`. Workspace hits come from
-  `SearchInWorkspaceService.searchWithCallback`, which reports matches but never
-  how many files it read, so those headers stop at `in N files`.
+- Document hits come from Monaco's own search; `hitFromMatch` records Monaco's
+  1-based line and column values directly, with no position conversion.
+  Workspace hits come from `SearchInWorkspaceService.searchWithCallback`, which
+  reports matches but never how many files it read, so those headers stop at
+  `in N files`.
 - `Replace All` on the Find in Files tab is also a producer. The dialog searches
   through `SearchInWorkspaceService.searchWithCallback`, expands each hit's
   replacement from the reported line text and column, edits and saves each file,
@@ -505,7 +506,7 @@ The behavior described on this page is held in place by four layers:
   (wired into `yarn test`): search options, encoding, EOL, status fields, the
   function-list rules, the toolbars' command ids, theme contrast and token
   roles, the generated Monarch tokenizers, and more.
-- **End-to-end suites** — 41 Puppeteer suites in `e2e/` drive the real browser
+- **End-to-end suites** — 42 Puppeteer suites in `e2e/` drive the real browser
   app and are registered in the `SUITES` array of `e2e/run.cjs`
   (`yarn test:e2e`). They cover the editor, menus, search, panels, the browser
   file commands, backup/recovery, the a11y checks and more.

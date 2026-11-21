@@ -258,6 +258,20 @@ export class NotepadiaFileOperationsContribution implements CommandContribution,
             return;
         }
         const target = source.withPath(resolved.path);
+        // repointEditor() reuses an already-open target widget and replaces its
+        // whole model with the source text. If that tab holds unsaved work, the
+        // move would destroy it, so refuse before touching either file. A
+        // rename to the same path is a no-op, not a conflict with itself.
+        if (target.toString() !== source.toString()) {
+            const dirtyTarget = this.editorManager.all.find(widget =>
+                resourceUri(widget)?.toString() === target.toString() && Saveable.isDirty(widget));
+            if (dirtyTarget) {
+                this.messageService.warn(
+                    `Cannot rename to ${this.labelProvider.getName(target)} because that file has unsaved changes in another tab. Save or close it first.`
+                );
+                return;
+            }
+        }
         if (await this.fileService.exists(target) && !await this.confirmReplace(target)) {
             return;
         }

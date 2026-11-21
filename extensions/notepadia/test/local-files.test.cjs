@@ -9,6 +9,7 @@ const {
     LOCAL_FILE_PICKER_TYPES,
     DEFAULT_PICKER_START_DIRECTORY,
     resolveDialogFolder,
+    isUriWithinWorkspace,
     pickerStartIn
 } = require('../lib/common/local-files.js');
 
@@ -107,6 +108,35 @@ describe('resolveDialogFolder (I1)', () => {
     });
     it('leaves the dialog default in place when home is unknown', () => {
         assert.equal(resolveDialogFolder(undefined, undefined), undefined);
+    });
+});
+
+describe('isUriWithinWorkspace (BUG-005)', () => {
+    it('accepts the workspace root itself', () => {
+        assert.equal(isUriWithinWorkspace('file:///srv/ws', 'file:///srv/ws'), true);
+    });
+    it('accepts a file beneath the workspace, normalising a trailing slash', () => {
+        assert.equal(isUriWithinWorkspace('file:///srv/ws/notes.txt', 'file:///srv/ws/'), true);
+    });
+    it('rejects a sibling whose name merely shares the root prefix', () => {
+        assert.equal(isUriWithinWorkspace('file:///srv/ws-other/notes.txt', 'file:///srv/ws'), false);
+    });
+    it('rejects a path outside the workspace', () => {
+        assert.equal(isUriWithinWorkspace('file:///tmp/notes.txt', 'file:///srv/ws'), false);
+    });
+    it('rejects a different scheme or authority', () => {
+        assert.equal(isUriWithinWorkspace('untitled:notes.txt', 'file:///srv/ws'), false);
+        assert.equal(isUriWithinWorkspace('file://other/srv/ws/notes.txt', 'file:///srv/ws'), false);
+    });
+    it('refuses a root without a path', () => {
+        assert.equal(isUriWithinWorkspace('file:///notes.txt', 'file://'), false);
+    });
+    it('ignores query and fragment when comparing paths', () => {
+        assert.equal(isUriWithinWorkspace('file:///srv/ws/notes.txt?x=1#frag', 'file:///srv/ws'), true);
+    });
+    it('resolves dot segments before comparing so a path cannot walk out', () => {
+        assert.equal(isUriWithinWorkspace('file:///srv/ws/sub/../notes.txt', 'file:///srv/ws'), true);
+        assert.equal(isUriWithinWorkspace('file:///srv/ws/../outside.txt', 'file:///srv/ws'), false);
     });
 });
 

@@ -19,10 +19,14 @@ import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { Disposable } from '@theia/core/lib/common/disposable';
 import {
     addHistory,
+    captureContextInText,
     describeMatchCount,
     type FindOptions,
+    hasUnbalancedRegexDelimiters,
     type NotepadiaSearchMode,
+    normalizeFileSearchPattern,
     type ReplacementContext,
+    type ResolvedSearch,
     resolveReplacement,
     resolveSearch,
     workspaceRelativeDirectory
@@ -253,8 +257,9 @@ export class NotepadiaFindDialog extends ReactWidget {
             this.searchMark.clear();
             this.setStatus('Cleared all marks');
         } else if (action === 'select') {
-            this.searchMark.selectFindNext();
-            this.setStatus('Selected the next occurrence');
+            this.setStatus(this.searchMark.selectFindNext()
+                ? 'Selected the next occurrence'
+                : 'No results');
         } else {
             this.markPage();
         }
@@ -450,24 +455,36 @@ export class NotepadiaFindDialog extends ReactWidget {
         return this.applyMatch(matches[index].range, reveal);
     }
 
+    /** The active search scope when "In selection" is checked and usable. */
+    protected selectionScope(): monaco.IRange | undefined {
+        if (!this.findState.get().inSelection) {
+            return undefined;
+        }
+        const selection = this.currentControl()?.getSelection();
+        return selection && !selection.isEmpty() ? selection : undefined;
+    }
+
     /** Selects a match range, reveals it and updates the status line. */
     protected applyMatch(range: monaco.IRange, reveal: boolean): boolean {
         const control = this.currentControl();
         if (!control) {
             return false;
         }
+        // Read the scope before moving the caret: the selection *is* the scope
+        // while "In selection" is on, and applyMatch is about to replace it.
+        const scope = this.selectionScope();
         control.setSelection(new monaco.Range(
             range.startLineNumber, range.startColumn, range.endLineNumber, range.endColumn
         ));
         if (reveal) {
             control.revealRangeInCenterIfOutsideViewport(range);
         }
-        this.setStatus(describeMatchCount(this.allMatches().length, this.currentMatchIndex(range)));
+        this.setStatus(describeMatchCount(this.allMatches(scope).length, this.currentMatchIndex(range, scope)));
         return true;
     }
 
-    protected currentMatchIndex(range: monaco.IRange): number {
-        const matches = this.allMatches();
+    protected currentMatchIndex(range: monaco.IRange, scope?: monaco.IRange): number {
+        const matches = this.allMatches(scope);
         const index = matches.findIndex(m =>
             m.range.startLineNumber === range.startLineNumber && m.range.startColumn === range.startColumn
         );
@@ -571,12 +588,18 @@ export class NotepadiaFindDialog extends ReactWidget {
 
     /** One Monaco match as a result row, with the line text it sits on. */
     protected hitFromMatch(model: monaco.editor.ITextModel, match: monaco.editor.FindMatch): NotepadiaSearchHitInput {
-        const line = match.range.startLineNumber;
+        const { startLineNumber, startColumn, endLineNumber, endColumn } = match.range;
+        const multiline = endLineNumber > startLineNumber;
         return {
-            line,
-            column: match.range.startColumn,
-            length: match.range.endColumn - match.range.startColumn,
-            text: model.getLineContent(line)
+            line: startLineNumber,
+            column: startColumn,
+            // The row previews the first line; keep its highlight inside that
+            // line and carry the real end position for F4 navigation.
+            length: multiline ? model.getLineMaxColumn(startLineNumber) - startColumn : endColumn - startColumn,
+            text: model.getLineContent(startLineNumber),
+            endLine: multiline ? endLineNumber : undefined,
+            endColumn: multiline ? endColumn : undefined,
+            totalLength: model.getValueInRange(match.range).length
         };
     }
 
@@ -590,60 +613,61 @@ export class NotepadiaFindDialog extends ReactWidget {
         return model.findMatches(term, true, isRegex, opts.caseSensitive, wordSeparators, false, 10000);
     }
 
-    protected selectionMatches(): boolean {
+    /**
+     * The selected range only counts as "the current match" when it is exactly
+     * one match according to the same Monaco engine used for Find Next. An
+     * unanchored regex test (or a plain string equality that ignores whole
+     * word) used to let a superset selection be replaced wholesale.
+     */
+    protected selectionMatchRange(): monaco.IRange | undefined {
         const control = this.currentControl();
-        const model = this.currentModel();
         const sel = control?.getSelection();
-        if (!control || !model || !sel || sel.isEmpty()) {
-            return false;
+        if (!control || !sel || sel.isEmpty()) {
+            return undefined;
         }
-        const text = model.getValueInRange(new monaco.Range(
-            sel.startLineNumber, sel.startColumn, sel.endLineNumber, sel.endColumn
-        ));
-        const { term, isRegex } = this.resolved();
-        if (isRegex) {
-            try {
-                return new RegExp(term, this.findState.get().caseSensitive ? '' : 'i').test(text);
-            } catch {
-                return false;
-            }
-        }
-        return this.findState.get().caseSensitive ? text === term : text.toLowerCase() === term.toLowerCase();
+        // Search the whole model, not just the selection: Monaco treats the
+        // edges of an explicit search scope as word boundaries, which would
+        // make a partial word selected inside a larger word look like a valid
+        // whole-word match. Only a match found in its real context counts.
+        const match = this.allMatches().find(m => {
+            const range = m.range;
+            return range.startLineNumber === sel.startLineNumber &&
+                range.startColumn === sel.startColumn &&
+                range.endLineNumber === sel.endLineNumber &&
+                range.endColumn === sel.endColumn;
+        });
+        return match?.range;
     }
 
     /**
-     * Capture groups for a range that is about to be replaced. Monaco returns
-     * them on `FindMatch.matches` when asked, but only for regex searches; for
-     * literal/extended searches the plain matched text is all a replacement
-     * pattern can refer to. The scope is widened to the whole line so `^`, `$`
-     * and lookarounds resolve exactly as they did during the original search.
+     * Capture groups for a range that is about to be replaced. Monaco's
+     * `FindMatch.matches` supplies numbered groups but drops the `groups` object
+     * holding named ones, so the regex is re-run over the matched lines to
+     * recover both. Using every line of the range also makes captures work for
+     * multiline regex matches.
      */
-    protected replacementContext(range: monaco.IRange): ReplacementContext {
-        const model = this.currentModel();
-        if (!model) {
-            return { match: '', groups: [] };
-        }
+    protected replacementContext(
+        model: monaco.editor.ITextModel,
+        range: monaco.IRange,
+        search: ResolvedSearch,
+        caseSensitive: boolean,
+        fallbackGroups: readonly (string | undefined)[] = []
+    ): ReplacementContext {
         const matched = model.getValueInRange(range as monaco.Range);
-        const { term, isRegex } = this.resolved();
-        if (!isRegex || !term) {
+        if (!search.isRegex || !search.term) {
             return { match: matched, groups: [] };
         }
-        const line = range.startLineNumber;
-        const scope = new monaco.Range(line, 1, line, model.getLineMaxColumn(line));
-        const opts = this.findState.get();
-        const matches = model.findMatches(term, scope, true, opts.caseSensitive, this.wordSeparators(), true, 10000);
-        const match = matches.find(m =>
-            m.range.startLineNumber === range.startLineNumber &&
-            m.range.startColumn === range.startColumn &&
-            m.range.endColumn === range.endColumn
-        ) ?? matches.find(m =>
-            m.range.startLineNumber === range.startLineNumber &&
-            m.range.startColumn === range.startColumn
+        // Widen the probe to whole lines so ^, $ and lookarounds see the same
+        // context as the original search, including across line breaks.
+        const lineStart = { lineNumber: range.startLineNumber, column: 1 };
+        const scope = new monaco.Range(
+            range.startLineNumber, 1,
+            range.endLineNumber, model.getLineMaxColumn(range.endLineNumber)
         );
-        if (!match) {
-            return { match: matched, groups: [] };
-        }
-        return { match: model.getValueInRange(match.range), groups: match.matches ?? [] };
+        const haystack = model.getValueInRange(scope);
+        const offset = model.getOffsetAt({ lineNumber: range.startLineNumber, column: range.startColumn })
+            - model.getOffsetAt(lineStart);
+        return captureContextInText(haystack, offset, search.term, caseSensitive, matched, fallbackGroups);
     }
 
     /** Replace the next occurrence (or the current match, an Npp nuance). */
@@ -654,24 +678,32 @@ export class NotepadiaFindDialog extends ReactWidget {
         if (!control || !model || !opts.term) {
             return false;
         }
-        let range: monaco.IRange;
-        if (this.selectionMatches()) {
-            range = control.getSelection() as monaco.IRange;
-        } else {
-            const moved = this.findNext(false, false);
-            if (!moved) {
+        // Snapshot the search before any edit or focus change, so the text and
+        // its groups are resolved with the same mode that found the match.
+        const search = this.resolved();
+        const mode = opts.mode;
+        let range: monaco.IRange | undefined = this.selectionMatchRange();
+        if (!range) {
+            if (!this.findNext(false, false)) {
                 return false;
             }
-            range = control.getSelection() as monaco.IRange;
+            range = control.getSelection() ?? undefined;
         }
-        const text = resolveReplacement(opts.replace, this.mode, this.replacementContext(range));
+        if (!range) {
+            return false;
+        }
+        const text = resolveReplacement(opts.replace, mode,
+            this.replacementContext(model, range, search, opts.caseSensitive));
         control.executeEdits('notepadia-replace', [{
             range,
             text,
             forceMoveMarkers: true
         }]);
-        this.setStatus(`${text.length} character${text.length === 1 ? '' : 's'} replaced`);
-        this.findNext(false);
+        const count = `${text.length} character${text.length === 1 ? '' : 's'} replaced`;
+        const moved = this.findNext(false);
+        // findNext writes the new match index to the status; keep the count in
+        // front of it instead of letting it overwrite the replacement feedback.
+        this.setStatus(moved ? `${count}; ${this.status}` : count);
         return true;
     }
 
@@ -681,12 +713,18 @@ export class NotepadiaFindDialog extends ReactWidget {
         if (!opts.term || !current) {
             return;
         }
-        const { term, isRegex } = this.resolved();
+        const search = this.resolved();
+        const mode = opts.mode;
         const control = this.currentControl();
         const wordSeparators = opts.wholeWord && control
             ? control.getOption(monaco.editor.EditorOption.wordSeparators)
             : null;
+        // "In selection" limits the current-document action, just as it limits
+        // Find Next. Replacing across all opened documents has no single
+        // selection to respect, so it always searches whole documents.
+        const scope = documents ? undefined : this.selectionScope();
         let total = 0;
+        let changedDocuments = 0;
         // Without "In all open documents" the current document is the target -
         // not merely the first open one, which may well be a different editor.
         const targets = documents
@@ -695,31 +733,52 @@ export class NotepadiaFindDialog extends ReactWidget {
         for (const widget of targets) {
             const editor = widget ? MonacoEditor.get(widget) : undefined;
             const targetControl = editor?.getControl();
-            const model = targetControl?.getModel();
-            if (!targetControl || !model) {
+            // A hidden tab detaches its Monaco model from the control. The
+            // document still owns that model, so read it from there and keep
+            // background tabs in scope instead of silently skipping them.
+            const model = (editor?.document?.textEditorModel ?? targetControl?.getModel()) as unknown as monaco.editor.ITextModel | undefined;
+            if (!model) {
                 continue;
             }
-            const matches = model.findMatches(term, true, isRegex, opts.caseSensitive, wordSeparators, true, 10000);
+            const matches = scope
+                ? model.findMatches(search.term, scope, search.isRegex, opts.caseSensitive, wordSeparators, true, 10000)
+                // A hidden tab's editable range can be empty even though its
+                // model has content. Search the whole model for the
+                // all-documents action so background tabs are not skipped.
+                : model.findMatches(search.term, !documents, search.isRegex, opts.caseSensitive, wordSeparators, true, 10000);
             if (matches.length === 0) {
                 continue;
             }
-            // Expand backreferences per match. Monaco returns the capture
-            // groups on `FindMatch.matches` when captureMatches is on, so each
-            // edit gets the groups of the occurrence it replaces.
+            // Expand backreferences per match. Monaco's `FindMatch.matches`
+            // has the numbered groups; the regex is re-run over the match's
+            // lines to recover named ones as well.
             const edits: monaco.editor.IIdentifiedSingleEditOperation[] = matches.map(match => ({
                 range: match.range,
-                text: resolveReplacement(opts.replace, this.mode, {
-                    match: model.getValueInRange(match.range),
-                    groups: match.matches ?? []
-                }),
+                text: resolveReplacement(opts.replace, mode, this.replacementContext(
+                    model, match.range, search, opts.caseSensitive, match.matches ?? []
+                )),
                 forceMoveMarkers: true
             }));
-            targetControl.executeEdits('notepadia-replace-all', edits);
+            // The active editor keeps its selection and undo stack through
+            // executeEdits. A hidden tab has no attached control, so apply the
+            // same edits to its document model directly; its undo history is
+            // model-owned and is restored when the tab becomes visible again.
+            if (targetControl?.getModel() === model) {
+                targetControl.executeEdits('notepadia-replace-all', edits);
+            } else {
+                // Push an undo stop around the batch: applyEdits alone would
+                // change the text without recording it for Ctrl+Z.
+                model.pushStackElement();
+                model.pushEditOperations(null, edits, () => null);
+                model.pushStackElement();
+            }
             total += matches.length;
+            changedDocuments += 1;
         }
+        const changed = documents ? changedDocuments : (total > 0 ? 1 : 0);
         this.setStatus(total === 0
             ? 'No results'
-            : `${total} replacement${total === 1 ? '' : 's'} made in ${documents ? targets.length : 1} document${documents && targets.length === 1 ? '' : 's'}`);
+            : `${total} replacement${total === 1 ? '' : 's'} made in ${changed} document${changed === 1 ? '' : 's'}`);
     }
 
     /**
@@ -788,11 +847,18 @@ export class NotepadiaFindDialog extends ReactWidget {
 
     /**
      * The search service's callback API, collected into a promise. onDone is the
-     * only completion signal there is, and a failed search resolves with
-     * whatever arrived rather than leaving the caller waiting.
+     * only completion signal there is; its `error` argument is propagated so a
+     * failed search is reported instead of looking like a search with no hits.
      */
     protected collectFileMatches(term: string, roots: string[], options: SearchInWorkspaceOptions): Promise<NotepadiaSearchFileInput[]> {
-        return new Promise(resolve => {
+        // Theia does not forward ripgrep's regex parse error through onDone: a
+        // malformed pattern comes back as an empty result set. Reject patterns
+        // with delimiters that are unbalanced in every supported dialect so
+        // callers report a failure instead of "No results".
+        if (options.useRegExp && hasUnbalancedRegexDelimiters(term)) {
+            return Promise.reject(new Error(`Invalid regular expression: ${term}`));
+        }
+        return new Promise((resolve, reject) => {
             const files: NotepadiaSearchFileInput[] = [];
             const client: SearchInWorkspaceClient = {
                 onResult: (_searchId, result) => {
@@ -802,21 +868,32 @@ export class NotepadiaFindDialog extends ReactWidget {
                     files.push({
                         uri: result.fileUri,
                         name: new URI(result.fileUri).path.base,
-                        hits: result.matches.map(match => ({
-                            line: match.line,
-                            column: match.character,
-                            length: match.length,
-                            // Older backends report the line as a plain string,
-                            // the current one as a preview object.
-                            text: typeof match.lineText === 'string'
-                                ? match.lineText
-                                : (match.lineText?.text ?? '')
-                        }))
+                        hits: result.matches.map(match => {
+                            // A long line comes back as a truncated preview. Theia
+                            // reports `character` as a column in the full line,
+                            // but the preview's own `character` is the match's
+                            // 1-based position inside the snippet. Record an
+                            // index into `text` so rendering and replacement
+                            // both look at the right characters.
+                            const preview = typeof match.lineText === 'string' ? undefined : match.lineText;
+                            const text = typeof match.lineText === 'string' ? match.lineText : (preview?.text ?? '');
+                            // Theia's LinePreview.character is the 1-based match
+                            // position inside the preview (including any '...'
+                            // prefix), not a column in the full line.
+                            const matchIndex = preview ? preview.character - 1 : match.character - 1;
+                            return {
+                                line: match.line,
+                                column: match.character,
+                                length: match.length,
+                                text,
+                                matchIndex: Math.max(0, matchIndex)
+                            };
+                        })
                     });
                 },
-                onDone: () => resolve(files)
+                onDone: (_searchId, error) => error ? reject(new Error(error)) : resolve(files)
             };
-            this.searchInWorkspace.searchWithCallback(term, roots, client, options).catch(() => resolve(files));
+            this.searchInWorkspace.searchWithCallback(term, roots, client, options).catch(reject);
         });
     }
 
@@ -831,33 +908,25 @@ export class NotepadiaFindDialog extends ReactWidget {
         hit: NotepadiaSearchHitInput,
         term: string,
         isRegex: boolean,
-        caseSensitive: boolean
+        caseSensitive: boolean,
+        wholeWord = false
     ): ReplacementContext {
-        const start = Math.max(0, hit.column - 1);
+        // `matchIndex` points into the (possibly truncated) preview text;
+        // without it the full-line column is the right 0-based index.
+        const start = Math.max(0, hit.matchIndex ?? hit.column - 1);
         const matched = hit.text.slice(start, start + hit.length);
         if (!isRegex || !term) {
             return { match: matched, groups: [] };
         }
-        let regex: RegExp;
-        try {
-            regex = new RegExp(term, caseSensitive ? 'g' : 'gi');
-        } catch {
-            return { match: matched, groups: [] };
-        }
-        let probe: RegExpExecArray | null;
-        while ((probe = regex.exec(hit.text)) !== null) {
-            if (probe.index === start) {
-                return {
-                    match: probe[0],
-                    groups: probe,
-                    named: { ...(probe.groups ?? {}) }
-                };
-            }
-            if (probe[0].length === 0) {
-                regex.lastIndex += 1;
-            }
-        }
-        return { match: matched, groups: [] };
+        return captureContextInText(
+            hit.text,
+            start,
+            normalizeFileSearchPattern(term),
+            caseSensitive,
+            matched,
+            [],
+            wholeWord
+        );
     }
 
     /**
@@ -870,16 +939,19 @@ export class NotepadiaFindDialog extends ReactWidget {
      */
     protected async replaceInFiles(globs: string[]): Promise<void> {
         const opts = this.findState.get();
-        const { term, isRegex } = this.resolved();
+        // Everything below is one operation: keep the search and its replacement
+        // semantics fixed even though confirmation and saving await.
+        const search = this.resolved();
+        const mode = opts.mode;
         const roots = this.workspaceService.tryGetRoots().map(root => root.resource.toString());
         if (roots.length === 0) {
             this.setStatus('No workspace folder is open');
             return;
         }
-        const files = await this.collectFileMatches(term, roots, {
+        const files = await this.collectFileMatches(search.term, roots, {
             matchCase: opts.caseSensitive,
             matchWholeWord: opts.wholeWord,
-            useRegExp: isRegex,
+            useRegExp: search.isRegex,
             include: globs,
             includeIgnored: this.includeHidden
         });
@@ -899,24 +971,38 @@ export class NotepadiaFindDialog extends ReactWidget {
         const previous = this.shell.currentWidget;
         const temporary: Widget[] = [];
         let replaced = 0;
+        let skipped = 0;
+        let failed = 0;
         for (const file of files) {
             const existing = this.editorManager.all.find(widget => widget.editor.uri.toString() === file.uri);
-            const widget = existing ?? await this.editorManager.open(new URI(file.uri));
-            const control = MonacoEditor.get(widget)?.getControl();
-            if (!control) {
+            // The search ran against the files on disk. Applying those ranges to
+            // a dirty in-memory buffer would edit the wrong text and saving it
+            // would persist unrelated unsaved work, so leave such files alone.
+            if (existing?.saveable.dirty) {
+                skipped += 1;
                 continue;
             }
-            const edits = file.hits.map(hit => ({
-                range: new monaco.Range(hit.line, hit.column, hit.line, hit.column + hit.length),
-                text: resolveReplacement(opts.replace, this.mode,
-                    this.replacementContextInLine(hit, term, isRegex, opts.caseSensitive)),
-                forceMoveMarkers: true
-            }));
-            control.executeEdits('notepadia-replace-in-files', edits);
-            await widget.saveable.save();
-            replaced += edits.length;
-            if (!existing) {
-                temporary.push(widget);
+            try {
+                const widget = existing ?? await this.editorManager.open(new URI(file.uri));
+                const control = MonacoEditor.get(widget)?.getControl();
+                if (!control) {
+                    failed += 1;
+                    continue;
+                }
+                const edits = file.hits.map(hit => ({
+                    range: new monaco.Range(hit.line, hit.column, hit.line, hit.column + hit.length),
+                    text: resolveReplacement(opts.replace, mode,
+                        this.replacementContextInLine(hit, search.term, search.isRegex, opts.caseSensitive, opts.wholeWord)),
+                    forceMoveMarkers: true
+                }));
+                control.executeEdits('notepadia-replace-in-files', edits);
+                await widget.saveable.save();
+                replaced += edits.length;
+                if (!existing) {
+                    temporary.push(widget);
+                }
+            } catch {
+                failed += 1;
             }
         }
         // Restoring focus before disposal keeps the shell from briefly showing
@@ -928,7 +1014,14 @@ export class NotepadiaFindDialog extends ReactWidget {
             widget.dispose();
         }
         this.publishResults({ term: opts.term, scope: 'Files', files });
-        this.setStatus(`${replaced} replacement${replaced === 1 ? '' : 's'} made in ${files.length} file${files.length === 1 ? '' : 's'}`);
+        const parts = [`${replaced} replacement${replaced === 1 ? '' : 's'} made in ${files.length} file${files.length === 1 ? '' : 's'}`];
+        if (skipped) {
+            parts.push(`${skipped} unsaved file${skipped === 1 ? '' : 's'} skipped`);
+        }
+        if (failed) {
+            parts.push(`${failed} file${failed === 1 ? '' : 's'} failed`);
+        }
+        this.setStatus(parts.join('; '));
     }
 
     /**
@@ -1162,7 +1255,7 @@ export class NotepadiaFindDialog extends ReactWidget {
                     {this.mode === 'regex' && (
                         <label
                             className="notepadia-find-check notepadia-find-check-disabled"
-                            title="The editor's search engine matches within a single line, so a pattern can never span a line break here. Notepad++ supports it; this build does not."
+                            title="Regular expression patterns can span lines when they include a newline. The '. matches newline' option is disabled because dot-all is not enabled here: a dot still stops at a line break."
                         >
                             <input
                                 type="checkbox"
@@ -1295,7 +1388,9 @@ export class NotepadiaFindDialog extends ReactWidget {
                 <div className="notepadia-find-buttons">
                     <button type="button" className="theia-button" onClick={() => this.markPage()}>Mark All</button>
                     <button type="button" className="theia-button" onClick={() => { this.searchMark.clear(); this.setStatus('Cleared all marks'); }}>Clear All Marks</button>
-                    <button type="button" className="theia-button" onClick={() => { this.searchMark.selectFindNext(); this.setStatus('Selected the next occurrence'); }}>Select and Find Next</button>
+                    <button type="button" className="theia-button" onClick={() => {
+                        this.setStatus(this.searchMark.selectFindNext() ? 'Selected the next occurrence' : 'No results');
+                    }}>Select and Find Next</button>
                 </div>
             </div>
         );

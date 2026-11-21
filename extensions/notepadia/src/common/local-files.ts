@@ -117,6 +117,77 @@ export function resolveDialogFolder(explicitFolderUri: string | undefined, homeU
     return explicitFolderUri ?? homeUri;
 }
 
+interface ComparableUri {
+    scheme: string;
+    authority: string;
+    path: string;
+}
+
+function parseUriForComparison(uri: string): ComparableUri | undefined {
+    if (typeof uri !== 'string') {
+        return undefined;
+    }
+    const hierarchical = /^([a-z][a-z0-9+.-]*):\/\/([^/]*)([^?#]*)/i.exec(uri);
+    if (hierarchical) {
+        return {
+            scheme: hierarchical[1].toLowerCase(),
+            authority: hierarchical[2].toLowerCase(),
+            path: hierarchical[3]
+        };
+    }
+    const opaque = /^([a-z][a-z0-9+.-]*):([^?#]*)/i.exec(uri);
+    return opaque ? { scheme: opaque[1].toLowerCase(), authority: '', path: opaque[2] } : undefined;
+}
+
+function normalizedUriPath(uriPath: string): string {
+    let decoded = uriPath;
+    try {
+        decoded = decodeURIComponent(uriPath);
+    } catch {
+        // A malformed escape is compared literally; the caller still gets a
+        // conservative answer rather than an exception.
+    }
+    const absolute = decoded.startsWith('/');
+    const normalized: string[] = [];
+    for (const segment of decoded.replace(/\\/g, '/').split('/')) {
+        if (!segment || segment === '.') {
+            continue;
+        }
+        if (segment === '..') {
+            if (normalized.length && normalized[normalized.length - 1] !== '..') {
+                normalized.pop();
+            } else if (!absolute) {
+                normalized.push(segment);
+            }
+            continue;
+        }
+        normalized.push(segment);
+    }
+    return (absolute ? '/' : '') + normalized.join('/');
+}
+
+/**
+ * True when `candidateUri` is the workspace root itself or a path beneath it.
+ *
+ * The upload-conflict Save As lets the user name a file anywhere, but the
+ * bytes must still land in the workspace the upload chose. Theia's `URI` has
+ * `isEqualOrParent` for this, but keeping the rule on URI strings leaves this
+ * module free of Theia and DOM types so it can be unit tested directly. A root
+ * with no path never matches, and a sibling whose name merely shares the
+ * root's prefix (`/ws-other` next to `/ws`) is rejected, and `..` segments are
+ * resolved before comparing so a path cannot walk back out of the workspace.
+ */
+export function isUriWithinWorkspace(candidateUri: string, workspaceRootUri: string): boolean {
+    const candidate = parseUriForComparison(candidateUri);
+    const root = parseUriForComparison(workspaceRootUri);
+    if (!candidate || !root || candidate.scheme !== root.scheme || candidate.authority !== root.authority) {
+        return false;
+    }
+    const rootPath = normalizedUriPath(root.path);
+    const candidatePath = normalizedUriPath(candidate.path);
+    return Boolean(rootPath) && (candidatePath === rootPath || candidatePath.startsWith(`${rootPath}/`));
+}
+
 /**
  * The directory `showOpenFilePicker` / `showSaveFilePicker` resume in (WS-I /
  * I2). Chromium's `startIn` accepts only a well-known directory name or a

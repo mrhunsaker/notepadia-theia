@@ -15,6 +15,12 @@ import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
  * model via a Monaco decoration collection. Navigation is within the current
  * file; bookmarks are session-scoped (Notepad++ also keeps them per session).
  */
+interface DecorationEntry {
+    control: monaco.editor.ICodeEditor;
+    uri: string;
+    collection: monaco.editor.IEditorDecorationsCollection;
+}
+
 export namespace NotepadiaBookmarkCommands {
     export const TOGGLE: Command = { id: 'notepadia.bookmark.toggle', label: 'Toggle Bookmark' };
     export const NEXT: Command = { id: 'notepadia.bookmark.next', label: 'Next Bookmark' };
@@ -28,10 +34,8 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
     protected static readonly DECORATION_CLASS = 'notepadia-bookmark-glyph';
 
     protected readonly bookmarks = new Map<string, Set<number>>();
-    protected readonly collections = new Map<string, {
-        control: monaco.editor.ICodeEditor;
-        collection: monaco.editor.IEditorDecorationsCollection;
-    }>();
+    /** Split views share a URI but own separate Monaco controls and collections. */
+    protected readonly collections = new Map<string /* control id */, DecorationEntry>();
 
     constructor(
         @inject(EditorManager) protected readonly editorManager: EditorManager
@@ -45,7 +49,10 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
                 this.applyToCurrent();
             }
         }));
-        disposables.push(this.editorManager.onCreated(() => this.applyToCurrent()));
+        disposables.push(this.editorManager.onCreated(widget => {
+            widget.disposed.connect(() => this.syncDecorations());
+            this.syncDecorations();
+        }));
     }
 
     registerCommands(commands: CommandRegistry): void {
@@ -147,24 +154,52 @@ export class NotepadiaBookmarkContribution implements CommandContribution, MenuC
     }
 
     protected applyToCurrent(): void {
-        const key = this.currentModelKey();
-        if (key) {
-            this.applyTo(key);
+        this.syncDecorations();
+    }
+
+    protected applyTo(_key: string): void {
+        this.syncDecorations();
+    }
+
+    /**
+     * Reconcile one collection per Monaco control: a split view has its own
+     * control for the same URI, so updating only the current editor would leave
+     * the other pane stale. Collections for closed or replaced controls are
+     * cleared and dropped rather than leaked.
+     */
+    protected syncDecorations(): void {
+        const live = new Set<string>();
+        for (const widget of this.editorManager.all) {
+            const editor = MonacoEditor.get(widget);
+            const control = editor?.getControl();
+            const model = control?.getModel();
+            if (!editor || !control || !model) {
+                continue;
+            }
+            const id = control.getId();
+            const uri = model.uri.toString();
+            live.add(id);
+            let entry = this.collections.get(id);
+            if (!entry || entry.control !== control || entry.uri !== uri) {
+                entry?.collection.clear();
+                entry = { control, uri, collection: control.createDecorationsCollection([]) };
+                this.collections.set(id, entry);
+                const tracked = entry;
+                editor.onDispose(() => this.disposeCollection(id, tracked));
+            }
+            entry.collection.set(this.decorationsFor(uri));
+        }
+        for (const [id, entry] of this.collections) {
+            if (!live.has(id)) {
+                this.disposeCollection(id, entry);
+            }
         }
     }
 
-    protected applyTo(key: string): void {
-        const editor = this.currentEditor();
-        const control = editor?.getControl();
-        const model = control?.getModel();
-        if (!control || !model || model.uri.toString() !== key) {
-            return;
+    protected disposeCollection(id: string, entry: DecorationEntry): void {
+        if (this.collections.get(id) === entry) {
+            entry.collection.clear();
+            this.collections.delete(id);
         }
-        let entry = this.collections.get(key);
-        if (!entry || entry.control !== control || entry.control.getModel() !== model) {
-            entry = { control, collection: control.createDecorationsCollection([]) };
-            this.collections.set(key, entry);
-        }
-        entry.collection.set(this.decorationsFor(key));
     }
 }

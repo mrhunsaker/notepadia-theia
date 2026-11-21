@@ -140,6 +140,25 @@ describe('language tokenizers', () => {
         assert.ok(hasToken(markdown, 'comment', 'comment'));
     });
 
+    it('does not tokenize Markdown contractions as strings', () => {
+        const markdown = tokensFor('markdown');
+        const stringRules = (markdown.tokenizer.root ?? []).filter(rule =>
+            actionTokens(rule).some(token => token.startsWith('string')));
+        assert.ok(stringRules.length > 0, 'Markdown has no string-token rules to check');
+        for (const text of ["don't", "it's", "'tis"]) {
+            const matchingStringRules = stringRules.filter(rule => {
+                const regex = rule[0];
+                if (!(regex instanceof RegExp)) {
+                    return false;
+                }
+                const probe = new RegExp(regex.source, regex.flags.replace(/[gy]/g, ''));
+                const match = probe.exec(text);
+                return match !== null && match.index === 0;
+            });
+            assert.deepEqual(matchingStringRules, [], `Markdown highlights ${text} as a string`);
+        }
+    });
+
     it('tokenizes YAML keys, values and constants', () => {
         const yaml = tokensFor('yaml');
         assert.equal(yaml.ignoreCase, true);

@@ -32,6 +32,9 @@ async function runMenuOp(page, file, submenu, label, tabSize) {
 
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
+    // Written by this suite rather than seeded in run.cjs because only this
+    // check uses it. Before goto so the workspace index sees it on startup.
+    fs.writeFileSync(path.join(WS, 'blank-crlf.txt'), Buffer.from('  pad  \r\nkeep  \r\n', 'utf8'));
     await goto(page);
     await openFile(page, 'blank-tab.txt');
 
@@ -65,6 +68,11 @@ async function runMenuOp(page, file, submenu, label, tabSize) {
     assert('Trim trailing space trims the line ends only',
         read('blank-trim-trailing.txt') === '  pad\nkeep\n',
         JSON.stringify(read('blank-trim-trailing.txt')));
+
+    await runMenuOp(page, 'blank-crlf.txt', 'Blank Operations', 'Trim trailing space');
+    assert('Trim trailing space works on CRLF files and preserves CRLF',
+        read('blank-crlf.txt') === '  pad\r\nkeep\r\n',
+        JSON.stringify(read('blank-crlf.txt')));
 
     await runMenuOp(page, 'blank-eol.txt', 'Blank Operations', 'EOL to space');
     assert('EOL to space joins the document on one line',

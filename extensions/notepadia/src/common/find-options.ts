@@ -198,6 +198,101 @@ function expandRegexReplacement(pattern: string, context?: ReplacementContext): 
 }
 
 /**
+ * Translate the handful of Rust/regex-crate constructs ripgrep accepts that
+ * JavaScript's RegExp does not, so a Find in Files regex can be re-run on a
+ * result line to recover its capture groups. Currently that is the named-group
+ * spelling `(?P<name>...)`, which JavaScript writes `(?<name>...)`.
+ *
+ * Patterns using syntax with no JavaScript equivalent are returned unchanged;
+ * the caller treats a failed probe as "no captures" rather than an error.
+ */
+export function normalizeFileSearchPattern(pattern: string): string {
+    return pattern.replace(/\(\?P<([A-Za-z_$][\w$]*)>/g, '(?<$1>');
+}
+
+/**
+ * Detect delimiters that are unbalanced in every regex dialect Notepadia
+ * supports. Theia's search backend does not forward ripgrep's parse error to
+ * the client - it simply reports no matches - so these patterns have to be
+ * rejected before a search starts. This deliberately checks only structure
+ * shared by JavaScript and ripgrep; dialect-specific constructs are left to
+ * the backend.
+ */
+export function hasUnbalancedRegexDelimiters(pattern: string): boolean {
+    const stack: string[] = [];
+    let inClass = false;
+    for (let index = 0; index < pattern.length; index += 1) {
+        const ch = pattern[index];
+        if (ch === '\\') {
+            index += 1;
+            continue;
+        }
+        if (inClass) {
+            if (ch === ']') {
+                inClass = false;
+            }
+            continue;
+        }
+        if (ch === '[') {
+            inClass = true;
+        } else if (ch === '(') {
+            stack.push(')');
+        } else if (ch === ')' && stack.pop() !== ')') {
+            return true;
+        }
+    }
+    return inClass || stack.length > 0;
+}
+
+/**
+ * Recover the replacement context for one known match by re-running its regex
+ * on the text it was found in. Monaco's `FindMatch.matches` is a plain array:
+ * `createFindMatch` copies the `RegExp.exec` result into a new array and drops
+ * its `groups` property, so named groups have to be recovered this way. Re-running
+ * on the match's whole line (and, for a multiline match, all of its lines) also
+ * gives `^`, `$` and lookarounds the same context the original search had.
+ *
+ * `offset` is the 0-based character index of the match inside `haystack`. When
+ * no probe lands there - for example because the backend uses a regex dialect
+ * JavaScript cannot parse - the caller's matched text and groups are returned
+ * unchanged so ordinary numbered backreferences still work.
+ */
+export function captureContextInText(
+    haystack: string,
+    offset: number,
+    term: string,
+    caseSensitive: boolean,
+    matched: string,
+    fallbackGroups: readonly (string | undefined)[] = [],
+    wholeWord = false
+): ReplacementContext {
+    if (!term) {
+        return { match: matched, groups: fallbackGroups };
+    }
+    let regex: RegExp;
+    try {
+        const pattern = wholeWord ? `\\b(?:${term})\\b` : term;
+        regex = new RegExp(pattern, caseSensitive ? 'g' : 'gi');
+    } catch {
+        return { match: matched, groups: fallbackGroups };
+    }
+    let probe: RegExpExecArray | null;
+    while ((probe = regex.exec(haystack)) !== null) {
+        if (probe.index === offset) {
+            return {
+                match: probe[0],
+                groups: Array.from(probe),
+                named: probe.groups ? { ...probe.groups } : undefined
+            };
+        }
+        if (probe[0].length === 0) {
+            regex.lastIndex += 1;
+        }
+    }
+    return { match: matched, groups: fallbackGroups };
+}
+
+/**
  * Notepad++ / editor-style match summary shown in the dialog status line,
  * mirroring the count formats of the classic find widget:
  *  - no matches: 'No results';

@@ -30,6 +30,7 @@ import {
     PickerOutcome,
     classifyPickerError,
     downloadText,
+    isUriWithinWorkspace,
     pickerStartIn,
     readFileAsText,
     resolveDialogFolder,
@@ -569,6 +570,7 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             await writable.write(target.text);
             await writable.close();
             this.handles.set(target.uri.toString(), handle);
+            await this.markHandleTargetClean(target.uri);
             await this.lastDirectory.set(handle);
             return 'saved';
         } catch (error) {
@@ -599,12 +601,37 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
             }
             return outcome;
         }
+        // Only a completed write clears the dirty flag; a denied or failed one
+        // leaves the tab dirty so the user can retry or save somewhere else.
+        await this.markHandleTargetClean(target.uri);
         this.messageService.info(nls.localize(
             'notepadia/localFiles/savedBack',
             'Saved {0} to your computer.',
             target.name
         ));
         return 'written';
+    }
+
+    /**
+     * Clears Theia's dirty state for a tab whose bytes were just written
+     * through a File System Access handle. A soft `revert` only resets the
+     * save state: the model text and its undo history stay untouched, which is
+     * what an external write needs. The write has already resolved by the time
+     * this runs, so a failure to synchronise the flag must not be reported as
+     * a save failure.
+     */
+    protected async markHandleTargetClean(uri: URI): Promise<void> {
+        const editor = this.editorManager.all.find(widget =>
+            NavigatableWidget.getUri(widget)?.toString() === uri.toString());
+        if (!editor || !editor.saveable.dirty) {
+            return;
+        }
+        try {
+            await editor.saveable.revert?.({ soft: true });
+        } catch {
+            // The bytes reached the user's disk; the tab indicator is cosmetic
+            // next to that and must not turn a successful save into an error.
+        }
     }
 
     protected reportWriteFailure(target: LocalTarget, outcome: PickerOutcome): void {
@@ -651,7 +678,9 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
         for (const file of picked) {
             const destination = first.resource.resolve(file.name);
             try {
-                if (await this.fileService.exists(destination)) {
+                const conflict = await this.fileService.exists(destination);
+                let target = destination;
+                if (conflict) {
                     // The conflict Save As names a file INSIDE the server
                     // workspace, so it passes that folder explicitly and is
                     // deliberately not pulled back to home: letting the home
@@ -664,15 +693,31 @@ export class NotepadiaLocalFilesContribution implements CommandContribution, Men
                     if (!confirmed) {
                         continue;
                     }
-                    await this.fileService.writeFile(confirmed, BinaryBuffer.fromString(file.text));
-                } else {
-                    await this.fileService.createFile(destination, BinaryBuffer.fromString(file.text));
+                    if (isUriWithinWorkspace(confirmed.toString(), first.resource.toString())) {
+                        // The dialog's choice is authoritative: write AND open
+                        // this URI so the bytes and the tab cannot disagree.
+                        target = confirmed;
+                    } else {
+                        this.messageService.warn(nls.localize(
+                            'notepadia/localFiles/conflictOutsideWorkspace',
+                            'The chosen file is outside the server workspace, so {0} was uploaded to its original destination instead.',
+                            file.name
+                        ));
+                    }
                 }
-                await open(this.openerService, destination);
+                // In the conflict case the original file is already there, so
+                // write over it (over a confirmed replacement, if one was
+                // picked); otherwise create it as before.
+                if (conflict) {
+                    await this.fileService.writeFile(target, BinaryBuffer.fromString(file.text));
+                } else {
+                    await this.fileService.createFile(target, BinaryBuffer.fromString(file.text));
+                }
+                await open(this.openerService, target);
                 this.messageService.info(nls.localize(
                     'notepadia/localFiles/uploaded',
                     'Uploaded {0} to the server workspace.',
-                    file.name
+                    target.path.base
                 ));
             } catch (error) {
                 this.messageService.error(nls.localize(

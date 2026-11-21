@@ -9,6 +9,7 @@
 // all options behave and clean up after themselves.
 const { assert, finish, sleep, launchPage, goto, openFile, waitFor,
     currentLine, clickEditorLine, openMenuBar, subLabels, closeMenus } = require('./lib.js');
+const { openFindDialog, setCheck, closeDialog } = require('./dialog-helpers.cjs');
 
 /**
  * The text covered by the editor's selection, read from geometry: Monaco draws
@@ -72,6 +73,15 @@ async function barState(page) {
             live: live ? live.textContent.trim() : '',
             highlightCount: Array.from(document.querySelectorAll('.notepadia-incremental-highlight')).length
         };
+    });
+}
+
+async function barMatchCase(page) {
+    return page.evaluate(() => {
+        const option = Array.from(document.querySelectorAll('.notepadia-incremental-search-option'))
+            .find(l => (l.textContent || '').trim().includes('Match case'));
+        const box = option ? option.querySelector('input[type="checkbox"]') : null;
+        return !!box && box.checked;
     });
 }
 
@@ -208,6 +218,25 @@ async function clickBarCheckbox(page, label) {
     await sleep(800);
     state = await barState(page);
     assert('Escape removes the bar after the match-case session', state.present === false, JSON.stringify(state));
+
+    // Match case is shared with the Find dialog: toggling it there while the
+    // bar is open must update both the checkbox and the live search.
+    await openFindDialog(page);
+    await setCheck(page, 'Match case', false);
+    await closeDialog(page, false);
+    await ctrlAltI(page);
+    await page.keyboard.type('Foo');
+    await sleep(700);
+    state = await barState(page);
+    assert('a new bar picks up the dialog Match case flag',
+        state.live === '4 matches' && !(await barMatchCase(page)), JSON.stringify(state));
+    await openFindDialog(page);
+    await setCheck(page, 'Match case', true);
+    await sleep(400);
+    assert('dialog Match case checks the open bar box', await barMatchCase(page) === true);
+    state = await barState(page);
+    assert('the open bar re-searches with the dialog case flag',
+        state.noMatch === true && state.live === 'no match', JSON.stringify(state));
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

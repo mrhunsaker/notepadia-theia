@@ -142,9 +142,20 @@ export function escapeForRegex(literal: string): string {
         }
         const code = ch.codePointAt(0) ?? 0;
         if (code < 32 || code > 126) {
-            out += code <= 0xff
-                ? '\\x' + code.toString(16).padStart(2, '0')
-                : '\\u' + code.toString(16).padStart(4, '0');
+            if (code > 0xffff) {
+                // `for...of` yields a whole code point, so an astral character
+                // needs two UTF-16 escapes. A single \u with five hex digits
+                // would be read as four digits plus a stray character.
+                const offset = code - 0x10000;
+                const high = 0xd800 + (offset >> 10);
+                const low = 0xdc00 + (offset & 0x3ff);
+                out += '\\u' + high.toString(16).padStart(4, '0')
+                    + '\\u' + low.toString(16).padStart(4, '0');
+            } else {
+                out += code <= 0xff
+                    ? '\\x' + code.toString(16).padStart(2, '0')
+                    : '\\u' + code.toString(16).padStart(4, '0');
+            }
         } else {
             out += ch;
         }

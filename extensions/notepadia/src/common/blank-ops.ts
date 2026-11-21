@@ -8,6 +8,14 @@
 export const SPLIT_COLUMN = 80;
 
 /**
+ * A caller that splits a Monaco model on '\n' keeps a trailing '\r' on every
+ * line of a CRLF document. Strip it before applying the line predicates below
+ * so a CRLF input produces the same logical result as an LF one.
+ */
+const stripCarriageReturn = (line: string): string =>
+    line.endsWith('\r') ? line.slice(0, -1) : line;
+
+/**
  * TAB to Space: expand every tab to the next tab stop, counting each
  * non-tab character as one column.
  */
@@ -52,17 +60,17 @@ export function spacesToTabs(line: string, tabSize: number): string {
 
 /** Trim leading and trailing whitespace on every line. */
 export function trimLeadingAndTrailing(lines: string[]): string[] {
-    return lines.map(line => line.trim());
+    return lines.map(line => stripCarriageReturn(line).trim());
 }
 
 /** Trim trailing spaces/tabs on every line. */
 export function trimTrailing(lines: string[]): string[] {
-    return lines.map(line => line.replace(/[ \t]+$/g, ''));
+    return lines.map(line => stripCarriageReturn(line).replace(/[ \t]+$/g, ''));
 }
 
 /** Collapse every line separator in the block into a single space. */
 export function eolToSpace(lines: string[]): string[] {
-    return [lines.join(' ')];
+    return [lines.map(stripCarriageReturn).join(' ')];
 }
 
 /**
@@ -73,7 +81,7 @@ export function removeUnnecessaryEol(lines: string[]): string[] {
     const out: string[] = [];
     let previousEmpty = false;
     for (const raw of lines) {
-        const line = raw.replace(/[ \t]+$/g, '');
+        const line = stripCarriageReturn(raw).replace(/[ \t]+$/g, '');
         if (line === '') {
             if (!previousEmpty) {
                 out.push('');
@@ -118,8 +126,8 @@ export function wrapLine(line: string, width: number = SPLIT_COLUMN): string[] {
 /** Split every line at the wrap column and flatten the result. */
 export function splitLines(lines: string[], width: number = SPLIT_COLUMN): string[] {
     const out: string[] = [];
-    for (const line of lines) {
-        out.push(...wrapLine(line, width));
+    for (const raw of lines) {
+        out.push(...wrapLine(stripCarriageReturn(raw), width));
     }
     return out;
 }
@@ -127,7 +135,8 @@ export function splitLines(lines: string[], width: number = SPLIT_COLUMN): strin
 /** Drop any line that is identical to the one immediately before it. */
 export function removeConsecutiveDuplicateLines(lines: string[]): string[] {
     const out: string[] = [];
-    for (const line of lines) {
+    for (const raw of lines) {
+        const line = stripCarriageReturn(raw);
         if (line !== out[out.length - 1]) {
             out.push(line);
         }

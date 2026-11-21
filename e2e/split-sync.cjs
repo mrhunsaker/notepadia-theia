@@ -73,6 +73,27 @@ async function wheelOverPane(page, paneIndex, deltaY) {
     return true;
 }
 
+/** Bookmark glyphs in each visible pane (a split pair shares one model). */
+function bookmarkGlyphs(page) {
+    return page.evaluate(`(() => ${VISIBLE_PANES}.map(e => e.querySelectorAll('.notepadia-bookmark-glyph').length))()`);
+}
+
+/** Click a line in a particular pane so its Monaco control owns the caret. */
+async function clickPaneLine(page, paneIndex, lineIndex) {
+    const box = await page.evaluate(([pane, line]) => {
+        const panes = Array.from(document.querySelectorAll('.monaco-editor')).filter(e => e.getBoundingClientRect().width > 0);
+        const el = panes[pane];
+        const lineEl = el && el.querySelectorAll('.view-lines .view-line')[line];
+        if (!lineEl) return null;
+        const r = lineEl.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    }, [paneIndex, lineIndex]);
+    if (!box) return false;
+    await page.mouse.click(box.x, box.y);
+    await sleep(500);
+    return true;
+}
+
 async function toggleSync(page, label) {
     await openMenuBar(page, 'View');
     await hoverByLabel(page, 'Synchronize Scrolling');
@@ -138,6 +159,49 @@ async function toggleSync(page, label) {
     const afterOffThumbs = await horizontalThumbs(page);
     assert('with horizontal sync off the other pane stays put',
         afterOffThumbs[1] === beforeOff[1], JSON.stringify({ beforeOff, afterOffThumbs }));
+
+    // Bookmarks are stored per model, but each split pane has its own Monaco
+    // control: toggling from either side must paint both, and removing one
+    // must clear it in both without leaving stale collections behind. Collapse
+    // the horizontal split first so cloning the fixture leaves exactly two.
+    await clickMenuItem(page, 'View', 'Move to Other View');
+    await sleep(1500);
+    assert('the editor is back to one pane before the bookmark check', await paneCount(page) === 1,
+        'panes=' + await paneCount(page));
+    await openFile(page, 'bookmarks.txt');
+    await clickMenuItem(page, 'View', 'Clone to Other View');
+    await sleep(1500);
+    assert('the bookmark fixture is cloned into two panes', await paneCount(page) === 2,
+        'panes=' + await paneCount(page));
+    assert('a cloned bookmark fixture starts undecorated',
+        (await bookmarkGlyphs(page)).every(n => n === 0), JSON.stringify(await bookmarkGlyphs(page)));
+
+    assert('clicked line 2 in the first pane', await clickPaneLine(page, 0, 1));
+    await page.keyboard.down('Control');
+    await page.keyboard.press('F2');
+    await page.keyboard.up('Control');
+    await sleep(600);
+    let glyphs = await bookmarkGlyphs(page);
+    assert('a bookmark in one split pane is shown in both',
+        glyphs.length === 2 && glyphs[0] === 1 && glyphs[1] === 1, JSON.stringify(glyphs));
+
+    assert('clicked line 3 in the second pane', await clickPaneLine(page, 1, 2));
+    await page.keyboard.down('Control');
+    await page.keyboard.press('F2');
+    await page.keyboard.up('Control');
+    await sleep(600);
+    glyphs = await bookmarkGlyphs(page);
+    assert('toggling from the second pane updates both',
+        glyphs.length === 2 && glyphs[0] === 2 && glyphs[1] === 2, JSON.stringify(glyphs));
+
+    assert('clicked line 2 in the second pane again', await clickPaneLine(page, 1, 1));
+    await page.keyboard.down('Control');
+    await page.keyboard.press('F2');
+    await page.keyboard.up('Control');
+    await sleep(600);
+    glyphs = await bookmarkGlyphs(page);
+    assert('removing a bookmark from one pane clears it in both',
+        glyphs.length === 2 && glyphs[0] === 1 && glyphs[1] === 1, JSON.stringify(glyphs));
 
     assert('no page errors', errors.length === 0, JSON.stringify(errors));
     await finish(browser);

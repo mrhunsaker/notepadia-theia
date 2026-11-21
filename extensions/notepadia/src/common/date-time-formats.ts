@@ -91,6 +91,14 @@ export function formatDateTime(date: Date, format: string, locale?: string): str
             let closed = false;
             while (index < format.length) {
                 if (format.charAt(index) === '\'') {
+                    // A doubled quote inside the run is one literal apostrophe,
+                    // not the closing quote. This is the same `''`-first rule
+                    // recognizedTokens() applies, so the two scanners agree.
+                    if (format.charAt(index + 1) === '\'') {
+                        literal.push('\'');
+                        index += 2;
+                        continue;
+                    }
                     index += 1;
                     closed = true;
                     break;

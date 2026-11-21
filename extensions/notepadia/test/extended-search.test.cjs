@@ -125,6 +125,16 @@ describe('escapeForRegex - regex semantics for a literal', () => {
         assert.equal(escapeForRegex('你'), '\\u4f60');
         assert.equal(matchLiteral('你', '你'), 1);
     });
+    it('keeps BMP escapes to four hex digits', () => {
+        assert.equal(escapeForRegex('Ā'), '\\u0100');
+        assert.equal(matchLiteral('Ā', 'Ā'), 1);
+    });
+    it('escapes astral code points as UTF-16 surrogate pairs', () => {
+        assert.equal(escapeForRegex('😀'), '\\ud83d\\ude00');
+        assert.equal(escapeForRegex('𝄞'), '\\ud834\\udd1e');
+        assert.equal(matchLiteral('😀', 'a 😀 b'), 1);
+        assert.equal(matchLiteral('😀', 'a b'), 0);
+    });
     it('round-trips through a regex literal match', () => {
         const literal = 'C:\\temp\\file (1).txt\tend';
         assert.equal(matchLiteral(literal, literal), 1);

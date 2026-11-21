@@ -1,9 +1,10 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { pathToFileURL } = require('url');
+const { fileURLToPath, pathToFileURL } = require('url');
 const { assert, finish, sleep, launchPage, goto, waitFor,
-    openMenuBar, clickMenuItem, closeMenus, editorLines, WS } = require('./lib.js');
+    openMenuBar, clickMenuItem, closeMenus, editorLines, clickEditorLine,
+    dialogPrimaryLabel, clickDialogButton, setDialogInput, WS } = require('./lib.js');
 
 // Puppeteer cannot drive the native File System Access API, so this suite
 // exercises the Firefox / Safari route the spec asks for: a hidden
@@ -14,6 +15,7 @@ const { assert, finish, sleep, launchPage, goto, waitFor,
 const SRC_DIR = path.join(os.tmpdir(), 'notepadia-e2e-local-src');
 const DOWNLOAD_DIR = path.join(os.tmpdir(), 'notepadia-e2e-downloads');
 const LOCAL_FIXTURE = path.join(SRC_DIR, 'local-notes.txt');
+const OUTSIDE_TARGET = path.join(SRC_DIR, 'outside-target.txt');
 const LOCAL_TEXT = 'alpha from my laptop\nbeta from my laptop\ngamma from my laptop\n';
 
 async function stubFileSystemAccess(page) {
@@ -98,6 +100,77 @@ async function dialogLocation(page) {
 }
 
 /**
+ * Navigate an open Theia file dialog to `locationUri` through its location
+ * bar. The upload-conflict case needs to choose a name outside the workspace:
+ * a relative file name cannot do that, because the dialog resolves it against
+ * the workspace root it was opened in.
+ */
+async function setDialogLocation(page, locationUri) {
+    const toggle = await page.$('.theia-LocationInputToggle');
+    if (!toggle) {
+        return false;
+    }
+    const box = await toggle.boundingBox();
+    if (!box) {
+        return false;
+    }
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await waitFor(page, '.theia-LocationTextInput', 5000, 'dialog location input');
+    // The input is prefilled with the current directory. Replace its value
+    // wholesale: a triple click only selects the last path component, which
+    // would append the new path to the old one. The trailing slash keeps the
+    // dialog's autocomplete from extending the directory name; Enter trims it.
+    await page.evaluate(pathValue => {
+        const input = document.querySelector('.theia-LocationTextInput');
+        if (!input) {
+            return;
+        }
+        input.focus();
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+        setter.call(input, pathValue);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, fileURLToPath(locationUri) + '/');
+    await page.keyboard.press('Enter');
+    const normalize = value => value.replace(/\/+$/, '');
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+        if (normalize(await dialogLocation(page)) === normalize(locationUri)) {
+            return true;
+        }
+        await sleep(300);
+    }
+    return false;
+}
+
+/** Whether the tab named `title` currently carries a Notepadia state class. */
+async function tabHasClass(page, title, className) {
+    return page.evaluate(({ label, stateClass }) => {
+        const tab = Array.from(document.querySelectorAll('li.lm-TabBar-tab'))
+            .find(t => ((t.querySelector('.lm-TabBar-tabLabel')?.textContent) || '').trim() === label);
+        return Boolean(tab && tab.classList.contains(stateClass));
+    }, { label: title, stateClass: className });
+}
+
+/** Clicks a tab's real close icon; Lumino listens for mouse events, not .click(). */
+async function closeTab(page, title) {
+    const box = await page.evaluate(label => {
+        const tab = Array.from(document.querySelectorAll('li.lm-TabBar-tab'))
+            .find(t => ((t.querySelector('.lm-TabBar-tabLabel')?.textContent) || '').trim() === label);
+        const icon = tab && tab.querySelector('.lm-TabBar-tabCloseIcon');
+        if (!icon) {
+            return null;
+        }
+        const rect = icon.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    }, title);
+    if (!box) {
+        return false;
+    }
+    await page.mouse.click(box.x, box.y);
+    return true;
+}
+
+/**
  * I1: with the native route forced on, run `trigger` and assert the Theia
  * dialog it opens roots itself at `homeUri` rather than at the workspace or
  * the current selection. Always closes the dialog before returning.
@@ -149,6 +222,28 @@ async function lastPickerStartIn(page) {
     });
 }
 
+/**
+ * Replaces the File System Access pickers with a single handle that records
+ * every successful write in the page, so Ctrl+S can be driven without the
+ * native picker while still going through the handle-backed save path.
+ */
+async function installRecordingHandle(page) {
+    return page.evaluate(initialText => {
+        window.__handleWrites = [];
+        const handle = {
+            name: 'handle-notes.txt',
+            getFile: async () => new File([initialText], 'handle-notes.txt', { type: 'text/plain' }),
+            createWritable: async () => ({
+                write: async text => { window.__handleWrites.push(text); },
+                close: async () => { }
+            })
+        };
+        window.showOpenFilePicker = async () => [handle];
+        window.showSaveFilePicker = async () => handle;
+        return true;
+    }, LOCAL_TEXT);
+}
+
 /** Removes the remembered directory, giving a page a clean-profile start. */
 async function clearRememberedPickerDirectory(page) {
     await page.evaluate(() => new Promise((resolve, reject) => {
@@ -193,6 +288,7 @@ async function seedRememberedPickerDirectory(page, value) {
 (async () => {
     fs.mkdirSync(SRC_DIR, { recursive: true });
     fs.rmSync(LOCAL_FIXTURE, { force: true });
+    fs.rmSync(OUTSIDE_TARGET, { force: true });
     fs.writeFileSync(LOCAL_FIXTURE, LOCAL_TEXT);
     // Earlier suites can leave a saved-over workspace behind; start from a file
     // that does not exist so the upload takes the create path, not the
@@ -315,6 +411,35 @@ async function seedRememberedPickerDirectory(page, value) {
     }
     await sleep(1500);
 
+    // --- BUG-005: a conflict choice outside the workspace is refused ------
+    // The same fixture now collides with the workspace copy above, so the
+    // upload opens a Save As. Point that dialog at a folder outside the
+    // workspace: the bytes must still land in (and open from) the workspace.
+    await pickViaHiddenInput(page,
+        () => clickMenuItem(page, 'File', 'Upload to Workspace...'),
+        LOCAL_FIXTURE);
+    await waitFor(page, '.dialogContent input[type="text"]', 15000, 'upload conflict dialog');
+    assert('an existing upload target opens the conflict Save As',
+        (await dialogPrimaryLabel(page)) === 'Save', await dialogPrimaryLabel(page));
+    assert('the conflict dialog can be pointed outside the workspace',
+        await setDialogLocation(page, pathToFileURL(SRC_DIR).toString()));
+    assert('the conflict dialog accepts the chosen file name',
+        await setDialogInput(page, path.basename(OUTSIDE_TARGET)));
+    await clickDialogButton(page, 'Save');
+    await sleep(3000);
+    await closeMenus(page);
+    assert('no file is written outside the workspace by the conflict dialog',
+        !fs.existsSync(OUTSIDE_TARGET), JSON.stringify(fs.readdirSync(SRC_DIR)));
+    const afterConflict = await tabTitles(page);
+    assert('the conflict fallback opens the original workspace file',
+        afterConflict.includes('local-notes.txt') && !afterConflict.includes('outside-target.txt'),
+        JSON.stringify(afterConflict));
+    const conflictMessages = await page.$$eval('.theia-notification-message',
+        els => els.map(e => (e.textContent || '').trim()));
+    assert('an out-of-workspace conflict choice is explained to the user',
+        conflictMessages.some(m => m.includes('outside the server workspace')),
+        JSON.stringify(conflictMessages));
+
     // --- WS-I / I1: native dialogs open at home, not the workspace --------
     // The native route only runs under Electron, where Theia substitutes the
     // OS dialogs; forcing the flag exercises the exact code path - and the web
@@ -332,6 +457,42 @@ async function seedRememberedPickerDirectory(page, value) {
         JSON.stringify(await dialogLocation(page)));
     await page.evaluate(() => { delete window.electronTheiaCore; });
     await closeMenus(page);
+
+    // --- BUG-015: a successful handle write clears the dirty tab state -----
+    // A fresh page keeps the recording handle away from the download fallback
+    // exercised above. Ctrl+S must write through the handle and leave the tab
+    // clean, so closing it does not raise Theia's unsaved-changes prompt.
+    const handlePage = await browser.newPage();
+    await handlePage.setViewport({ width: 1440, height: 1000 });
+    const handleErrors = [];
+    handlePage.on('pageerror', e => handleErrors.push(e.message));
+    await goto(handlePage);
+    assert('the File System Access handle can be installed', await installRecordingHandle(handlePage));
+    await clickMenuItem(handlePage, 'File', 'Open from Computer');
+    await waitFor(handlePage, '.monaco-editor');
+    await sleep(2500);
+    await clickEditorLine(handlePage, 0);
+    await handlePage.keyboard.type('SAVED ');
+    await sleep(1000);
+    assert('the handle-backed tab is dirty before saving',
+        await tabHasClass(handlePage, 'handle-notes.txt', 'notepadia-tab-dirty'));
+    await handlePage.keyboard.down('Control');
+    await handlePage.keyboard.press('KeyS');
+    await handlePage.keyboard.up('Control');
+    await sleep(2500);
+    const handleWrites = await handlePage.evaluate(() => window.__handleWrites || []);
+    assert('Ctrl+S writes the edited text through the remembered handle',
+        handleWrites.length > 0 && handleWrites[handleWrites.length - 1].includes('alpha from my laptopSAVED ')
+        && handleWrites[handleWrites.length - 1].includes('beta from my laptop'),
+        JSON.stringify(handleWrites));
+    assert('a successful handle save clears the dirty tab state',
+        await tabHasClass(handlePage, 'handle-notes.txt', 'notepadia-tab-saved'));
+    assert('the saved handle-backed tab can be closed', await closeTab(handlePage, 'handle-notes.txt'));
+    await sleep(1200);
+    assert('closing a saved handle-backed tab raises no save prompt',
+        (await dialogPrimaryLabel(handlePage)) === null, String(await dialogPrimaryLabel(handlePage)));
+    assert('no page errors on the handle-backed page', handleErrors.length === 0, JSON.stringify(handleErrors));
+    await handlePage.close();
 
     // --- WS-I / I2: browser pickers resume and fall back honestly ---------
     // Run on fresh pages: the picker store keeps its IndexedDB connection for

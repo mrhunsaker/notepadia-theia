@@ -303,7 +303,7 @@ The Notepad++-style feature layer is implemented as the shared
   version and the result, and a startup check offers a newer release in the
   same dialog (quiet when you are already up to date)
 - Electron packaging configuration (AppImage, RPM, DEB, NSIS, DMG)
-- CI workflows: build (browser app on Linux), e2e (lint + build + 41
+- CI workflows: build (browser app on Linux), e2e (lint + build + 42
   Puppeteer test suites, sharded across two jobs, with artifact upload on
   failure), release (tag-triggered publishing for Windows/Linux/macOS) and docs
   (MkDocs site deployed to GitHub Pages)
@@ -348,7 +348,7 @@ yarn lint
 yarn build
 ```
 
-Run the 41 end-to-end suites (headless Chromium via Puppeteer):
+Run the 42 end-to-end suites (headless Chromium via Puppeteer):
 
 ```bash
 yarn test:e2e

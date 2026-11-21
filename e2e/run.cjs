@@ -85,6 +85,10 @@ function seedWorkspace() {
     for (const f of ['recent-a.txt', 'recent-b.txt', 'recent-c.txt']) write(f, alpha);
     write('bookmarks.txt', Buffer.from('one\ntwo\nthree\nfour\nfive\n', 'utf8'));
     write('search.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\nbar baz\n', 'utf8'));
+    // A match beyond the 300-char LinePreview threshold and a multiline regex
+    // hit, used by the Search Results rendering checks.
+    write('search-longline.txt', Buffer.from('x'.repeat(320) + ' needle tail\n', 'utf8'));
+    write('search-multiline.txt', Buffer.from('first\nsecond\nthird\n', 'utf8'));
     // Dedicated fixtures for the destructive Replace All checks. One per
     // suite, because each rewrites its file on disk: a shared one would hand
     // the next suite the FOO left behind instead of the seeded text.
@@ -95,10 +99,29 @@ function seedWorkspace() {
     write('regex-replace-dollar.txt', Buffer.from('alice@example.com\nbob@test.org\ncarol@example.net\n', 'utf8'));
     write('regex-replace-backslash.txt', Buffer.from('alice@example.com\nbob@test.org\ncarol@example.net\n', 'utf8'));
     write('regex-replace-single.txt', Buffer.from('alice@example.com\nbob@test.org\n', 'utf8'));
+    write('regex-replace-named.txt', Buffer.from('alice@example.com\nbob@test.org\n', 'utf8'));
+    write('regex-replace-multiline.txt', Buffer.from('first\nsecond\nthird\nfourth\n', 'utf8'));
+    write('regex-selection.txt', Buffer.from('xxfooyy foo\n', 'utf8'));
+    write('wholeword-selection.txt', Buffer.from('xfooy foo\n', 'utf8'));
     write('extended-replace.txt', Buffer.from('alpha beta\n', 'utf8'));
+    write('all-docs-a.txt', Buffer.from('foo one\ntwo foo\n', 'utf8'));
+    write('all-docs-b.txt', Buffer.from('foo three\nfour foo\n', 'utf8'));
+    write('replace-selection.txt', Buffer.from('foo one foo\ntwo foo\nfoo three\n', 'utf8'));
     fs.mkdirSync(path.join(WS, 'files-replace'));
     write('files-replace/one.txt', Buffer.from('alice@example.com\nbob@test.org\n', 'utf8'));
     write('files-replace/two.txt', Buffer.from('carol@example.net\n', 'utf8'));
+    // One fixture per replacement syntax so each destructive check starts from
+    // the original text. The long line pushes its match past the backend's
+    // 300-character LinePreview threshold.
+    write('files-replace/named.txt', Buffer.from('alice@example.com\n', 'utf8'));
+    write('files-replace/rust-named.txt', Buffer.from('alice@example.com\n', 'utf8'));
+    write('files-replace/braces.txt', Buffer.from('alice@example.com\n', 'utf8'));
+    write('files-replace/dollars.txt', Buffer.from('foo=123\n', 'utf8'));
+    write('files-replace/optional.txt', Buffer.from('alice\n', 'utf8'));
+    write('files-replace/literal.txt', Buffer.from('foo=123\n', 'utf8'));
+    write('files-replace/ext-replace.txt', Buffer.from('alpha beta\n', 'utf8'));
+    write('files-replace/longline.txt', Buffer.from('x'.repeat(320) + ' alice@example.com tail\n', 'utf8'));
+    write('files-replace/dirty.txt', Buffer.from('dirty one\n', 'utf8'));
     write('escape.txt', Buffer.from('alpha\tbeta\none\ttwo\nno tab here\nback\\slash\n(paren) more\n', 'utf8'));
     write('indent.txt', alpha);
 

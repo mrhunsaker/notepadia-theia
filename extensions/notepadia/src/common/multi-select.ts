@@ -25,7 +25,13 @@ export interface MultiSelectQuery {
  * pretending.
  */
 export function multiSelectTerm(query: MultiSelectQuery): string | undefined {
-    if (query.selectionText !== undefined && !query.selectionIsMultiline && query.selectionText.length > 0) {
+    // A multiline selection is refused outright, not downgraded to the word
+    // under the caret: the caller always knows that word, so falling through
+    // would silently place cursors for something the user never selected.
+    if (query.selectionIsMultiline) {
+        return undefined;
+    }
+    if (query.selectionText !== undefined && query.selectionText.length > 0) {
         return query.selectionText;
     }
     if (query.wordAtPosition && query.wordAtPosition.length > 0) {

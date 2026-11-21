@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { assert, finish, sleep, launchPage, goto, openFile,
     openMenuBar, subLabels, closeMenus, statusBar, clickEditorLine } = require('./lib.js');
-const { openFindDialog, setFindText, clickDialogTab, clickDialogButton, closeDialog } = require('./dialog-helpers.cjs');
+const { openFindDialog, setFindText, setMode, setField, clickDialogTab,
+    clickDialogButton, closeDialog } = require('./dialog-helpers.cjs');
 
 // search.txt is seeded as:
 //   1: foo one foo
@@ -319,6 +320,57 @@ async function findAll(page, term, groups) {
     assert('a hit in search.txt is one of those rows',
         fileHits[1].some(text => text.startsWith('Line 3: foo three')),
         JSON.stringify(fileHits[1]));
+
+    // A long line comes back from ripgrep as a LinePreview. Its `character`
+    // is an index into the snippet, so the row must highlight the real match
+    // rather than slicing at the (much larger) full-line column.
+    await openFile(page, 'search-longline.txt');
+    await openFindDialog(page);
+    await clickDialogTab(page, 'Find in Files');
+    await setFindText(page, 'needle');
+    await setField(page, 'notepadia-find-filters', 'search-longline.txt');
+    await clickDialogButton(page, 'Find All');
+    await page.waitForFunction(
+        () => Array.from(document.querySelectorAll('[data-notepadia-search-row="group"] .notepadia-search-results-label'))
+            .some(label => label.textContent.includes('Search "needle"')),
+        { timeout: 30000 });
+    await closeDialog(page);
+    // Scope the check to the new group: earlier groups still have their own
+    // highlighted rows, which are not part of this preview.
+    const longMarked = await page.evaluate(() => {
+        const group = Array.from(document.querySelectorAll('[data-notepadia-search-row="group"]'))
+            .reverse()
+            .find(el => (el.textContent || '').includes('Search "needle"'));
+        return group
+            ? Array.from(group.parentElement.querySelectorAll('.notepadia-search-results-match'))
+                .map(el => el.textContent)
+            : [];
+    });
+    assert('a LinePreview row highlights the match, not a slice at the full-line column',
+        longMarked.length === 1 && longMarked[0] === 'needle', JSON.stringify(longMarked));
+
+    // A multiline regex hit previews its first line and says how many more
+    // lines the match covers; stepping to it still selects the whole range.
+    await openFile(page, 'search-multiline.txt');
+    await openFindDialog(page);
+    await setMode(page, 'regex');
+    await setFindText(page, '(\\w+)\\n(\\w+)');
+    await clickDialogButton(page, 'Find All in Current Document');
+    await page.waitForFunction(
+        () => Array.from(document.querySelectorAll('[data-notepadia-search-row="group"] .notepadia-search-results-label'))
+            .some(label => label.textContent.includes('Search "(\\w+)\\n(\\w+)"')),
+        { timeout: 10000 });
+    await closeDialog(page);
+    const multilineRow = await page.$$eval('[data-notepadia-search-row="hit"]',
+        rows => rows.map(row => row.textContent.trim()).find(text => text.includes('[+1 line]')));
+    assert('a multiline result row describes both lines',
+        multilineRow && multilineRow.startsWith('Line 1: first'), JSON.stringify(multilineRow));
+    const multilineRows = await page.$$('[data-notepadia-search-row="hit"]');
+    await multilineRows[multilineRows.length - 1].click();
+    await sleep(1100);
+    assert('a multiline result row navigates to the end of the whole match',
+        JSON.stringify(await caret(page)) === JSON.stringify({ line: 2, column: 7 }),
+        JSON.stringify(await caret(page)));
 
     assert('no page errors during the search results pass', errors.length === 0, JSON.stringify(errors));
     await finish(browser, page);

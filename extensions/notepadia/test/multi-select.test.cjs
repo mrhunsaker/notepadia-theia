@@ -22,9 +22,11 @@ describe('multiSelectTerm', () => {
     });
 
     it('refuses a selection that spans lines', () => {
+        // Even with a word under the caret, a multiline selection is a refusal
+        // rather than a downgrade to that word.
         assert.equal(
             multiSelectTerm({ selectionText: 'foo\nbar', wordAtPosition: 'foo', selectionIsMultiline: true }),
-            'foo');
+            undefined);
     });
 
     it('refuses a multi-line selection even with no word under the caret', () => {

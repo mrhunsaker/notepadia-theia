@@ -60,6 +60,7 @@ interface FindStateLike {
     isRegex?: boolean;
 }
 
+/** Persistence mirror only: findState owns the live search mode. */
 const MODE_KEY = 'notepadia.search.mode';
 
 @injectable()
@@ -72,6 +73,9 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Fro
         collection: monaco.editor.IEditorDecorationsCollection;
     }>();
     protected generation = 0;
+
+    /** The persisted mode is restored once at startup, then mirrored on change. */
+    protected modeRestored = false;
 
     constructor(
         @inject(EditorManager) protected readonly editorManager: EditorManager,
@@ -183,16 +187,17 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Fro
         this.applyTo(uri);
     }
 
-    public selectFindNext(): void {
+    /** Returns whether a match was selected, so callers can report failure. */
+    public selectFindNext(): boolean {
         const editor = this.currentEditor();
         const control = editor?.getControl();
         const model = control?.getModel();
         if (!control || !model) {
-            return;
+            return false;
         }
         const rawTerm = this.searchTerm(control);
         if (!rawTerm) {
-            return;
+            return false;
         }
         const resolved = this.resolve(control, rawTerm);
         const { matchCase, wholeWord } = this.searchFlags(control);
@@ -208,7 +213,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Fro
             false
         );
         if (!match) {
-            return;
+            return false;
         }
         const range = match.range;
         const selection = new monaco.Selection(
@@ -217,6 +222,7 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Fro
         const base = last && last.isEmpty() ? selections.slice(0, -1) : selections;
         control.setSelections([...base, selection]);
         control.revealRangeInCenter(range);
+        return true;
     }
 
     /**
@@ -277,19 +283,38 @@ export class NotepadiaSearchMarkContribution implements CommandContribution, Fro
         }
     }
 
+    /**
+     * The shared find state is the single source of truth: the dialog radios,
+     * F3 and the Mark commands all read the same mode. localStorage is only a
+     * startup mirror, restored once before the first read so the mode survives
+     * a reload even when no dialog has been constructed yet.
+     */
     public searchMode(): SearchMode {
-        const stored = window.localStorage.getItem(MODE_KEY);
-        if (stored === 'extended' || stored === '1') {
-            return 'extended';
-        }
-        if (stored === 'regex') {
-            return 'regex';
-        }
-        return 'normal';
+        this.restorePersistedMode();
+        return this.findState.get().mode;
     }
 
     public setSearchMode(mode: SearchMode): void {
+        this.restorePersistedMode();
+        this.findState.set({ mode });
         window.localStorage.setItem(MODE_KEY, mode);
+    }
+
+    protected restorePersistedMode(): void {
+        if (this.modeRestored) {
+            return;
+        }
+        this.modeRestored = true;
+        const stored = window.localStorage.getItem(MODE_KEY);
+        let mode: SearchMode | undefined;
+        if (stored === 'extended' || stored === '1') {
+            mode = 'extended';
+        } else if (stored === 'regex') {
+            mode = 'regex';
+        }
+        if (mode && mode !== this.findState.get().mode) {
+            this.findState.set({ mode });
+        }
     }
 
     protected currentUri(): string | undefined {

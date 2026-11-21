@@ -1,7 +1,12 @@
 'use strict';
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { resolveReplacement } = require('../lib/common/find-options.js');
+const {
+    captureContextInText,
+    hasUnbalancedRegexDelimiters,
+    normalizeFileSearchPattern,
+    resolveReplacement
+} = require('../lib/common/find-options.js');
 
 // The context mirrors what Monaco's FindMatch.matches and RegExp.exec produce:
 // index 0 is the whole match, index n is capture group n.
@@ -75,5 +80,60 @@ describe('resolveReplacement - regex backreferences', () => {
     });
     it('handles an empty replacement', () => {
         assert.equal(resolveReplacement('', 'regex', context), '');
+    });
+});
+
+describe('captureContextInText - recovering groups from a match', () => {
+    it('recovers named groups Monaco drops from FindMatch.matches', () => {
+        const haystack = 'alice@example.com';
+        const captured = captureContextInText(haystack, 0, '(?<user>\\w+)@(?<host>\\w+)', true, 'alice@example.com', ['alice@example.com']);
+        assert.equal(resolveReplacement('$<user>，$<host>', 'regex', captured), 'alice，example');
+        assert.equal(resolveReplacement('\\k<user>', 'regex', captured), 'alice');
+        // \\w stops before the dot, so the match is 'alice@example'.
+        assert.deepEqual(captured.groups, ['alice@example', 'alice', 'example']);
+    });
+    it('recovers groups for a multiline match', () => {
+        const haystack = 'first\nsecond';
+        const captured = captureContextInText(haystack, 0, '(\\w+)\\n(\\w+)', true, haystack);
+        assert.equal(resolveReplacement('$2$1', 'regex', captured), 'secondfirst');
+    });
+    it('resolves ^ and $ against the whole line, not just the match', () => {
+        const captured = captureContextInText('foo=123', 0, '^(\\w+)=(\\d+)$', true, 'foo=123');
+        assert.equal(resolveReplacement('$2-$1', 'regex', captured), '123-foo');
+    });
+    it('honours Match case', () => {
+        const captured = captureContextInText('Foo=123', 0, '^foo=', true, 'Foo=', ['fallback']);
+        assert.deepEqual(captured.groups, ['fallback'], 'no case-insensitive fallback match');
+    });
+    it('keeps the supplied context when the regex cannot be parsed', () => {
+        const fallback = { match: 'x', groups: ['x', 'x'] };
+        const captured = captureContextInText('x', 0, '(?P<name>x)', true, 'x', fallback.groups);
+        assert.equal(resolveReplacement('$1', 'regex', captured), 'x');
+    });
+});
+
+describe('normalizeFileSearchPattern', () => {
+    it('translates ripgrep named-group syntax for JavaScript', () => {
+        assert.equal(normalizeFileSearchPattern('(?P<key>\\w+)=(?P<value>\\d+)'), '(?<key>\\w+)=(?<value>\\d+)');
+    });
+    it('leaves JavaScript patterns alone', () => {
+        const pattern = '(?<key>\\w+)@\\w+';
+        assert.equal(normalizeFileSearchPattern(pattern), pattern);
+    });
+});
+
+describe('hasUnbalancedRegexDelimiters', () => {
+    it('rejects an unclosed group before the backend hides it as no results', () => {
+        assert.equal(hasUnbalancedRegexDelimiters('('), true);
+        assert.equal(hasUnbalancedRegexDelimiters('foo(bar'), true);
+    });
+    it('rejects an unclosed character class and a stray closing parenthesis', () => {
+        assert.equal(hasUnbalancedRegexDelimiters('[abc'), true);
+        assert.equal(hasUnbalancedRegexDelimiters('abc)'), true);
+    });
+    it('accepts balanced groups, classes and escaped delimiters', () => {
+        assert.equal(hasUnbalancedRegexDelimiters('(\\w+)@(\\w+)'), false);
+        assert.equal(hasUnbalancedRegexDelimiters('[()\\[\\]]+'), false);
+        assert.equal(hasUnbalancedRegexDelimiters('\\(literal\\)'), false);
     });
 });

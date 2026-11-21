@@ -6,6 +6,7 @@ import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import * as monaco from '@theia/monaco-editor-core';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { WidgetManager } from '@theia/core/lib/browser/widget-manager';
+import { Disposable } from '@theia/core/lib/common/disposable';
 import { Message } from '@theia/core/shared/@lumino/messaging';
 import { resolveSearch } from '../common/find-options';
 import { NotepadiaFindState } from './notepadia-find-state';
@@ -64,6 +65,8 @@ export class NotepadiaIncrementalSearchWidget extends ReactWidget {
 
     protected readonly termRef = React.createRef<HTMLInputElement>();
     protected highlightEntry: { control: monaco.editor.ICodeEditor; collection: monaco.editor.IEditorDecorationsCollection } | undefined;
+    /** Live only while the bar is open, so a dialog change reaches the field. */
+    protected findStateListener: Disposable | undefined;
     protected styleId = '';
 
     constructor(
@@ -86,6 +89,7 @@ export class NotepadiaIncrementalSearchWidget extends ReactWidget {
                 this.beginSession();
             }
         }));
+        this.toDispose.push(Disposable.create(() => this.findStateListener?.dispose()));
     }
 
     protected injectStyle(): void {
@@ -127,6 +131,7 @@ export class NotepadiaIncrementalSearchWidget extends ReactWidget {
     }
 
     protected beginSession(): void {
+        this.findStateListener?.dispose();
         const control = this.currentControl();
         const selection = control?.getSelection();
         this.anchor = selection?.getStartPosition() ?? { lineNumber: 1, column: 1 };
@@ -138,6 +143,15 @@ export class NotepadiaIncrementalSearchWidget extends ReactWidget {
         this.term = '';
         this.highlightAll = false;
         this.matchCase = this.findState.get().caseSensitive;
+        // The Find dialog can toggle Match case while this bar is open; follow
+        // the shared state instead of keeping a stale copy of the flag.
+        this.findStateListener = this.findState.onDidChange(options => {
+            if (options.caseSensitive !== this.matchCase) {
+                this.matchCase = options.caseSensitive;
+                this.runSearch();
+                this.update();
+            }
+        });
         this.clearHighlights();
         this.noMatch = false;
         this.matchCount = 0;
@@ -180,6 +194,8 @@ export class NotepadiaIncrementalSearchWidget extends ReactWidget {
      * because they belong to the session, and focus returns to the editor.
      */
     requestClose(): void {
+        this.findStateListener?.dispose();
+        this.findStateListener = undefined;
         const control = this.currentControl();
         if (!this.accepted && this.initialSelection && control) {
             control.setSelection(this.initialSelection);

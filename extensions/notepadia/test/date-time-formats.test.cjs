@@ -70,6 +70,18 @@ describe('formatDateTime', () => {
         assert.equal(formatDateTime(date, "x''yyyy"), "x'2026");
     });
 
+    it('reads a doubled quote inside a quoted run without closing it', () => {
+        const day = new Date(2026, 0, 2);
+        assert.equal(formatDateTime(day, "'it''s' d"), "it's 2");
+    });
+
+    it('keeps doubled quotes at the start and end of a quoted run', () => {
+        const day = new Date(2026, 0, 2);
+        assert.equal(formatDateTime(day, "'''x' d"), "'x 2");
+        assert.equal(formatDateTime(day, "'x''' d"), "x' 2");
+        assert.equal(formatDateTime(day, "'x'' y' d"), "x' y 2");
+    });
+
     it('runs an unterminated quote to the end instead of throwing', () => {
         assert.equal(formatDateTime(date, "at 5 o'clock"), "at 5 o'clock");
     });
@@ -94,6 +106,11 @@ describe('recognizedTokens', () => {
 
     it('ignores tokens inside quotes', () => {
         assert.deepEqual(recognizedTokens("'yyyy' MM"), ['MM']);
+    });
+
+    it('agrees with the formatter about doubled quotes inside quoted runs', () => {
+        assert.deepEqual(recognizedTokens("'it''s' d"), ['d']);
+        assert.equal(isValidDateTimeFormat("'it''s' d"), true);
     });
 
     it('finds nothing in a format with no tokens', () => {

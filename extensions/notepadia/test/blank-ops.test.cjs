@@ -29,6 +29,11 @@ describe('tabsToSpaces', () => {
     it('leaves a tab-free line untouched', () => {
         assert.equal(tabsToSpaces('plain text', 4), 'plain text');
     });
+    it('treats a trailing carriage return as an ordinary character', () => {
+        // The caller splits on CRLF, but a line handed in directly still keeps
+        // its '\r' as content rather than miscounting it as a tab stop.
+        assert.equal(tabsToSpaces('ab\t\r', 4), 'ab  \r');
+    });
 });
 
 describe('spacesToTabs', () => {
@@ -48,6 +53,9 @@ describe('spacesToTabs', () => {
     it('leaves the rest of the line untouched', () => {
         assert.equal(spacesToTabs('  a b  ', 4), '  a b  ');
     });
+    it('keeps a trailing carriage return with the rest of the line', () => {
+        assert.equal(spacesToTabs('    x\r', 4), '\tx\r');
+    });
 });
 
 describe('trimLeadingAndTrailing', () => {
@@ -58,6 +66,11 @@ describe('trimLeadingAndTrailing', () => {
         assert.deepEqual(trimLeadingAndTrailing([]), []);
         assert.deepEqual(trimLeadingAndTrailing(['   ']), ['']);
     });
+    it('handles CRLF lines split on backslash-n like LF lines', () => {
+        // A caller that splits only on '\n' leaves a trailing '\r' on every
+        // line; the pure operation must still see the logical line.
+        assert.deepEqual(trimLeadingAndTrailing('  a  \r\n\tb\t\r\n'.split('\n')), ['a', 'b', '']);
+    });
 });
 
 describe('trimTrailing', () => {
@@ -67,6 +80,11 @@ describe('trimTrailing', () => {
     it('does not touch leading whitespace', () => {
         assert.deepEqual(trimTrailing(['   x   ']), ['   x']);
     });
+    it('strips trailing spaces on CRLF lines split on backslash-n', () => {
+        const result = trimTrailing('a  \r\nb\t\t\r\n'.split('\n'));
+        assert.deepEqual(result, ['a', 'b', '']);
+        assert.ok(result.every(line => !line.includes('\r')));
+    });
 });
 
 describe('eolToSpace', () => {
@@ -75,6 +93,9 @@ describe('eolToSpace', () => {
     });
     it('handles empty lines as empty tokens', () => {
         assert.deepEqual(eolToSpace(['a', '', 'b']), ['a  b']);
+    });
+    it('drops carriage returns from CRLF lines', () => {
+        assert.deepEqual(eolToSpace('one\r\ntwo\r\nthree'.split('\n')), ['one two three']);
     });
 });
 
@@ -91,6 +112,9 @@ describe('removeUnnecessaryEol', () => {
     it('keeps a single trailing empty line at the end of the file', () => {
         assert.deepEqual(removeUnnecessaryEol(['a', '']), ['a', '']);
         assert.deepEqual(removeUnnecessaryEol(['a', '', '']), ['a', '']);
+    });
+    it('treats a CRLF blank line as empty and strips CRLF trailing space', () => {
+        assert.deepEqual(removeUnnecessaryEol('a  \r\n\r\n\r\nb\t\r\n'.split('\n')), ['a', '', 'b', '']);
     });
 });
 
@@ -115,6 +139,9 @@ describe('wrapLine / splitLines', () => {
         assert.deepEqual(wrapLine('hello', 0), ['hello']);
         assert.deepEqual(wrapLine('hello', -5), ['hello']);
     });
+    it('ignores a trailing carriage return when wrapping CRLF lines', () => {
+        assert.deepEqual(splitLines('one two\r\nthree'.split('\n'), 10), ['one two', 'three']);
+    });
 });
 
 describe('removeConsecutiveDuplicateLines', () => {
@@ -126,5 +153,8 @@ describe('removeConsecutiveDuplicateLines', () => {
     });
     it('collapses consecutive empty lines', () => {
         assert.deepEqual(removeConsecutiveDuplicateLines(['', '', 'a', '']), ['', 'a', '']);
+    });
+    it('compares CRLF lines by their logical content', () => {
+        assert.deepEqual(removeConsecutiveDuplicateLines('a\r\na\r\nb'.split('\n')), ['a', 'b']);
     });
 });

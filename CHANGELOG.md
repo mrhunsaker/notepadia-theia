@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A full bug-scan remediation pass covers 31 audited issues across the
+  editor.** It spans find/replace correctness (named captures, multiline
+  regexes, selection scope, file replacement and status feedback), save and
+  state safety (dirty buffers, uploads, renames, recovery and local saves),
+  utility correctness (date/time formats, regex escaping, multiline selection
+  and whitespace operations), and documentation and tests (tokenizer guards,
+  unit coverage and the end-to-end suite inventory).
 - **Regex Find & Replace now expands backreferences in the Replace field.**
   `\1` / `$1`, `\2` / `$2`, `${n}`, `$0` / `$&` and named groups all insert the
   captured text in `Replace`, `Replace All`, `Replace All in All Opened
@@ -14,6 +21,10 @@
   publishes its hits to the Search Results window, and honours Extended-mode
   escapes when searching too. Search mode now has one source of truth
   (`NotepadiaFindState`) shared by the dialog, the Mark engine and F3.
+  `Replace All in All Opened Documents` now reaches background tabs whose
+  Monaco model is detached while hidden and counts only documents it changed;
+  Find in Files rejects structurally invalid regular expressions instead of
+  showing `No results` when the backend swallows ripgrep's parse error.
   `test/replace-pattern.test.cjs`, `e2e/find-dialog.cjs` and the new
   `e2e/find-replace-files.cjs` cover the behaviour, with `docs/usage.md` and the
   README updated.

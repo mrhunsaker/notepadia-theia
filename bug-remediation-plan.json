@@ -1,0 +1,1111 @@
+{
+  "schema_version": "1.0",
+  "title": "Notepadia full bug scan and remediation plan",
+  "created": "2026-11-19",
+  "repository": "/home/ryhunsaker/Documents/projects/notepadia-theia-1.75.0",
+  "plan_mode_notice": "This document was produced in Plan mode. No source, test, or documentation files in the repository were modified. Switch agents before implementing any remediation.",
+  "prompt_for_agent": "You are given a consolidated bug list from three independent read-only audits of the Notepadia Theia repository (find/replace internals, broader extension source, tests/docs consistency). Work through the bugs in remediation_order. For each bug: reproduce or otherwise confirm it, implement the remediation steps, add the listed regression tests, rebuild generated lib/ output via the build scripts (never hand-edit generated files), and update CHANGELOG.md, README.md, and docs as appropriate. After each group of fixes run lint, unit tests, and the relevant e2e suites. Mark each bug status as fixed only when its verification passes. Do not touch the pre-existing uncommitted .idea/jsonSchemas.xml change.",
+  "constraints": [
+    "Plan mode is active: do not edit repository files until the user switches agents.",
+    "The repository contains CHANGELOG.md (not CHANGES.md); update it for user-visible fixes.",
+    "A pre-existing user change to .idea/jsonSchemas.xml exists; leave it untouched.",
+    "Generated output under extensions/notepadia/lib/ must be rebuilt with yarn --cwd extensions/notepadia build, never hand-edited.",
+    "Browser frontend bundle must be rebuilt with yarn build:browser before e2e runs after source changes.",
+    "Every fix should keep these green: yarn --cwd extensions/notepadia lint, yarn --cwd extensions/notepadia test, yarn test:e2e.",
+    "A stale e2e server on port 3100 causes EADDRINUSE; stop it before rerunning the suite."
+  ],
+  "summary": {
+    "total": 31,
+    "high": 6,
+    "medium": 16,
+    "low": 9,
+    "audits": [
+      "find-replace code audit",
+      "broader extension source audit",
+      "tests and documentation consistency audit"
+    ]
+  },
+  "remediation_order": [
+    "BUG-001",
+    "BUG-002",
+    "BUG-003",
+    "BUG-004",
+    "BUG-005",
+    "BUG-006",
+    "BUG-007",
+    "BUG-008",
+    "BUG-009",
+    "BUG-010",
+    "BUG-011",
+    "BUG-012",
+    "BUG-013",
+    "BUG-014",
+    "BUG-015",
+    "BUG-016",
+    "BUG-017",
+    "BUG-018",
+    "BUG-019",
+    "BUG-020",
+    "BUG-021",
+    "BUG-022",
+    "BUG-023",
+    "BUG-024",
+    "BUG-025",
+    "BUG-026",
+    "BUG-027",
+    "BUG-028",
+    "BUG-029",
+    "BUG-030",
+    "BUG-031"
+  ],
+  "bugs": [
+    {
+      "id": "BUG-001",
+      "title": "Find in Files Replace All edits dirty in-memory editors with disk-derived coordinates",
+      "severity": "high",
+      "category": "data-integrity",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "899-916"
+      },
+      "description": "collectFileMatches searches the workspace on disk, but replaceInFiles reuses an already-open editor widget and applies new monaco.Range(hit.line, hit.column, ...) to its current model, then calls save(). If the open editor has unsaved changes that shifted lines or columns, the replacement lands on the wrong text and the save persists both the user's unrelated edits and the misplaced replacement.",
+      "evidence": [
+        "const existing = this.editorManager.all.find(...) at line 899",
+        "range: new monaco.Range(hit.line, hit.column, hit.line, hit.column + hit.length) at line 910",
+        "await widget.saveable.save() at line 912"
+      ],
+      "impact": "Silent corruption of user buffers and files on disk; undo is not available for the file-level edits.",
+      "remediation": {
+        "summary": "Never apply disk-derived ranges to a live, dirty editor. Either close/skip dirty targets with a clear message, or re-run the search against each editor's current model and use those ranges.",
+        "steps": [
+          "Before editing a file, check whether an open widget for that URI is dirty (widget.saveable.isDirty or model version).",
+          "If dirty, either skip with a status explaining why, or compute hits fresh from the live model via model.findMatches and use those ranges and line text.",
+          "Derive replacement context from the same model text used for the edit, not from the search-result line text.",
+          "Only save files that the dialog itself changed."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-replace-files.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: open a file, insert a line without saving, run Find in Files Replace All, assert no wrong-line edit and no unintended save",
+        "e2e: confirm a clean file still replaces correctly"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-002",
+      "title": "ripgrep LinePreview truncation invalidates hit.column as a string index",
+      "severity": "high",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "807-814, 836-837"
+      },
+      "description": "Theia returns a LinePreview (a truncated snippet with its own character offset) for long lines. collectFileMatches stores only lineText.text but keeps match.character, which is the column in the full line. replacementContextInLine then slices/regex-scans the snippet with start = hit.column - 1, so on long lines it finds no match and all backreferences expand to empty strings.",
+      "evidence": [
+        "text: typeof match.lineText === 'string' ? match.lineText : (match.lineText?.text ?? '') at lines 811-813",
+        "const start = Math.max(0, hit.column - 1) at line 836",
+        "Theia LinePreview docs: node_modules/@theia/search-in-workspace/lib/common/search-in-workspace-interface.d.ts:82-85",
+        "Theia test asserts match.lineText.text.substring(match.lineText.character - 1, ...) at ripgrep-search-in-workspace-server.slow-spec.js:380",
+        "NotepadiaSearchHitInput comments claim text is the full line: notepadia-search-results-widget.tsx:31"
+      ],
+      "impact": "Backreferences silently become empty and result-row highlighting is wrong for long lines.",
+      "remediation": {
+        "summary": "Carry the LinePreview's own character offset (or the full line text) through the hit model and use it for indexing and regex recovery.",
+        "steps": [
+          "Extend NotepadiaSearchHitInput with an optional textOffset or textStart field.",
+          "When lineText is a LinePreview, store its character as the offset and use (hit.column - hit.textStart - 1) to index into the snippet.",
+          "Alternatively read the full line from the model once the file is open in replaceInFiles and derive groups from that.",
+          "Update the Search Results widget to use the same offset when rendering the match substring."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-search-results-widget.tsx",
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-replace-files.cjs",
+          "e2e/search-results.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: long line (>300 chars) with regex captures at column > 300, Replace All with $2-$1, assert correct group text",
+        "e2e: same long line Find All, assert result row highlights the correct substring"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-003",
+      "title": "Named capture groups never reach resolveReplacement in editor Replace and Replace All",
+      "severity": "high",
+      "category": "correctness",
+      "found_by": ["find-replace audit", "tests/docs audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "646, 709-715"
+      },
+      "description": "Both in-editor contexts are built with only match and groups. Monaco's FindMatch.matches is a plain array: createFindMatch copies the RegExp.exec array into a new array, discarding its .groups property. Therefore $<name>, ${name} and \\k<name> always expand to empty in Replace, Replace All and Replace All in All Opened Documents, while Find in Files does supply named groups.",
+      "evidence": [
+        "return { match: model.getValueInRange(match.range), groups: match.matches ?? [] } at line 646",
+        "groups: match.matches ?? [] at line 713",
+        "node_modules/@theia/monaco-editor-core/esm/vs/editor/common/model/textModelSearch.js:78-87 creates a plain array",
+        "docs/usage.md:485-493 and README.md:156-161 advertise named groups for all four actions"
+      ],
+      "impact": "An advertised feature is broken in three of four replacement paths; existing unit tests use a fabricated named context and cannot catch it.",
+      "remediation": {
+        "summary": "Recover named groups from each range with a JS RegExp.exec on the matched line/range and pass them in ReplacementContext.named; add end-to-end tests.",
+        "steps": [
+          "In replacementContext(), re-run new RegExp(term, flags) on the line (or full range for multiline) and copy probe.groups into the context.",
+          "In replaceAll(), do the same per match; share a helper with replacementContext() to avoid drift.",
+          "Keep the Find in Files path as-is but add the same helper for consistency.",
+          "Add e2e assertions for $<name>, ${name} and \\k<name> in Replace, Replace All and Find in Files."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-dialog.cjs",
+          "e2e/find-replace-files.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: regex (?<x>\\w+)@\\w+ with replacement $<x> via Replace and Replace All",
+        "e2e: same pattern via Find in Files Replace All"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-004",
+      "title": "selectionMatches() uses unanchored RegExp.test and ignores whole word",
+      "severity": "high",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "593-611, 658-659"
+      },
+      "description": "In regex mode a selection that merely contains a match is treated as the current match, so Replace edits the whole selection. In literal mode the equality check ignores opts.wholeWord, so a selected substring inside a larger word is replaced even with Match whole word only enabled.",
+      "evidence": [
+        "return new RegExp(term, ...).test(text) at line 606",
+        "text === term / toLowerCase comparison at line 611",
+        "range = control.getSelection() at line 659 when selectionMatches() is true"
+      ],
+      "impact": "Replace can delete surrounding text the user did not intend to change.",
+      "remediation": {
+        "summary": "Require the selection to equal the actual match: anchor the regex test, honor wholeWord, and derive the range from the match rather than the raw selection.",
+        "steps": [
+          "Wrap the regex with ^(?:...)$ before testing the selected text.",
+          "For literal mode, apply the same whole-word boundary check used by Monaco (wordSeparators).",
+          "Return the precise match range instead of the selection range when a selection contains a match.",
+          "Add e2e cases for a superset selection in regex mode and wholeWord in literal mode."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: regex foo, select xxfooyy, Replace leaves outer characters intact",
+        "e2e: wholeWord on, select foo inside xfooy, Replace does not replace"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-005",
+      "title": "Find in Files upload conflict can write outside the workspace and open the wrong file",
+      "severity": "high",
+      "category": "security",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-local-files-contribution.ts",
+        "lines": "660-671"
+      },
+      "description": "On an upload name conflict, the native Save As dialog's returned URI is used for writeFile, but the editor always opens destination (the workspace path). The workspace file remains stale while bytes are written wherever the user picked, yet the app reports a successful upload.",
+      "evidence": [
+        "const confirmed = await this.fileDialogService.showSaveDialog(...) at line 660",
+        "await this.fileService.writeFile(confirmed, ...) at line 667",
+        "await open(this.openerService, destination) at line 671"
+      ],
+      "impact": "Files can be written outside the intended workspace while the UI shows the wrong document.",
+      "remediation": {
+        "summary": "Treat the conflict dialog's result as authoritative for both write and open, or restrict it to a workspace-relative rename and validate the returned URI is inside the workspace root.",
+        "steps": [
+          "Validate that confirmed resolves under the chosen workspace folder; otherwise warn and keep the original destination.",
+          "Open the same URI that was written (or keep destination and write to destination).",
+          "Update the success message to name the actual target.",
+          "Add an e2e/unit test covering a conflict resolution outside the workspace."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-local-files-contribution.ts",
+          "extensions/notepadia/src/common/local-files.ts",
+          "extensions/notepadia/test/local-files.test.cjs",
+          "e2e/local-files.cjs"
+        ]
+      },
+      "verification": [
+        "unit: helper rejects a conflict path outside the workspace root",
+        "e2e: conflict dialog chooses an out-of-workspace path; assert no out-of-workspace write and correct opened tab"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-006",
+      "title": "Rename over an open file destroys unsaved text in the target editor",
+      "severity": "high",
+      "category": "data-integrity",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-file-operations-contribution.ts",
+        "lines": "260-268, 351-363"
+      },
+      "description": "Rename confirms only that the target exists, then moves with overwrite: true. repointEditor reuses an already-open target widget and replaces its whole model text with the source text without checking whether that target editor is dirty.",
+      "evidence": [
+        "if (await this.fileService.exists(target) && !await this.confirmReplace(target)) at line 261",
+        "await this.fileService.move(source, target, { overwrite: true }) at line 268",
+        "repointEditor(editor, target, text) at line 273"
+      ],
+      "impact": "Unsaved edits in the target file are silently destroyed.",
+      "remediation": {
+        "summary": "Refuse (or separately confirm) a rename onto a dirty open target; preserve target unsaved text instead of overwriting it.",
+        "steps": [
+          "Check editorManager.all for a widget on the target URI and inspect its dirty state before moving.",
+          "If dirty, show a distinct warning that names the unsaved target and require explicit confirmation.",
+          "Either close the dirty target without saving first, or cancel the rename.",
+          "Add an e2e case with two dirty buffers and a rename-onto-target."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-file-operations-contribution.ts",
+          "e2e/file-menu.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: dirty target editor, rename source onto it, confirm, assert target unsaved text is not silently lost"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-007",
+      "title": "replacementContext cannot recover capture groups for multiline regex matches",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "621-647"
+      },
+      "description": "The recovery scope is a single line, so a regex match spanning a newline is never found and the fallback returns no groups; all backreferences expand empty. Monaco does support multiline regex despite the disabled . matches newline checkbox.",
+      "evidence": [
+        "const scope = new monaco.Range(line, 1, line, model.getLineMaxColumn(line)) at line 632"
+      ],
+      "impact": "Replace of a multiline regex insert empty strings where captures were expected.",
+      "remediation": {
+        "summary": "Use the match's own range (or a small window around it) as the regex scope for multiline matches.",
+        "steps": [
+          "When match.range spans lines, re-run the regex on model.getValueInRange of an expanded range covering those lines.",
+          "Fall back to the single-line scope for ordinary matches.",
+          "Share the helper with the named-group recovery in BUG-003."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: regex (\\w+)\\n(\\w+), replace $2$1, assert reversed words"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-008",
+      "title": "hitFromMatch records wrong length and text for multiline matches",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "573-581"
+      },
+      "description": "length is computed as endColumn - startColumn, which is only the last-line fragment for a multiline match, and text is only the first line. The Search Results widget then slices one line with that column and length.",
+      "evidence": [
+        "length: match.range.endColumn - match.range.startColumn at line 578",
+        "text: model.getLineContent(line) at line 579"
+      ],
+      "impact": "Truncated or misplaced highlighting in the Search Results window for multiline regex hits.",
+      "remediation": {
+        "summary": "Represent multiline hits accurately or render them as a range across lines.",
+        "steps": [
+          "Add an endLine/endColumn to NotepadiaSearchHitInput for multiline hits.",
+          "Compute length over the full matched text and adjust the renderer to highlight across lines or show a truncated single-line preview with an honest label.",
+          "Add a unit test for hitFromMatch with a multiline range."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "extensions/notepadia/src/browser/notepadia-search-results-widget.tsx",
+          "e2e/search-results.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: Find All in Current Document with a multiline regex, assert the result row describes both lines"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-009",
+      "title": "Search Mode has two sources of truth: findState and localStorage",
+      "severity": "medium",
+      "category": "state-consistency",
+      "found_by": ["find-replace audit", "tests/docs audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-search-mark.ts",
+        "lines": "97-112, 280-293"
+      },
+      "description": "Mark mode commands and searchMode()/setSearchMode() read/write localStorage only, while the dialog's resolved() and F3 read findState. The incremental search bar reads searchMark.searchMode(). Toggling via Mark commands therefore leaves the dialog and F3 on the old mode; markPage() can count with one mode and mark with the other. CHANGELOG.md claims a single source of truth.",
+      "evidence": [
+        "MODE_* commands call setSearchMode without touching findState at lines 101-112",
+        "searchMode() reads window.localStorage at lines 280-289",
+        "setSearchMode() writes window.localStorage at lines 291-293",
+        "dialog constructor seeds findState once from searchMark at notepadia-find-dialog.tsx:138-141"
+      ],
+      "impact": "Search mode can differ across dialog, Mark, incremental search and F3; docs are inaccurate.",
+      "remediation": {
+        "summary": "Make searchMode()/setSearchMode() delegate to NotepadiaFindState (which the contribution already injects), keeping localStorage only as a persistence mirror if needed.",
+        "steps": [
+          "Change searchMode() to return this.findState.get().mode.",
+          "Change setSearchMode(mode) to call this.findState.set({ mode }) and persist to localStorage for startup.",
+          "Remove the dialog's one-time seeding from searchMark or make it idempotent.",
+          "Update incremental search to read findState mode (or searchMode() after delegation).",
+          "Add e2e that toggles mode via a Mark command and checks dialog radios and F3."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-search-mark.ts",
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "extensions/notepadia/src/browser/notepadia-incremental-search.tsx",
+          "CHANGELOG.md",
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: execute a Mark mode command, assert Find dialog radio and F3 behaviour follow it"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-010",
+      "title": "Incremental Search Match case goes stale when toggled from the Find dialog",
+      "severity": "medium",
+      "category": "state-consistency",
+      "found_by": ["find-replace audit", "tests/docs audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-incremental-search.tsx",
+        "lines": "140, 321, 346-350"
+      },
+      "description": "matchCase is copied from findState only when the bar session begins; the bar writes its own changes back but never subscribes to findState.onDidChange. docs/usage.md claims either UI toggles the same setting.",
+      "evidence": [
+        "this.matchCase = this.findState.get().caseSensitive at line 140",
+        "onMatchCaseChange writes findState at lines 347-348",
+        "no onDidChange subscription found"
+      ],
+      "impact": "Toggling Match case in the Find dialog while the bar is open has no effect in the bar.",
+      "remediation": {
+        "summary": "Subscribe to findState.onDidChange while the bar is open and update matchCase and the checkbox.",
+        "steps": [
+          "Add a Disposable subscription in beginSession() that updates matchCase when caseSensitive changes.",
+          "Dispose it on close.",
+          "Add a cross-UI e2e assertion."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-incremental-search.tsx",
+          "e2e/incremental-search.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: open bar, toggle Match case in Find dialog, assert bar uses new case flag"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-011",
+      "title": "replaceInFiles mixes a snapshot search with a live mode across awaits",
+      "severity": "medium",
+      "category": "state-consistency",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "872-873, 909-912"
+      },
+      "description": "term and isRegex are captured once, but each edit calls resolveReplacement(opts.replace, this.mode, ...) which reads the current findState mode after confirmation, editor open and save awaits. A mode change mid-run produces regex hits expanded with normal-mode replacement, or different modes for different files.",
+      "evidence": [
+        "const { term, isRegex } = this.resolved() at line 872",
+        "resolveReplacement(opts.replace, this.mode, ...) at lines 907-908"
+      ],
+      "impact": "Inconsistent replacement semantics within one Replace All operation.",
+      "remediation": {
+        "summary": "Snapshot the mode together with term/isRegex at the start and use that snapshot for every edit.",
+        "steps": [
+          "Capture const mode = this.mode (or include it in the resolved() result) before the async loop.",
+          "Pass mode explicitly to resolveReplacement for all files.",
+          "Optionally disable mode controls while a file replace is in progress."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx"
+        ]
+      },
+      "verification": [
+        "unit/e2e: simulate a mode change during the confirm pause and assert all edits use the original mode"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-012",
+      "title": "Find in Files capture recovery uses a different regex engine and ignores wholeWord",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "841-859"
+      },
+      "description": "replacementContextInLine re-runs new RegExp(term, 'g'/'gi') with no whole-word handling. Rust-only syntax such as (?P<name>...) throws and is swallowed, while JS-only syntax can diverge from what ripgrep actually matched.",
+      "evidence": [
+        "regex = new RegExp(term, caseSensitive ? 'g' : 'gi') at line 844",
+        "catch returns empty groups at lines 845-847"
+      ],
+      "impact": "Named or Rust-specific patterns lose captures during Find in Files replacement; wholeWord is not honored in recovery.",
+      "remediation": {
+        "summary": "Normalize common Rust regex syntax to JS for recovery and apply whole-word boundaries consistently; fall back to the raw matched text when translation is not possible.",
+        "steps": [
+          "Translate (?P<name>...) to (?<name>...) before new RegExp.",
+          "Apply word-boundary checks matching opts.wholeWord when selecting the probe match.",
+          "If construction still fails, return a context with the exact matched text instead of empty groups.",
+          "Add unit tests for the translation helper."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/common/find-options.ts",
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "extensions/notepadia/test/replace-pattern.test.cjs"
+        ]
+      },
+      "verification": [
+        "unit: (?P<n>\\w+) translated and group recovered",
+        "e2e: Find in Files Replace All with (?P<n>\\w+)@\\w+ and $<n>"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-013",
+      "title": "Replace All ignores the In selection option",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "678-723"
+      },
+      "description": "Both Replace All actions call model.findMatches(term, true, ...) over the whole model. Enabling In selection restricts Find Next but not Replace All.",
+      "evidence": [
+        "model.findMatches(term, true, isRegex, opts.caseSensitive, wordSeparators, true, 10000) at line 702",
+        "opts.inSelection is not referenced in replaceAll()"
+      ],
+      "impact": "Replace All can modify matches outside the user's selected range.",
+      "remediation": {
+        "summary": "Honor opts.inSelection in replaceAll by passing the selection range to findMatches, as allMatches() already does.",
+        "steps": [
+          "Use the same scope logic as allMatches(scope) in replaceAll for the current document.",
+          "Decide and document behaviour for Replace All in All Opened Documents with In selection enabled (likely ignore scope or restrict to current selection).",
+          "Add e2e coverage."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-dialog.cjs",
+          "docs/usage.md"
+        ]
+      },
+      "verification": [
+        "e2e: select part of a document, enable In selection, Replace All, assert only selected range changed"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-014",
+      "title": "CRLF line endings break blank and line operations",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/common/blank-ops.ts",
+        "lines": "59-65, 72-86"
+      },
+      "description": "getValueInRange returns the model's CRLF endings but the operations split only on backslash-n, leaving a trailing carriage return on each line. Trailing-whitespace regexes and empty-line detection fail, and eolToSpace can leave a lone carriage return.",
+      "evidence": [
+        "caller splits text with .split('\\n') at notepadia-blank-and-line-operations.ts:116-118",
+        "line predicates in blank-ops.ts assume no trailing carriage return"
+      ],
+      "impact": "Trim trailing whitespace, Remove unnecessary EOL and EOL to Space produce wrong results on Windows-format files.",
+      "remediation": {
+        "summary": "Normalize CRLF to LF inside the pure operations and restore the document's EOL when writing back, or split on /\\r?\\n/.",
+        "steps": [
+          "Make the pure functions treat both LF and CRLF as line separators.",
+          "Add unit tests using CRLF input for every blank operation.",
+          "Add an e2e case on a CRLF fixture."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/common/blank-ops.ts",
+          "extensions/notepadia/src/browser/notepadia-blank-and-line-operations.ts",
+          "extensions/notepadia/test/blank-ops.test.cjs",
+          "e2e/blank-ops.cjs"
+        ]
+      },
+      "verification": [
+        "unit: CRLF input produces the same logical result as LF input",
+        "e2e: CRLF fixture with trailing spaces, run Trim Trailing Whitespace"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-015",
+      "title": "Saving a local File System Access file leaves Theia's tab dirty",
+      "severity": "medium",
+      "category": "state-consistency",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-local-files-contribution.ts",
+        "lines": "469-475, 588-607"
+      },
+      "description": "writeThroughHandle writes the editor text to the user's disk but never clears Theia's dirty state. Non-empty untitled resources start dirty, so backups, close prompts and the tab indicator still treat the just-saved tab as unsaved.",
+      "evidence": [
+        "writeThroughHandle implementation at lines 588-607",
+        "no Saveable.save() or equivalent dirty-state reset"
+      ],
+      "impact": "False dirty state, spurious close prompts and unnecessary backups after a successful local save.",
+      "remediation": {
+        "summary": "After a successful handle write, synchronize the editor's save state (for example via Saveable.save() with a custom save operation or by reloading the resource through Theia's file service).",
+        "steps": [
+          "Investigate Theia's Saveable API for a way to mark clean after an external write.",
+          "Clear the dirty flag only after the handle write resolves successfully.",
+          "Add e2e that saves via Ctrl+S on a handle-backed tab and then closes without a prompt."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-local-files-contribution.ts",
+          "e2e/local-files.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: local file, edit, Ctrl+S, close tab, assert no dirty prompt and no backup entry"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-016",
+      "title": "Date/time formatter mishandles doubled apostrophes inside a quoted run",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/common/date-time-formats.ts",
+        "lines": "78-102"
+      },
+      "description": "The quoted-run loop treats the first quote of a doubled apostrophe as the closing quote, so the apostrophe is swallowed. The file docs and recognizedTokens() implement the doubled-apostrophe rule differently.",
+      "evidence": [
+        "formatDateTime(new Date(2026, 0, 2), \"'it''s' d\") yields 'its 2' instead of 'it's 2'",
+        "docs at the top of date-time-formats.ts say a doubled quote is a literal apostrophe"
+      ],
+      "impact": "Custom date formats containing apostrophes produce wrong text.",
+      "remediation": {
+        "summary": "Make the quoted-run scanner treat two consecutive quotes inside a quoted run as one literal quote and continue the run.",
+        "steps": [
+          "Fix the scanner and align it with recognizedTokens().",
+          "Add unit tests for leading, middle and trailing doubled quotes."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/common/date-time-formats.ts",
+          "extensions/notepadia/test/date-time-formats.test.cjs"
+        ]
+      },
+      "verification": [
+        "unit: expected output for \"'it''s' d\""
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-017",
+      "title": "Multi-Select All uses caret word for multiline selections instead of refusing",
+      "severity": "medium",
+      "category": "correctness",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/common/multi-select.ts",
+        "lines": "27-34"
+      },
+      "description": "A multiline selection fails the single-line branch and falls through to wordAtPosition, even though the contract says multiline selections are refused. The caller always supplies wordAtPosition, so this is reachable from the UI, and an existing unit test asserts the incorrect 'foo' result.",
+      "evidence": [
+        "selectMultiple branch at lines 27-34",
+        "notepadia-edit-extras-contribution.ts:664-669 always passes wordAtPosition",
+        "test/multi-select.test.cjs:24-27 asserts the wrong behaviour"
+      ],
+      "impact": "Running Multi-Select All on a multiline selection silently selects a word the user did not ask for.",
+      "remediation": {
+        "summary": "Return an explicit 'single line only' result for multiline selections and surface the existing message in the UI; correct the unit test.",
+        "steps": [
+          "Detect selections spanning lines before the word fallback and return the refusal result.",
+          "Update the caller to show the message when the result is refused.",
+          "Fix the unit test to expect refusal."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/common/multi-select.ts",
+          "extensions/notepadia/src/browser/notepadia-edit-extras-contribution.ts",
+          "extensions/notepadia/test/multi-select.test.cjs"
+        ]
+      },
+      "verification": [
+        "unit: multiline selection returns refusal",
+        "e2e: multiline selection shows the message and adds no cursors"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-018",
+      "title": "Find in Files Replace All result publication is untested",
+      "severity": "medium",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "e2e/find-replace-files.cjs",
+        "lines": "30-43"
+      },
+      "description": "CHANGELOG.md, docs/usage.md and docs/architecture.md claim Replace All publishes hits to the Search Results window, but the e2e suite checks only disk bytes; the search-results suite covers Find All but not Replace All.",
+      "evidence": [
+        "e2e/find-replace-files.cjs reads files with fs.readFileSync and asserts bytes",
+        "no assertion on Search Results window content after Replace All"
+      ],
+      "impact": "A documented behaviour could regress unnoticed.",
+      "remediation": {
+        "summary": "Add an assertion that a new result group appears in the Search Results window after Replace All.",
+        "steps": [
+          "Open F7 after the replace and assert a header and hits are present.",
+          "Alternatively assert the NotepadiaSearchResultsWidget received addSearch via a DOM check."
+        ],
+        "files_to_change": [
+          "e2e/find-replace-files.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: after Replace All, F7 shows a group for the replaced search"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-019",
+      "title": "Find in Files replacement parity is tested for only one pattern syntax",
+      "severity": "medium",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "e2e/find-replace-files.cjs",
+        "lines": "30-57"
+      },
+      "description": "docs/usage.md claims identical replacement rules in all four actions, but the Find in Files e2e covers only $2-$1 in regex mode and Extended search decoding. It does not cover Extended replacement escapes, Normal literal backreferences, ${n}, named groups, $$, double backslash or non-participating groups.",
+      "evidence": [
+        "only setReplaceText(page, '$2-$1') at line 29",
+        "replace-pattern.test.cjs covers those cases only against the pure resolver"
+      ],
+      "impact": "Divergence between the file path and the editor path can go unnoticed.",
+      "remediation": {
+        "summary": "Add a compact replacement-pattern matrix to the Find in Files e2e suite mirroring the unit tests.",
+        "steps": [
+          "Seed a few small fixtures under files-replace/.",
+          "Run Replace All with each pattern and assert exact file bytes.",
+          "Keep each case independent by re-seeding or using a fresh fixture."
+        ],
+        "files_to_change": [
+          "e2e/run.cjs",
+          "e2e/find-replace-files.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: matrix of extended, normal-literal, ${n}, named, $$ and unmatched-group replacements"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-020",
+      "title": "Replace All in All Opened Documents has no e2e coverage",
+      "severity": "medium",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "docs/usage.md",
+        "lines": "442-445"
+      },
+      "description": "The action is documented and available, but no e2e suite exercises it.",
+      "evidence": [
+        "grep of e2e suites shows no reference to the All Opened Documents action"
+      ],
+      "impact": "Regressions in multi-document replacement are invisible to CI.",
+      "remediation": {
+        "summary": "Add an e2e case with two files open that runs Replace All in All Opened Documents and checks both buffers, status count and undo.",
+        "steps": [
+          "Open two fixtures, set a term, invoke the action from the Replace tab.",
+          "Assert both models changed and the status reports the combined count.",
+          "Assert undo reverses both documents."
+        ],
+        "files_to_change": [
+          "e2e/run.cjs",
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: two-document replace and undo"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-021",
+      "title": "F3/Shift+F3 e2e asserts an unordered set of line numbers",
+      "severity": "medium",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "e2e/find-dialog.cjs",
+        "lines": "229-239"
+      },
+      "description": "The assertion compares a set of line numbers, so wrong ordering or skipping one of two hits on the same line still passes. The results suite already models ordered (line, column) comparison.",
+      "evidence": [
+        "search.txt has two foo hits on line 1"
+      ],
+      "impact": "A real navigation regression could pass CI.",
+      "remediation": {
+        "summary": "Assert the exact ordered sequence of (line, column) positions for F3 and Shift+F3.",
+        "steps": [
+          "Reuse the helper from e2e/search-results.cjs to read the caret position.",
+          "Assert the five-step sequence for forward and backward stepping."
+        ],
+        "files_to_change": [
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: ordered position sequence, not a set"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-022",
+      "title": "Find in Files Replace All e2e uses fragile fixed sleeps and a generic dialog selector",
+      "severity": "medium",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "e2e/find-replace-files.cjs",
+        "lines": "11-22, 36"
+      },
+      "description": "confirmReplace clicks a generic .dialogControl button.main and sleeps 200 ms; the test then waits a fixed 1800 ms before reading files. A slower CI write or a different first dialog can cause false failures or stale reads.",
+      "evidence": [
+        "setTimeout-style sleeps in the helper and before fs.readFileSync"
+      ],
+      "impact": "Flaky CI and misleading failures.",
+      "remediation": {
+        "summary": "Scope the dialog click by its title/button text and wait on the dialog status or file contents with page.waitForFunction.",
+        "steps": [
+          "Add a helper that finds the dialog with title 'Replace All' and clicks its primary button.",
+          "Wait for status text containing 'replacements made' or for the expected file bytes.",
+          "Remove fixed sleeps."
+        ],
+        "files_to_change": [
+          "e2e/find-replace-files.cjs",
+          "e2e/dialog-helpers.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: run the suite with simulated slow writes and confirm no flake"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-023",
+      "title": "Replace status message is overwritten immediately",
+      "severity": "low",
+      "category": "ux",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "673-674"
+      },
+      "description": "replaceNext sets 'N characters replaced' then calls findNext(false), which overwrites the status via applyMatch or 'No results'.",
+      "evidence": [
+        "this.setStatus(...) at line 673 followed by this.findNext(false) at line 674"
+      ],
+      "impact": "The user never sees the replacement count.",
+      "remediation": {
+        "summary": "Combine the count with the next-match status or delay the findNext status update.",
+        "steps": [
+          "Have findNext accept a status prefix, or set the status after the move using the match index.",
+          "Add an e2e assertion on the status after a single Replace."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "e2e/find-dialog.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: status after single Replace mentions the character count"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-024",
+      "title": "Select and Find Next reports success even when there is no match",
+      "severity": "low",
+      "category": "ux",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "255-257, 1298"
+      },
+      "description": "selectFindNext() returns void and silently does nothing when no match exists, but callers always set a success status.",
+      "evidence": [
+        "status string at line 1298 is unconditional"
+      ],
+      "impact": "Misleading feedback.",
+      "remediation": {
+        "summary": "Return a boolean from selectFindNext() and set the status accordingly.",
+        "steps": [
+          "Change the method to return whether a match was selected.",
+          "Update the menu command and the dialog button to branch on the result."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+          "extensions/notepadia/src/browser/notepadia-search-mark.ts"
+        ]
+      },
+      "verification": [
+        "e2e: with no match, Select and Find Next reports no results"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-025",
+      "title": "Match count status ignores In selection scope",
+      "severity": "low",
+      "category": "ux",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "465, 469-475"
+      },
+      "description": "currentMatchIndex() and allMatches() search the whole document, so the 'x of y' status includes matches outside the selected range while stepping is restricted to it.",
+      "evidence": [
+        "allMatches() called without the selection scope"
+      ],
+      "impact": "Inconsistent status while In selection is enabled.",
+      "remediation": {
+        "summary": "Pass the active selection as the scope when In selection is on.",
+        "steps": [
+          "Use the same selection range used by stepWithinSelection() for counting."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx"
+        ]
+      },
+      "verification": [
+        "e2e: In selection with a known subset, assert 'x of y' counts only that subset"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-026",
+      "title": "replaceInFiles counts attempted edits and hides backend search errors",
+      "severity": "low",
+      "category": "robustness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "794-820, 909-931"
+      },
+      "description": "onDone ignores its error argument and resolves with partial results, and replaced is incremented by edits.length regardless of whether edits succeeded. A failed search or partial write can be reported as a normal success.",
+      "evidence": [
+        "onDone: () => resolve(files) at line 817",
+        "replaced += edits.length at line 913"
+      ],
+      "impact": "Misleading status and silent partial replacements.",
+      "remediation": {
+        "summary": "Propagate search errors, count only successful edits, and report partial failures explicitly.",
+        "steps": [
+          "Accept the error parameter in onDone and reject/resolve with an error state.",
+          "Wrap executeEdits and save in try/catch, counting successes only.",
+          "Report 'N of M replacements succeeded' on partial failure."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx"
+        ]
+      },
+      "verification": [
+        "unit/e2e: simulated search failure shows an error status rather than 'Found N'"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-027",
+      "title": "Documentation inconsistencies in find/replace and architecture docs",
+      "severity": "low",
+      "category": "documentation",
+      "found_by": ["find-replace audit", "tests/docs audit"],
+      "location": {
+        "file": "docs/usage.md, docs/architecture.md, extensions/notepadia/src/browser/notepadia-find-dialog.tsx",
+        "lines": "usage.md:492-496, architecture.md:209-210, find-dialog.tsx:1165"
+      },
+      "description": "docs claim named-group rules are identical in all four actions (false, see BUG-003); architecture.md references a monacoToTheiaPosition helper that does not exist; and the Find dialog tooltip says a regex can never span a line break although Monaco supports multiline regex.",
+      "evidence": [
+        "grep for monacoToTheiaPosition finds only the doc mention",
+        "tooltip at find-dialog.tsx:1165"
+      ],
+      "impact": "Docs mislead users and maintainers.",
+      "remediation": {
+        "summary": "Align docs with the implemented behaviour after BUG-003/BUG-007 are fixed; remove the nonexistent helper reference and correct the tooltip.",
+        "steps": [
+          "Update docs/usage.md once named groups work everywhere.",
+          "Replace the architecture.md sentence with a description of the 1-based Monaco columns used by hitFromMatch.",
+          "Reword the tooltip to state that the checkbox is disabled because dot-all is not enabled, not because regex cannot span lines."
+        ],
+        "files_to_change": [
+          "docs/usage.md",
+          "docs/architecture.md",
+          "extensions/notepadia/src/browser/notepadia-find-dialog.tsx"
+        ]
+      },
+      "verification": [
+        "docs review"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-028",
+      "title": "escapeForRegex mangles astral code points",
+      "severity": "low",
+      "category": "correctness",
+      "found_by": ["find-replace audit"],
+      "location": {
+        "file": "extensions/notepadia/src/common/extended-search.ts",
+        "lines": "143-147"
+      },
+      "description": "For code points above 0xFFFF, the function emits a single \\u escape with more than four hex digits (for example \\u1f600 for an emoji), which JavaScript parses differently. The helper currently has no production callers, so impact is limited.",
+      "evidence": [
+        "code.toString(16).padStart(4, '0') produces 5+ digits for astral code points"
+      ],
+      "impact": "Latent bug if the helper is used for non-BMP characters later.",
+      "remediation": {
+        "summary": "Emit a UTF-16 surrogate pair (\\uD83D\\uDE00) or use a regex \\u{...} escape with the u flag.",
+        "steps": [
+          "Handle code > 0xffff by converting to a surrogate pair.",
+          "Add unit tests for an emoji and a BMP non-ASCII character."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/common/extended-search.ts",
+          "extensions/notepadia/test/extended-search.test.cjs"
+        ]
+      },
+      "verification": [
+        "unit: escapeForRegex('emoji') round-trips through a RegExp"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-029",
+      "title": "Bookmark decorations are not synchronized across split views",
+      "severity": "low",
+      "category": "correctness",
+      "found_by": ["broader source audit"],
+      "location": {
+        "file": "extensions/notepadia/src/browser/notepadia-bookmark-contribution.ts",
+        "lines": "31-34, 149-169"
+      },
+      "description": "Decoration collections are keyed only by model URI, but each split view has its own Monaco control. Switching views replaces the stored collection instead of updating both controls and disposes neither old collection.",
+      "evidence": [
+        "Map<string, { control, collection }> keyed by URI only"
+      ],
+      "impact": "Stale or missing bookmark glyphs in one pane.",
+      "remediation": {
+        "summary": "Key collections by (URI, control id) or update all controls for a URI and dispose old collections.",
+        "steps": [
+          "Track every control that displays a URI and apply the bookmark decoration set to each.",
+          "Dispose collections when a control is closed."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/src/browser/notepadia-bookmark-contribution.ts",
+          "e2e/split-sync.cjs"
+        ]
+      },
+      "verification": [
+        "e2e: clone a file, toggle a bookmark, switch panes, assert glyphs agree"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-030",
+      "title": "README and architecture docs report stale e2e suite count and a stray debug script remains",
+      "severity": "low",
+      "category": "documentation",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "README.md, docs/architecture.md, e2e/run.cjs, e2e/chrome-inv.cjs",
+        "lines": "README.md:306-309,351; architecture.md:508-511; run.cjs:15-60"
+      },
+      "description": "Docs say 41 suites but run.cjs registers 42 after find-replace-files was added. e2e/chrome-inv.cjs is a one-off DOM inventory script not registered as a suite.",
+      "evidence": [
+        "SUITES array has 42 entries"
+      ],
+      "impact": "Stale documentation and an untracked-purpose script.",
+      "remediation": {
+        "summary": "Update the documented count to 42 and either remove chrome-inv.cjs or move it under scripts/ with a clear purpose.",
+        "steps": [
+          "Update README.md and docs/architecture.md.",
+          "Relocate or delete the stray script."
+        ],
+        "files_to_change": [
+          "README.md",
+          "docs/architecture.md",
+          "e2e/chrome-inv.cjs"
+        ]
+      },
+      "verification": [
+        "docs review against SUITES.length"
+      ],
+      "status": "fixed"
+    },
+    {
+      "id": "BUG-031",
+      "title": "Markdown apostrophe fix has no test guard",
+      "severity": "low",
+      "category": "test-gap",
+      "found_by": ["tests/docs audit"],
+      "location": {
+        "file": "extensions/notepadia/test/language-tokens.test.cjs",
+        "lines": "124-141"
+      },
+      "description": "CHANGELOG.md claims apostrophes no longer trigger string highlighting in Markdown, but the test only checks that expected token rules exist; nothing asserts a single quote is absent from a string rule.",
+      "evidence": [
+        "language-tokens.test.cjs checks rule names, not token behaviour for contractions"
+      ],
+      "impact": "The documented fix could regress unnoticed.",
+      "remediation": {
+        "summary": "Add a tokenizer assertion that don't and it's remain plain text.",
+        "steps": [
+          "Extend the Markdown tokenizer test to assert no string token is produced for contractions."
+        ],
+        "files_to_change": [
+          "extensions/notepadia/test/language-tokens.test.cjs"
+        ]
+      },
+      "verification": [
+        "unit: contraction text produces no string token"
+      ],
+      "status": "fixed"
+    }
+  ],
+  "acceptance_criteria": [
+    "Every bug entry above has status updated from planned to fixed only after its verification passes.",
+    "yarn --cwd extensions/notepadia lint and yarn --cwd extensions/notepadia test pass with the new regression tests.",
+    "yarn test:e2e passes all suites after rebuilding the browser bundle.",
+    "Generated lib/ output is rebuilt, never hand-edited.",
+    "CHANGELOG.md, README.md and docs are updated for every user-visible fix.",
+    "The pre-existing .idea/jsonSchemas.xml user change remains untouched."
+  ]
+}

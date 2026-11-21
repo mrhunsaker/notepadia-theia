@@ -434,30 +434,43 @@ closes the dialog from the editor, the menu bar or anywhere else.
 Shared controls: **Find what**, **Search Mode** (Normal / Extended / Regular
 expression), the options checkboxes (Match case, Match whole word only,
 Backward direction, Wrap around, In selection) and a status line reporting the
-match position, e.g. `2 of 4` or `4 results on current document`.
+match position, e.g. `2 of 4` or `4 results on current document`. Search mode
+and Match case are shared with the Mark commands and the Incremental Search
+bar, so changing them in one place updates the others. **In selection** limits
+both Find Next and the current-document Replace All to the selected range; it
+has no effect on the all-opened-documents or Find in Files actions.
 
 - **Find**: `Find Next`, `Count`, `Find All in Current Document` (selects
   every hit) and `Find All in All Opened Documents`. Both Find All actions also
   fill the [Search Results window](#search-results-window).
 - **Replace**: `Replace`, `Replace All` and `Replace All in All Opened
-  Documents`, all of which are ordinary undoable edits. In Regular expression
-  mode the **Replace with** field expands backreferences, and in Extended mode
-  it decodes escapes (see [Replacement patterns](#replacement-patterns)).
+  Documents`, all of which are ordinary undoable edits. The all-documents
+  action also edits background tabs whose Monaco model is attached only while
+  the tab is visible. In Regular expression mode the **Replace with** field
+  expands backreferences, and in Extended mode it decodes escapes (see
+  [Replacement patterns](#replacement-patterns)).
 - **Find in Files**: `Filters` and `Directory` narrow the workspace search,
   `In hidden folders` includes dot-folders, and `Find All` / `Replace All`
   drive the existing search-in-workspace backend. Both send their results to
   the [Search Results window](#search-results-window). `Replace All` asks for
   confirmation, then edits and saves each matching file itself so that the
-  same backreference rules apply as in the editor.
+  same backreference rules apply as in the editor. Files with unsaved changes
+  in an open tab are skipped (and counted in the status line) because the
+  search ran against the bytes on disk; skipped or failed files are reported
+  explicitly rather than silently counted as successes. A regular expression
+  with unbalanced delimiters is reported as a search failure instead of an
+  empty result, because the backend does not forward ripgrep's parse error.
 - **Mark**: marks every occurrence in the current document in one of five
   styles, with `Mark All`, `Clear All Marks`, `Select and Find Next` and a
   `Purge for each search` option. The same actions remain available under
   `Search ▸ Mark`.
 
 !!! note
-    The editor's search engine matches within a single line, so the
-    `. matches newline` option is shown disabled with an explanation rather
-    than silently doing nothing. Notepad++ supports it; this build does not.
+    Regular expression patterns can match across lines when the pattern
+    includes a newline (for example, `(\w+)\n(\w+)`). The `. matches newline`
+    option is shown disabled because dot-all is not enabled: `.` still stops
+    at a line break. In Notepad++ that checkbox is available; here only an
+    explicit newline in the pattern spans lines.
 
 ### Extended search mode
 
@@ -490,9 +503,10 @@ What the **Replace with** field inserts depends on the selected Search Mode:
   and unknown escapes pass through literally.
 
 The rules are identical in **Replace**, **Replace All**, **Replace All in All
-Opened Documents** and **Find in Files ▸ Replace All**. For example, with
-Regular expression search on, finding `(\w+)@(\w+)` and replacing with `$2-$1`
-turns `alice@example.com` into `example-alice.com` (the groups stop at the dot,
+Opened Documents** and **Find in Files ▸ Replace All**, including named groups
+(`$<name>`, `${name}` and `\k<name>`). For example, with Regular expression
+search on, finding `(\w+)@(\w+)` and replacing with `$2-$1` turns
+`alice@example.com` into `example-alice.com` (the groups stop at the dot,
 which `\w` does not match).
 
 ### Incremental Search
@@ -529,9 +543,11 @@ last, and a group stays until you clear it:
 
 The header reads `Search "foo" (12 hits in 3 files of 1 searched)`. Under it,
 one row per file with the file's name as a URI, and under that a row per hit
-reading `Line 4: foo bar foo` with the matching text highlighted. Clicking a
-row opens that file and puts the caret on the match; double-clicking hands
-focus to the editor so you can carry on typing. A group's files can be
+reading `Line 4: foo bar foo` with the matching text highlighted. A regex hit
+spanning several lines previews its first line and shows `[+N lines]`; jumping
+to it still selects the whole range. Clicking a row opens that file and puts
+the caret on the match; double-clicking hands focus to the editor so you can
+carry on typing. A group's files can be
 collapsed with `Collapse All` and brought back with `Expand All`, a single
 group can be `Clear`ed, and `Clear All` empties the window.
 

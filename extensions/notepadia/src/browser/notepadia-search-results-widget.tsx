@@ -28,8 +28,20 @@ export interface NotepadiaSearchHitInput {
     column: number;
     /** Length of the match in characters. */
     length: number;
-    /** The full text of the line, used to render the row. */
+    /**
+     * The text used to render the row. For a long line the search backend may
+     * return a truncated preview (a `LinePreview`); `matchIndex` then locates
+     * the hit inside that snippet instead of inside the full line.
+     */
     text: string;
+    /** 0-based index of the match start inside `text` (which may be a preview). */
+    matchIndex?: number;
+    /** Last line of a multiline match; equal to `line` for ordinary matches. */
+    endLine?: number;
+    /** End column of a multiline match (1-based, exclusive). */
+    endColumn?: number;
+    /** Length of the whole match in characters, across all lines. */
+    totalLength?: number;
 }
 
 export interface NotepadiaSearchFileInput {
@@ -108,6 +120,7 @@ export class NotepadiaSearchResultsWidget extends ReactWidget {
 .notepadia-search-results-hit .notepadia-search-results-label { font-family: var(--theia-editor-font-family); }
 .notepadia-search-results-line { color: var(--theia-descriptionForeground); flex: none; }
 .notepadia-search-results-match { background: var(--theia-editor-selectionBackground); color: var(--theia-editor-selectionForeground); font-weight: 600; }
+.notepadia-search-results-multiline { color: var(--theia-descriptionForeground); }
 .notepadia-search-results-empty { padding: 8px; color: var(--theia-descriptionForeground); }
 `;
 
@@ -343,7 +356,8 @@ export class NotepadiaSearchResultsWidget extends ReactWidget {
             return;
         }
         const selection = new monaco.Selection(
-            hit.line, hit.column, hit.line, hit.column + hit.length);
+            hit.line, hit.column,
+            hit.endLine ?? hit.line, hit.endColumn ?? hit.column + hit.length);
         control.revealLineInCenter(hit.line);
         control.setSelection(selection);
         if (focusEditor) {
@@ -478,14 +492,19 @@ export class NotepadiaSearchResultsWidget extends ReactWidget {
      * text and still find the line number.
      */
     protected renderLine(hit: NotepadiaSearchHit): React.ReactNode {
-        const before = hit.text.slice(0, Math.max(0, hit.column - 1));
-        const match = hit.text.slice(Math.max(0, hit.column - 1), hit.column - 1 + hit.length);
-        const after = hit.text.slice(hit.column - 1 + hit.length);
+        // A LinePreview is a snippet of a long line; its own matchIndex, not
+        // the full-line column, is the position to highlight in the snippet.
+        const start = Math.max(0, hit.matchIndex ?? hit.column - 1);
+        const before = hit.text.slice(0, start);
+        const match = hit.text.slice(start, start + hit.length);
+        const after = hit.text.slice(start + hit.length);
+        const multiline = hit.endLine && hit.endLine > hit.line;
         return (
             <>
                 {before}
                 <span className="notepadia-search-results-match">{match}</span>
                 {after}
+                {multiline && <span className="notepadia-search-results-multiline"> [+{hit.endLine! - hit.line} line{hit.endLine! - hit.line === 1 ? '' : 's'}]</span>}
             </>
         );
     }

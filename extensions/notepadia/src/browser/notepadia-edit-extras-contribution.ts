@@ -661,11 +661,18 @@ export class NotepadiaEditExtrasContribution implements CommandContribution, Fro
         if (!control || !model || !selection) {
             return;
         }
+        const selectionIsMultiline = !selection.isEmpty() && selection.startLineNumber !== selection.endLineNumber;
+        if (selectionIsMultiline) {
+            // Refuse before consulting the caret word, and say why: falling
+            // through used to place cursors for a word nobody selected.
+            this.messageService.info(MULTI_SELECT_NO_TARGET_MESSAGE);
+            return;
+        }
         const word = model.getWordAtPosition(selection.getStartPosition());
         const term = multiSelectTerm({
             selectionText: selection.isEmpty() ? '' : model.getValueInRange(selection),
             wordAtPosition: word?.word,
-            selectionIsMultiline: !selection.isEmpty() && selection.startLineNumber !== selection.endLineNumber
+            selectionIsMultiline
         });
         if (!term) {
             this.messageService.info(MULTI_SELECT_NO_TARGET_MESSAGE);

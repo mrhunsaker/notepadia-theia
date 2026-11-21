@@ -39,6 +39,34 @@ async function fileMenuEntries(page) {
     return entries;
 }
 
+async function activateTab(page, title) {
+    const labels = await page.$$('.lm-TabBar .lm-TabBar-tabLabel');
+    for (const label of labels) {
+        if (((await label.evaluate(e => e.textContent)) || '').trim() === title) {
+            await label.click();
+            await sleep(1200);
+            return true;
+        }
+    }
+    return false;
+}
+
+async function notifications(page) {
+    return page.evaluate(() => Array.from(document.querySelectorAll('.theia-notification-message'))
+        .map(e => (e.textContent || '').trim()));
+}
+
+async function waitForNotification(page, needle) {
+    const deadline = Date.now() + 10000;
+    while (Date.now() < deadline) {
+        if ((await notifications(page)).some(text => text.includes(needle))) {
+            return true;
+        }
+        await sleep(400);
+    }
+    return false;
+}
+
 (async () => {
     const { browser, page, errors } = await launchPage({ viewport: { width: 1440, height: 1000 } });
     try {
@@ -162,6 +190,42 @@ async function fileMenuEntries(page) {
         titles = await tabTitles(page);
         assert('Delete from Disk closes the tab', !titles.includes('menu-renamed.txt'), titles.join(', '));
 
+        // --- BUG-006: renaming onto a dirty open target must refuse -------------
+        clean('menu-rename-source.txt', 'menu-rename-target.txt');
+        write('menu-rename-source.txt', 'SOURCE\n');
+        write('menu-rename-target.txt', 'TARGET\n');
+        await openFile(page, 'menu-rename-target.txt');
+        await clickEditorLine(page, 0);
+        await page.keyboard.type('DIRTY ');
+        await sleep(1000);
+        const dirtyTarget = await modelText(page);
+        assert('the rename target has unsaved text before the attempt',
+            dirtyTarget.includes('DIRTY') && dirtyTarget.includes('TARGET'), JSON.stringify(dirtyTarget));
+        await openFile(page, 'menu-rename-source.txt');
+        await closeMenus(page);
+        await clickMenuItem(page, 'File', 'Rename...');
+        await waitFor(page, '.dialogContent input', 15000, 'rename conflict dialog');
+        await setDialogInput(page, 'menu-rename-target.txt');
+        await clickDialogButton(page, 'Rename');
+        await sleep(1500);
+        await closeMenus(page);
+        assert('rename onto a dirty target is refused with a clear warning',
+            await waitForNotification(page, 'unsaved changes'),
+            JSON.stringify(await notifications(page)));
+        assert('rename onto a dirty target never offers the replace prompt',
+            (await dialogPrimaryLabel(page)) !== 'Replace', String(await dialogPrimaryLabel(page)));
+        assert('the refused rename leaves both files in place',
+            exists('menu-rename-source.txt') && exists('menu-rename-target.txt'),
+            JSON.stringify(fs.readdirSync(WS).filter(f => f.startsWith('menu-rename'))));
+        assert('the refused rename does not overwrite the target on disk',
+            read('menu-rename-target.txt') === 'TARGET\n', JSON.stringify(read('menu-rename-target.txt')));
+        assert('the dirty target tab can be reactivated', await activateTab(page, 'menu-rename-target.txt'));
+        const preservedTarget = await modelText(page);
+        assert('the unsaved target text survives the refused rename',
+            preservedTarget.includes('DIRTY') && preservedTarget.includes('TARGET')
+            && !preservedTarget.includes('SOURCE'), JSON.stringify(preservedTarget));
+        clean('menu-rename-source.txt', 'menu-rename-target.txt');
+
         // --- Save a Copy As on an untitled document -------------------------------
         // This is the one case where a copy is the only way to get the text out
         // of the browser, so it must not depend on there being a file behind the
@@ -192,7 +256,8 @@ async function fileMenuEntries(page) {
         assert('copying an untitled document does not turn the tab into a file',
             titles.some(t => t.startsWith('new ')), titles.join(', '));
 
-        clean('menu-notes.txt', 'menu-notes-copy.txt', 'menu-untitled-copy.txt');
+        clean('menu-notes.txt', 'menu-notes-copy.txt', 'menu-untitled-copy.txt',
+            'menu-rename-source.txt', 'menu-rename-target.txt');
         assert('no page errors', errors.length === 0, JSON.stringify(errors.slice(0, 3)));
     } catch (e) {
         console.log('FAIL file-menu suite -- ' + e.message);
